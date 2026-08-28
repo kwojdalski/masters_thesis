@@ -1241,7 +1241,7 @@ def _check_val_test_imbalance(config: ExperimentConfig) -> Finding | None:
     """WARN: val_size and test_size both set but differ by more than 5×."""
     vs = config.data.validation_size
     ts = config.data.test_size
-    if vs is None or ts is None or ts == 0:
+    if vs is None or ts is None or vs == 0 or ts == 0:
         return None
     ratio = max(vs, ts) / min(vs, ts)
     if ratio > 5:
