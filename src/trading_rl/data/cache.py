@@ -108,6 +108,12 @@ def _expected_cached_split_rows(
     train_rows = getattr(config.data, "train_size", None)
     validation_size = getattr(config.data, "validation_size", None)
     test_size = getattr(config.data, "test_size", None)
+    # The cached train split has warmup_rows already dropped (_apply_warmup_skip
+    # runs before the cache is written), so the expectation must match that,
+    # not the raw configured train_size.
+    warmup_rows = getattr(config.data, "warmup_rows", 0) or 0
+    if train_rows is not None:
+        train_rows = max(0, train_rows - warmup_rows)
     return {
         SplitName.TRAIN: train_rows,
         SplitName.VAL: validation_size * val_test_multiplier
@@ -154,7 +160,10 @@ def _memmap_cache_compatible(
     if getattr(config.data, "val_data_paths", None):
         return True
 
-    expected_train_rows = int(config.data.train_size)
+    # Memmaps are also saved post-warmup-skip, so the expectation must match
+    # the post-skip row count, not the raw configured train_size.
+    warmup_rows = getattr(config.data, "warmup_rows", 0) or 0
+    expected_train_rows = max(0, int(config.data.train_size) - warmup_rows)
     bad_rows = [p.n_rows for p in paths if p.n_rows < expected_train_rows]
     if bad_rows:
         logger.info(
