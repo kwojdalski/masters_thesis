@@ -39,6 +39,10 @@ def _cache_config(tmp_path: Path, data_path: Path) -> ExperimentConfig:
                 "prepared_data_dir": str(tmp_path / "prepared"),
                 "memmap_dir": str(tmp_path / "memmap"),
                 "download_data": False,
+                # warmup_rows defaults to 300, which would exceed this test's
+                # tiny train_size=5 and make the cache row-count check trivially
+                # pass (expected = max(0, train_size - warmup_rows) = 0).
+                "warmup_rows": 0,
             },
             "env": {
                 "backend": "tradingenv",
