@@ -82,8 +82,13 @@
 % trailing \vfil. WNE UW rule 1c expects the abstract, Erasmus codes, and
 % thematic classification to share a single page, so the abstract starts at
 % the top of the page and flows normally instead.
+% Body text stays at the document's 12 pt (WNE UW rule 2). The \large here
+% previously rendered the abstract at 14.3 pt against 12 pt body text. Every
+% font-size deviation the requirements allow is downward -- 10 pt for
+% footnotes (rule 8), figure sources (rule 11), and long block quotations
+% (rule 7) -- and none licenses a larger font, so there is no basis for
+% setting the abstract above 12 pt.
 \renewenvironment{abstract}{%
-  \large % Set font size to large for the abstract
   \begin{center}
     \bfseries \abstractname
   \end{center}
