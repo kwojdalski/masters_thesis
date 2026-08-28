@@ -49,6 +49,24 @@ def _is_ppo(algorithm: str) -> bool:
     return algorithm.upper() == "PPO"
 
 
+def _effective_eval_steps(config: ExperimentConfig) -> int | None:
+    """Return the eval step count actually used at runtime, or None if unknown.
+
+    EvaluationConfig.resolve_eval_steps ignores the raw eval_steps field
+    entirely whenever eval_fraction is set, deriving the real value from
+    val_len instead. Guardrails must compare against this effective value,
+    not the raw field, or they silently never fire once eval_fraction is
+    configured (see #487). config.data.validation_size is used as the
+    val_len proxy available at guardrail-check time; if it is unset (e.g.
+    per-day/unbounded mode) the effective value cannot be resolved here.
+    """
+    if config.evaluation.eval_fraction is None:
+        return config.evaluation.eval_steps
+    if config.data.validation_size is None:
+        return None
+    return config.evaluation.resolve_eval_steps(config.data.validation_size)
+
+
 # ---------------------------------------------------------------------------
 # Individual checks
 # ---------------------------------------------------------------------------
@@ -633,8 +651,8 @@ def _check_seed_none(config: ExperimentConfig) -> Finding | None:
 def _check_validation_size_vs_eval_steps(config: ExperimentConfig) -> Finding | None:
     """WARN: validation_size < eval_steps → eval silently runs fewer steps than requested."""
     vs = config.data.validation_size
-    es = config.evaluation.eval_steps
-    if vs is not None and vs < es:
+    es = _effective_eval_steps(config)
+    if vs is not None and es is not None and vs < es:
         return Finding(
             severity=Severity.WARN,
             parameter="data.validation_size / evaluation.eval_steps",
@@ -1089,8 +1107,8 @@ def _check_reward_scale_zero(config: ExperimentConfig) -> Finding | None:
 
 def _check_eval_steps_too_small(config: ExperimentConfig) -> Finding | None:
     """WARN: eval_steps < 10 → evaluation metrics computed on fewer than 10 steps are noise."""
-    es = config.evaluation.eval_steps
-    if es < 10:
+    es = _effective_eval_steps(config)
+    if es is not None and es < 10:
         return Finding(
             severity=Severity.WARN,
             parameter="evaluation.eval_steps",
@@ -1174,8 +1192,8 @@ def _check_no_neutral_position(config: ExperimentConfig) -> Finding | None:
 def _check_temp_eval_shorter_than_final(config: ExperimentConfig) -> Finding | None:
     """WARN: temp_eval.max_steps < eval_steps → periodic eval runs fewer steps than final eval."""
     temp_max = config.training.temp_eval.max_steps
-    final_steps = config.evaluation.eval_steps
-    if temp_max < final_steps:
+    final_steps = _effective_eval_steps(config)
+    if final_steps is not None and temp_max < final_steps:
         return Finding(
             severity=Severity.WARN,
             parameter="training.temp_eval.max_steps / evaluation.eval_steps",
