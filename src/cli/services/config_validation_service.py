@@ -134,9 +134,15 @@ def _validate_split_feasibility(
         return
 
     remaining = dataset_len - train_size
+    test_size = config.data.test_size
     validation_size = config.data.validation_size
     if validation_size is None:
-        validation_size = remaining // 2
+        # Mirrors preparation.py's split-resolution formula: when test_size is
+        # explicitly set, validation_size defaults to what's left after
+        # reserving room for it, not an unconditional 50/50 split.
+        validation_size = (
+            remaining // 2 if test_size is None else max(0, remaining - test_size)
+        )
     if validation_size < 0:
         report.add(
             code="VALIDATION_SPLIT_NEGATIVE",
@@ -155,6 +161,19 @@ def _validate_split_feasibility(
                 f"remaining samples after train split ({remaining})"
             ),
         )
+        return
+    if test_size is not None:
+        test_end = train_size + validation_size + test_size
+        if test_end > dataset_len:
+            report.add(
+                code="TEST_SPLIT_INVALID",
+                severity=Severity.ERROR,
+                check="split",
+                message=(
+                    f"train_size + validation_size + test_size ({test_end}) "
+                    f"exceeds dataset length ({dataset_len})"
+                ),
+            )
 
 
 def _validate_env_columns(
@@ -237,9 +256,7 @@ def _validate_feature_domains(
             code="ENV_MODE_INVALID",
             severity=Severity.ERROR,
             check="feature_mode",
-            message=(
-                f"env.mode must be one of {sorted(EnvMode)}, got '{mode}'."
-            ),
+            message=(f"env.mode must be one of {sorted(EnvMode)}, got '{mode}'."),
         )
         return
 
