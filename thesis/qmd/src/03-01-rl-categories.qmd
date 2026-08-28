@@ -6,7 +6,7 @@ The diagram below maps the reinforcement learning landscape from the Bellman
 equation through the key algorithmic relaxations that lead to TD3. It is
 intended as an orientation before the detailed treatment that follows.
 
-![RL algorithm taxonomy from Bellman equation to TD3](diagrams/fig-rl-taxonomy.svg){#fig-rl-taxonomy fig-align="center" width="6.4in"}
+![RL algorithm taxonomy from Bellman equation to TD3](diagrams/fig-rl-taxonomy.svg){#fig-rl-taxonomy fig-align="center" width="6.4in" fig-pos="H"}
 
 Source: author's own diagram, based on [@Sutton2018].[^taxonomy-note]
 

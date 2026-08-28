@@ -21,7 +21,6 @@ from torchrl.envs.utils import set_exploration_type
 from logger import get_logger, is_level_enabled
 from trading_rl.config import EvaluationConfig, TrainingConfig
 from trading_rl.constants import BenchmarkName
-from trading_rl.evaluation.benchmarks import benchmarks_from_config
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.profiler import get_profiler
 from trading_rl.trainers.checkpointing import CheckpointManager, TrainingCheckpoint
@@ -188,7 +187,7 @@ def _run_evaluation(
         (reward_plot, action_plot, None, final_reward, last_positions,
          equity_curve_plot, merged_plot)
     """
-    from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE
+    from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, EvaluationRunParams
     from trading_rl.evaluation.evaluator import (
         StrategyEvaluator,
         StrategyEvaluatorConfig,
@@ -196,35 +195,36 @@ def _run_evaluation(
     from trading_rl.utils import create_equity_curve_plot, create_merged_comparison_plot
 
     env_to_use = eval_env or trainer.env
+    params = EvaluationRunParams.from_config(config) if config else None
     eval_config_kwargs: dict[str, Any] = {}
 
-    if config:
+    if params:
         from trading_rl.evaluation.evaluator import EvaluatorEnvConfig
 
         eval_config_kwargs = {
-            "reward_type": config.env.reward_type,
-            "backend": config.env.backend,
-            "price_column": config.env.price_column,
+            "reward_type": params.reward_type,
+            "backend": params.backend,
+            "price_column": params.price_column,
             "max_steps": max_steps,
             "enable_plots": True,
             "enable_metrics": False,
-            "max_plot_points": config.training.max_plot_points,
-            "show_allocation_ma": config.training.show_allocation_ma,
-            "allocation_ma_window": config.training.allocation_ma_window,
-            "eval_plots": tuple(config.evaluation.eval_plots),
+            "max_plot_points": params.max_plot_points,
+            "show_allocation_ma": params.show_allocation_ma,
+            "allocation_ma_window": params.allocation_ma_window,
+            "eval_plots": params.eval_plots,
             "training_steps": int(trainer.total_count) if trainer is not None else None,
             "training_episodes": int(trainer.total_episodes)
             if trainer is not None
             else None,
-            "benchmarks": benchmarks_from_config(config.benchmarks),
+            "benchmarks": params.benchmarks,
             "env": EvaluatorEnvConfig(
-                name=config.env.name,
-                positions=config.env.positions,
-                mode=config.env.mode,
-                trading_fees=config.env.trading_fees,
-                borrow_interest_rate=config.env.borrow_interest_rate,
-                initial_portfolio_value=config.env.initial_portfolio_value,
-                price_column=config.env.price_column or "close",
+                name=params.env_name,
+                positions=params.positions,
+                mode=params.mode,
+                trading_fees=params.trading_fees,
+                borrow_interest_rate=params.borrow_interest_rate,
+                initial_portfolio_value=params.initial_portfolio_value,
+                price_column=params.price_column,
             ),
         }
 
@@ -251,7 +251,6 @@ def _run_evaluation(
         with profiler.stage("plot_equity_curve", 2):
             _t = time.monotonic()
             logger.trace("create_equity_curve_plot start n_steps={}", max_steps)
-            _data_paths = config.data.data_paths if config else None
             plot_series = result.return_series or ReturnSeries(
                 result.simple_returns, ReturnKind.SIMPLE
             )
@@ -262,21 +261,19 @@ def _run_evaluation(
                 env=env_to_use,
                 actual_returns_list=[plot_series],
                 initial_portfolio_value=(
-                    float(config.env.initial_portfolio_value)
-                    if config
+                    float(params.initial_portfolio_value)
+                    if params
                     else DEFAULT_INITIAL_PORTFOLIO_VALUE
                 ),
-                benchmark_price_column=config.env.price_column or "close"
-                if config
-                else "close",
-                benchmarks=benchmarks_from_config(config.benchmarks)
-                if config
+                benchmark_price_column=params.price_column if params else "close",
+                benchmarks=params.benchmarks
+                if params
                 else frozenset({BenchmarkName.BUY_AND_HOLD}),
                 training_steps=trainer.total_count,
                 training_episodes=trainer.total_episodes,
-                n_total_symbols=len(_data_paths) if _data_paths else None,
-                max_plot_points=config.training.max_plot_points if config else None,
-                reward_type=str(config.env.reward_type) if config else None,
+                n_total_symbols=params.n_total_symbols if params else None,
+                max_plot_points=params.max_plot_points if params else None,
+                reward_type=str(params.reward_type) if params else None,
             )
             logger.trace(
                 "evaluate.plot_equity_curve elapsed_s={:.2f}", time.monotonic() - _t

@@ -46,7 +46,34 @@ def _is_off_policy(algorithm: str) -> bool:
 
 
 def _is_ppo(algorithm: str) -> bool:
+    """Whether the algorithm consumes the training.ppo.* sub-config.
+
+    Both PPO and RECURRENT_PPO read clip_epsilon/entropy_bonus/epochs/vf_coef,
+    so checks on those fields apply to both.
+    """
     return algorithm.upper() in {"PPO", "RECURRENT_PPO"}
+
+
+def _uses_additive_exploration_noise(algorithm: str) -> bool:
+    """Whether the algorithm explores via AdditiveGaussianModule noise.
+
+    Only DDPG and TD3 build one from training.td3.exploration_noise_std. SAC
+    is off-policy too but explores through its stochastic policy and entropy
+    term and never reads that field, so noise-based exploration checks would
+    report on a value SAC ignores (see the false positive noted after #486).
+    """
+    return algorithm.upper() in {"DDPG", "TD3"}
+
+
+def _uses_ppo_minibatching(algorithm: str) -> bool:
+    """Whether the algorithm splits each rollout into sample_size minibatches.
+
+    Only plain PPO does. RecurrentPPOTrainer fully overrides _optimization_step
+    and does one full-rollout update per epoch, never reading sample_size --
+    so minibatch-vs-rollout and updates-per-rollout checks must not treat it
+    as PPO (see the FATAL false positive noted after #488).
+    """
+    return algorithm.upper() == "PPO"
 
 
 def _effective_eval_steps(config: ExperimentConfig) -> int | None:
@@ -63,6 +90,14 @@ def _effective_eval_steps(config: ExperimentConfig) -> int | None:
     if config.evaluation.eval_fraction is None:
         return config.evaluation.eval_steps
     if config.data.validation_size is None:
+        # Under eval_fraction the true length is int(val_len * fraction), and
+        # val_len is only knowable by loading the data -- which guardrails,
+        # being config-only checks, must not do. Skipping is correct here;
+        # comparing against the raw eval_steps field (the pre-#487 behavior)
+        # would silently compare a value the runtime never uses. Note this
+        # means these checks stay inert on the 16 of 21 shipped eval_fraction
+        # scenarios that leave validation_size unset; catching those needs a
+        # data-aware check in the CLI validation service, not here.
         return None
     return config.evaluation.resolve_eval_steps(config.data.validation_size)
 
@@ -111,7 +146,7 @@ def _check_sample_size_vs_buffer(config: ExperimentConfig) -> Finding | None:
 
 def _check_ppo_minibatch_vs_batch(config: ExperimentConfig) -> Finding | None:
     """FATAL (PPO): sample_size > frames_per_batch → mini-batch larger than rollout."""
-    if not _is_ppo(config.training.algorithm):
+    if not _uses_ppo_minibatching(config.training.algorithm):
         return None
     s = config.training.sample_size
     f = config.training.frames_per_batch
@@ -365,7 +400,14 @@ def _check_ppo_updates_per_rollout(config: ExperimentConfig) -> Finding | None:
     s = config.training.sample_size
     epochs = config.training.ppo.epochs
     steps_per_batch = config.training.optim_steps_per_batch
-    updates = epochs * math.ceil(f / max(s, 1))
+    # RecurrentPPO does one full-rollout update per epoch (it overrides
+    # _optimization_step and never minibatches), so multiplying by the
+    # minibatch count would overstate its update count by ceil(f/s).
+    updates = (
+        epochs * math.ceil(f / max(s, 1))
+        if _uses_ppo_minibatching(config.training.algorithm)
+        else epochs
+    )
     limit = 100
     if updates > limit:
         return Finding(
@@ -754,7 +796,7 @@ def _check_streaming_episode_vs_warmup_rows(config: ExperimentConfig) -> Finding
 
 def _check_no_exploration(config: ExperimentConfig) -> Finding | None:
     """WARN (DDPG/TD3): exploration_noise_std=0 and init_rand_steps=0 → no exploration at all."""
-    if not _is_off_policy(config.training.algorithm):
+    if not _uses_additive_exploration_noise(config.training.algorithm):
         return None
     noise = config.training.td3.exploration_noise_std
     rand_steps = config.training.init_rand_steps
@@ -866,7 +908,7 @@ def _check_grad_norm_too_tight(config: ExperimentConfig) -> Finding | None:
 
 def _check_exploration_noise_too_large(config: ExperimentConfig) -> Finding | None:
     """WARN (DDPG/TD3): exploration_noise_std > 1.0 → noise overwhelms policy output."""
-    if not _is_off_policy(config.training.algorithm):
+    if not _uses_additive_exploration_noise(config.training.algorithm):
         return None
     noise = config.training.td3.exploration_noise_std
     if noise > 1.0:

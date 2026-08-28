@@ -9,6 +9,7 @@ import pytest
 import torch
 from tensordict import TensorDict
 
+from trading_rl.config import EvaluationRunParams
 from trading_rl.constants import RewardType
 from trading_rl.evaluation.returns import ReturnKind, ReturnSeries
 from trading_rl.trainers.base import _run_evaluation
@@ -70,10 +71,40 @@ def _minimal_experiment_config() -> SimpleNamespace:
             show_allocation_ma=False,
             allocation_ma_window=4,
         ),
-        evaluation=SimpleNamespace(eval_plots=("rewards", "positions", "portfolio_value")),
+        evaluation=SimpleNamespace(
+            eval_plots=("rewards", "positions", "portfolio_value")
+        ),
         benchmarks=None,
         data=SimpleNamespace(data_paths=["a.csv", "b.csv"]),
     )
+
+
+def test_evaluation_run_params_from_config_extracts_narrow_fields() -> None:
+    """EvaluationRunParams.from_config must extract exactly the fields
+    _run_evaluation needs from an ExperimentConfig, matching the DI pattern
+    already used by LoggingParams/MLflowCallbackParams/TrainerConstructionParams."""
+    params = EvaluationRunParams.from_config(_minimal_experiment_config())
+
+    assert params.reward_type == RewardType.LOG_RETURN
+    assert params.backend == "tradingenv"
+    assert params.price_column == "close"
+    assert params.max_plot_points == 7
+    assert params.show_allocation_ma is False
+    assert params.allocation_ma_window == 4
+    assert params.eval_plots == ("rewards", "positions", "portfolio_value")
+    assert params.n_total_symbols == 2
+    assert params.env_name == "eval-env"
+    assert params.positions == [-1, 0, 1]
+    assert params.initial_portfolio_value == pytest.approx(1234.0)
+
+
+def test_evaluation_run_params_price_column_falls_back_to_close() -> None:
+    config = _minimal_experiment_config()
+    config.env.price_column = None
+
+    params = EvaluationRunParams.from_config(config)
+
+    assert params.price_column == "close"
 
 
 def test_run_evaluation_returns_expected_plots_and_records_result(monkeypatch) -> None:
@@ -92,9 +123,7 @@ def test_run_evaluation_returns_expected_plots_and_records_result(monkeypatch) -
                 final_reward=1.25,
                 last_positions=[-1.0, 0.0, 1.0],
                 simple_returns=np.array([0.01, -0.02]),
-                return_series=ReturnSeries(
-                    np.array([0.01, -0.02]), ReturnKind.SIMPLE
-                ),
+                return_series=ReturnSeries(np.array([0.01, -0.02]), ReturnKind.SIMPLE),
             )
 
     def fake_equity_curve_plot(*args, **kwargs):
@@ -109,7 +138,9 @@ def test_run_evaluation_returns_expected_plots_and_records_result(monkeypatch) -
     import trading_rl.utils as utils_module
 
     monkeypatch.setattr(evaluator_module, "StrategyEvaluator", FakeEvaluator)
-    monkeypatch.setattr(utils_module, "create_equity_curve_plot", fake_equity_curve_plot)
+    monkeypatch.setattr(
+        utils_module, "create_equity_curve_plot", fake_equity_curve_plot
+    )
     monkeypatch.setattr(utils_module, "create_merged_comparison_plot", fake_merged_plot)
 
     trainer = SimpleNamespace(

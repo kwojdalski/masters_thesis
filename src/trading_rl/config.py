@@ -1217,3 +1217,54 @@ class TrainerConstructionParams:
             checkpoint_dir=config.logging.log_dir,
             checkpoint_prefix=checkpoint_prefix,
         )
+
+
+@dataclass(frozen=True)
+class EvaluationRunParams:
+    """Parameters for one BaseTrainer.evaluate() rollout-and-plot pass.
+
+    Extracted so ``_run_evaluation`` (trainers/base.py) reads a narrow,
+    testable contract instead of reaching into ExperimentConfig fields
+    inline, mirroring TrainerConstructionParams/MLflowCallbackParams/
+    LoggingParams above.
+    """
+
+    reward_type: str
+    backend: str
+    price_column: str
+    max_plot_points: int | None
+    show_allocation_ma: bool
+    allocation_ma_window: int
+    eval_plots: tuple[str, ...]
+    benchmarks: frozenset[BenchmarkName]
+    n_total_symbols: int | None
+    env_name: str
+    positions: list[int]
+    mode: str
+    trading_fees: float
+    borrow_interest_rate: float
+    initial_portfolio_value: float
+
+    @classmethod
+    def from_config(cls, config: ExperimentConfig) -> "EvaluationRunParams":
+        from trading_rl.evaluation.benchmarks import benchmarks_from_config
+
+        price_column = config.env.price_column or "close"
+        data_paths = getattr(config.data, "data_paths", None)
+        return cls(
+            reward_type=config.env.reward_type,
+            backend=config.env.backend,
+            price_column=price_column,
+            max_plot_points=config.training.max_plot_points,
+            show_allocation_ma=config.training.show_allocation_ma,
+            allocation_ma_window=config.training.allocation_ma_window,
+            eval_plots=tuple(config.evaluation.eval_plots),
+            benchmarks=benchmarks_from_config(config.benchmarks),
+            n_total_symbols=len(data_paths) if data_paths else None,
+            env_name=config.env.name,
+            positions=config.env.positions,
+            mode=config.env.mode,
+            trading_fees=config.env.trading_fees,
+            borrow_interest_rate=config.env.borrow_interest_rate,
+            initial_portfolio_value=config.env.initial_portfolio_value,
+        )

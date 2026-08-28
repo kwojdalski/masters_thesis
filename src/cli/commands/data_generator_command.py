@@ -14,6 +14,7 @@ from .base_command import BaseCommand
 @dataclass
 class DataGenerationParams:
     """Parameters for data generation."""
+
     scenario: str | None = None
     source_dir: str | None = None
     output_dir: str | None = None
@@ -29,6 +30,7 @@ class DataGenerationParams:
 @dataclass
 class SineWaveParams:
     """Sine wave pattern parameters."""
+
     enabled: bool = False
     n_periods: int | None = None
     samples_per_period: int | None = None
@@ -41,6 +43,7 @@ class SineWaveParams:
 @dataclass
 class UpwardDriftParams:
     """Upward drift pattern parameters."""
+
     enabled: bool = False
     drift_samples: int | None = None
     drift_rate: float | None = None
@@ -91,10 +94,16 @@ class DataGeneratorCommand(BaseCommand):
             # Execute appropriate generation strategy
             if params.list_files:
                 self._list_files(generator)
+            elif defaults.pattern_type == PatternType.RANDOM_WALK:
+                self._generate_random_walk(generator, defaults, params.output_file)
             elif sine_wave.enabled:
-                self._generate_sine_wave(generator, sine_wave, defaults, params.output_file)
+                self._generate_sine_wave(
+                    generator, sine_wave, defaults, params.output_file
+                )
             elif upward_drift.enabled:
-                self._generate_upward_drift(generator, upward_drift, defaults, params.output_file)
+                self._generate_upward_drift(
+                    generator, upward_drift, defaults, params.output_file
+                )
             elif params.copy:
                 self._copy_data(generator, params)
             else:
@@ -171,7 +180,9 @@ class DataGeneratorCommand(BaseCommand):
 
         return sine_wave, upward_drift
 
-    def _create_generator(self, params: DataGenerationParams, defaults: ScenarioDefaults):
+    def _create_generator(
+        self, params: DataGenerationParams, defaults: ScenarioDefaults
+    ):
         """Create and configure data generator."""
         from data_generator import PriceDataGenerator
 
@@ -218,7 +229,11 @@ class DataGeneratorCommand(BaseCommand):
                 self.logger.info("  - {}", f)
 
     def _generate_sine_wave(
-        self, generator, sine_wave: SineWaveParams, defaults: ScenarioDefaults, output_file: str | None
+        self,
+        generator,
+        sine_wave: SineWaveParams,
+        defaults: ScenarioDefaults,
+        output_file: str | None,
     ) -> None:
         """Generate sine wave pattern."""
         output_file_name = output_file or "sine_wave_pattern.parquet"
@@ -233,6 +248,7 @@ class DataGeneratorCommand(BaseCommand):
             trend_slope=float(sine_params["trend_slope"]),
             volatility=float(sine_params["volatility"]),
             start_date=str(sine_params["start_date"]),
+            seed=sine_params["seed"],
         )
         self.logger.info("generate sine wave pattern rows={}", len(df))
 
@@ -241,25 +257,40 @@ class DataGeneratorCommand(BaseCommand):
     ) -> dict[str, Any]:
         """Build parameter dictionary for sine wave generation."""
         return {
-            "n_periods": self._coalesce(sine_wave.n_periods, pattern_defaults.get("n_periods"), 3),
+            "n_periods": self._coalesce(
+                sine_wave.n_periods, pattern_defaults.get("n_periods"), 3
+            ),
             "samples_per_period": self._coalesce(
-                sine_wave.samples_per_period, pattern_defaults.get("samples_per_period"), 120
+                sine_wave.samples_per_period,
+                pattern_defaults.get("samples_per_period"),
+                120,
             ),
             "base_price": self._coalesce(
                 sine_wave.base_price, pattern_defaults.get("base_price"), 50000.0
             ),
-            "amplitude": self._coalesce(sine_wave.amplitude, pattern_defaults.get("amplitude"), 5000.0),
-            "trend_slope": self._coalesce(sine_wave.trend_slope, pattern_defaults.get("trend_slope"), 0.0),
+            "amplitude": self._coalesce(
+                sine_wave.amplitude, pattern_defaults.get("amplitude"), 5000.0
+            ),
+            "trend_slope": self._coalesce(
+                sine_wave.trend_slope, pattern_defaults.get("trend_slope"), 0.0
+            ),
             "volatility": self._coalesce(
                 sine_wave.volatility, pattern_defaults.get("volatility"), 0.00001
             ),
             "start_date": self._coalesce(
                 pattern_defaults.get("start_date"), "2024-01-01"
             ),
+            # None means "unseeded" (non-reproducible); only an explicit
+            # seed: in the scenario YAML makes generation deterministic.
+            "seed": pattern_defaults.get("seed"),
         }
 
     def _generate_upward_drift(
-        self, generator, upward_drift: UpwardDriftParams, defaults: ScenarioDefaults, output_file: str | None
+        self,
+        generator,
+        upward_drift: UpwardDriftParams,
+        defaults: ScenarioDefaults,
+        output_file: str | None,
     ) -> None:
         """Generate upward drift pattern."""
         output_file_name = output_file or "upward_drift_pattern.parquet"
@@ -273,6 +304,7 @@ class DataGeneratorCommand(BaseCommand):
             volatility=float(drift_params["volatility"]),
             pullback_floor=float(drift_params["pullback_floor"]),
             start_date=str(drift_params["start_date"]),
+            seed=drift_params["seed"],
         )
         self.logger.info("generate upward drift pattern rows={}", len(df))
 
@@ -281,13 +313,17 @@ class DataGeneratorCommand(BaseCommand):
     ) -> dict[str, Any]:
         """Build parameter dictionary for upward drift generation."""
         return {
-            "n_samples": self._coalesce(upward_drift.drift_samples, pattern_defaults.get("n_samples"), 500),
-            "base_price": self._coalesce(
-                pattern_defaults.get("base_price"), 50000.0
+            "n_samples": self._coalesce(
+                upward_drift.drift_samples, pattern_defaults.get("n_samples"), 500
             ),
-            "drift_rate": self._coalesce(upward_drift.drift_rate, pattern_defaults.get("drift_rate"), 0.015),
+            "base_price": self._coalesce(pattern_defaults.get("base_price"), 50000.0),
+            "drift_rate": self._coalesce(
+                upward_drift.drift_rate, pattern_defaults.get("drift_rate"), 0.015
+            ),
             "volatility": self._coalesce(
-                upward_drift.drift_volatility, pattern_defaults.get("volatility"), 0.0005
+                upward_drift.drift_volatility,
+                pattern_defaults.get("volatility"),
+                0.0005,
             ),
             "pullback_floor": self._coalesce(
                 upward_drift.drift_floor, pattern_defaults.get("pullback_floor"), 0.995
@@ -295,7 +331,31 @@ class DataGeneratorCommand(BaseCommand):
             "start_date": self._coalesce(
                 pattern_defaults.get("start_date"), "2024-01-01"
             ),
+            # None means "unseeded" (non-reproducible); only an explicit
+            # seed: in the scenario YAML makes generation deterministic.
+            "seed": pattern_defaults.get("seed"),
         }
+
+    def _generate_random_walk(
+        self, generator, defaults: ScenarioDefaults, output_file: str | None
+    ) -> None:
+        """Generate a driftless random walk (the white-noise negative control)."""
+        output_file_name = output_file or "random_walk_pattern.parquet"
+        pattern_defaults = defaults.pattern or {}
+
+        df = generator.generate_random_walk_pattern(
+            output_file=output_file_name,
+            n_samples=int(self._coalesce(pattern_defaults.get("n_samples"), 500)),
+            base_price=float(
+                self._coalesce(pattern_defaults.get("base_price"), 50000.0)
+            ),
+            volatility=float(self._coalesce(pattern_defaults.get("volatility"), 0.001)),
+            start_date=str(
+                self._coalesce(pattern_defaults.get("start_date"), "2024-01-01")
+            ),
+            seed=pattern_defaults.get("seed"),
+        )
+        self.logger.info("generate random walk pattern rows={}", len(df))
 
     def _copy_data(self, generator, params: DataGenerationParams) -> None:
         """Copy data without modifications."""
