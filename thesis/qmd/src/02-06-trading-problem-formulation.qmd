@@ -46,7 +46,7 @@ is on why each one is consequential for trading problems.
 
 \end{tikzpicture}
 
-{\footnotesize Source: author's own elaboration, based on Sutton \& Barto (2018).}
+{\raggedright\noindent\footnotesize Source: author's own elaboration, based on Sutton \& Barto (2018).\par}
 \end{figure}
 ```
 

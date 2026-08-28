@@ -8,7 +8,9 @@ intended as an orientation before the detailed treatment that follows.
 
 ![RL algorithm taxonomy from Bellman equation to TD3](diagrams/fig-rl-taxonomy.svg){#fig-rl-taxonomy fig-align="center" width="6.4in" fig-pos="H"}
 
-Source: author's own diagram, based on [@Sutton2018].[^taxonomy-note]
+::: {.table-note}
+**Source:** Author's own diagram, based on [@Sutton2018].[^taxonomy-note]
+:::
 
 [^taxonomy-note]: This taxonomy is a pedagogical simplification, not a precise classification. Categories have fuzzy boundaries: PPO appears under both "Policy-Based" and "Actor-Critic" because it combines a stochastic policy with a value-based critic; DDPG, TD3, and SAC share an "Off-Policy" branch despite fundamental differences in policy type and objective. Readers should not infer mutually exclusive algorithmic families from the crisp boundaries shown here.
 
