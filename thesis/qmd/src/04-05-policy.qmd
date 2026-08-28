@@ -85,6 +85,7 @@ _rows.append({
 
 display(HTML(pd.DataFrame(_rows).to_html(index=False, escape=False)))
 table_note(
+    source="Author's own elaboration.",
     note=(
         "Input dimension $d$ and hidden layer widths are loaded from the experiment snapshot; "
         "parameter counts are computed from those values."
@@ -243,3 +244,7 @@ the controlled comparison.
 | Actor update freq. | Every epoch | Every step | Every 2 critic steps |
 
 : Policy design choices for each algorithm in the controlled comparison. {#tbl-policy-comparison}
+
+::: {.table-note}
+**Source:** Author's own elaboration.
+:::

@@ -15,13 +15,21 @@
 \LoadClass{\@baseclass}
 
 % List of Appendices, structured like \listoffigures/\listoftables below.
-% Entries are registered per-appendix via \addcontentsline{loa}{section}{...}
+% Entries are registered per-appendix via \addcontentsline{lap}{section}{...}
 % in 99-appendix.qmd. Chained onto \listoftables (rather than exposed as a
-% separate Quarto option, since Pandoc's PDF template has no native "loa"
+% separate Quarto option, since Pandoc's PDF template has no native "lap"
 % front-matter switch) so it appears immediately after the existing
 % List of Tables, on its own page.
+%
+% Extension is "lap" (not "loa"): the algorithm package (loaded in
+% masters-thesis.qmd's header-includes for the pseudocode-block algorithms)
+% already writes its own List-of-Algorithms entries to a .loa file via every
+% \caption{...} inside an algorithm environment. Reusing "loa" here silently
+% merged those algorithm captions into this list, run together with no line
+% breaks or page numbers since they weren't logged at the "section" level
+% tocloft formats.
 \usepackage{tocloft}
-\newlistof{appendices}{loa}{List of Appendices}
+\newlistof{appendices}{lap}{List of Appendices}
 
 % tocloft's own \listoffigures/\listoftables definitions are deferred via
 % \AtBeginDocument (see tocloft.sty), which runs after any ordinary preamble

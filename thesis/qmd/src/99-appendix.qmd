@@ -91,6 +91,8 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_hour\_sin} & Regime/temp. & $\sin(2\pi h_t/24)$ & --- & & Wood et al.\ (1985) \\
 \texttt{hft\_hour\_cos} & Regime/temp. & $\cos(2\pi h_t/24)$ & --- & & Wood et al.\ (1985) \\
 \end{longtable}
+\vspace{-0.5\baselineskip}
+{\footnotesize Source: author's own compilation; each formula is attributed to its originating study in the Citation column.}
 \end{landscape}
 ```
 
@@ -152,6 +154,10 @@ parameters.
 
 ![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="3.5in"}
 
+::: {.table-note}
+**Source:** Author's own elaboration.
+:::
+
 ---
 
 # Offline Feature Selection Pipeline
@@ -190,6 +196,10 @@ The diagram below summarizes the pipeline.
 
 ![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){#fig-feature-selection-pipeline fig-align="center" width="1.9in"}
 
+::: {.table-note}
+**Source:** Author's own elaboration.
+:::
+
 The offline nature of this pipeline is deliberate: the proxy target and scoring
 metrics are not the reward function that the agent optimizes during training.
 Running selection as a separate step ensures that the agent's training loop
@@ -209,6 +219,10 @@ glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
 
 ![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.5in"}
+
+::: {.table-note}
+**Source:** Author's own elaboration.
+:::
 
 The full machine-readable diagram — including CLI entry points, per-step data
 flows, all configuration guardrail checks, environment variants, MLflow

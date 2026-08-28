@@ -91,7 +91,7 @@ _audit = audit_plots_enabled()
 import pandas as pd
 from IPython.display import HTML
 from thesis_mlflow_results import load_scenario_metrics
-from thesis_tables import fmt_val, display_df
+from thesis_tables import fmt_val, display_df, table_note
 
 _H1_AGENTS = [
     ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",    "TD3"),
@@ -127,6 +127,7 @@ if h1_df.iloc[:, 1:].isin(["—"]).all().all():
     print("No H1 results available. Run: bash scripts/run_h1_experiments.sh")
 else:
     display_df(h1_df)
+    table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 ```
 

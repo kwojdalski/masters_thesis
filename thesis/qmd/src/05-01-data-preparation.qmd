@@ -89,6 +89,10 @@ are summarized below.
 
 : Input schema used in the empirical pipeline. {#tbl-input-schema}
 
+::: {.table-note}
+**Source:** Author's own elaboration based on the DataBento Nasdaq TotalView-ITCH MBP-10 schema.
+:::
+
 *`NN` denotes the zero-indexed book level (00–09).*
 
 @tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The three events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book: the first event is a resting limit-order addition on the bid side at a non-top-of-book level; the second is a trade print that consumes displayed size at the best ask; the third and fourth are additions that refresh the ask side after the trade.
@@ -101,6 +105,10 @@ are summarized below.
 | 14:30:00.025 | A | A | 271.79 | 100 | 271.45 | 271.79 | 500 | 240 |
 
 : Four consecutive AAPL MBP-10 events, 25 February 2026. {#tbl-raw-sample}
+
+::: {.table-note}
+**Source:** Author's own elaboration based on DataBento Nasdaq MBP-10 data, AAPL, 25 February 2026.
+:::
 
 *Action: A = limit-order addition, T = trade print. Side: B = bid, A = ask, N = no aggressor side (trade report). Best Bid/Ask and Bid Sz/Ask Sz reflect the level-0 (top-of-book) snapshot after each event is applied.*
 
@@ -161,6 +169,7 @@ if _inv_path.exists():
         columns={"symbol": "Symbol"}
     ))
     table_note(
+        source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
         note=(
             "Mean and median Δt computed from positive within-session inter-event deltas only "
             "(overnight gaps excluded for the training split). "
@@ -396,7 +405,7 @@ training days across the six instruments.
 import json
 import pandas as pd
 from thesis_mlflow_results import repo_root
-from thesis_tables import fmt_duration, display_df, missing_data_notice
+from thesis_tables import fmt_duration, display_df, missing_data_notice, table_note
 
 _PEEK_DIR = (
     repo_root()
@@ -420,6 +429,7 @@ if _splits_path.exists():
         "median_delta_s": "Median Δt",
     }).drop(columns=["columns"])
     display_df(out)
+    table_note(source="Author's own calculations based on DataBento Nasdaq MBP-10 data.")
 else:
     missing_data_notice(
         "splits.json not found — run: uv run python src/cli.py peek dataset "

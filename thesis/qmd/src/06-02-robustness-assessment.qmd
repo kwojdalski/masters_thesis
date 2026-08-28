@@ -83,6 +83,7 @@ else:
 ```
 
 ::: {.table-note}
+**Source:** Author's own calculations.
 **Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
 :::
 
@@ -125,7 +126,7 @@ design choices constant. The shared baseline across both H3 axes is the selected
 import pandas as pd
 from IPython.display import Markdown, display
 from thesis_mlflow_results import load_scenario_metrics
-from thesis_tables import fmt_val, display_df
+from thesis_tables import fmt_val, display_df, table_note
 
 _H3_AXES = [
     {
@@ -172,6 +173,7 @@ for axis in _H3_AXES:
     else:
         display(Markdown(f"### {axis['label']}"))
         display_df(df)
+        table_note(source="Author's own calculations.")
         show_table_meta(finished, audit=_audit)
 ```
 
@@ -225,7 +227,7 @@ outcomes shows systematic learning rather than random variation around zero.
 import pandas as pd
 from IPython.display import Image, display
 from thesis_mlflow_results import load_h4_report
-from thesis_tables import display_df
+from thesis_tables import display_df, table_note
 
 _H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5"
 
@@ -288,6 +290,7 @@ if h4_data:
             view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
             view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
             display_df(view)
+    table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 else:
     print("No H4 results available. Run: bash scripts/run_h4_experiments.sh")

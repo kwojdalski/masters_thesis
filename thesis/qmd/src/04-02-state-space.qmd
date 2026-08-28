@@ -131,6 +131,10 @@ the complete specification including all parameter values is in Appendix A.
 
 : Key feature definitions. Full specification in Appendix A. {#tbl-features}
 
+::: {.table-note}
+**Source:** Author's own compilation; each formula is attributed to its originating study in the Citation column.
+:::
+
 ### Observation Space and Normalization
 
 The complete observation vector $s_t \in \mathbb{R}^d$ is formed by concatenating
