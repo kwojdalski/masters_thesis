@@ -46,7 +46,7 @@ def _is_off_policy(algorithm: str) -> bool:
 
 
 def _is_ppo(algorithm: str) -> bool:
-    return algorithm.upper() == "PPO"
+    return algorithm.upper() in {"PPO", "RECURRENT_PPO"}
 
 
 def _effective_eval_steps(config: ExperimentConfig) -> int | None:
