@@ -637,8 +637,14 @@ class StrategyEvaluator:
 
         # Handle continuous portfolio actions
         if is_portfolio:
-            flat_actions = np.asarray(action_tensor, dtype=float).reshape(-1)
-            return flat_actions[:max_steps].tolist()
+            # Preserve exactly one action item per transition: a flat reshape(-1)
+            # here would flatten the asset axis together with the timestep axis
+            # for multi-asset weight vectors, pairing individual asset components
+            # with unrelated timesteps downstream (metrics, rollout artifact).
+            actions_array = np.asarray(action_tensor, dtype=float)
+            if actions_array.ndim > 1 and actions_array.shape[-1] > 1:
+                return actions_array[:max_steps].tolist()
+            return actions_array.reshape(-1)[:max_steps].tolist()
 
         if action_tensor.ndim > 1 and action_tensor.shape[-1] > 1:
             action_tensor = action_tensor.argmax(dim=-1)

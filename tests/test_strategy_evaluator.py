@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 from tensordict import TensorDict
 
@@ -32,7 +33,9 @@ class _RolloutEnv:
 
 
 def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
-    def forbidden_factory(_df: pd.DataFrame, _config: StrategyEvaluatorConfig) -> object:
+    def forbidden_factory(
+        _df: pd.DataFrame, _config: StrategyEvaluatorConfig
+    ) -> object:
         raise AssertionError("evaluation should use the already-built split env")
 
     env = _RolloutEnv()
@@ -61,7 +64,9 @@ def test_evaluate_split_uses_provided_environment_without_rebuilding() -> None:
 
 
 def test_shaped_rewards_without_broker_do_not_become_returns() -> None:
-    def forbidden_factory(_df: pd.DataFrame, _config: StrategyEvaluatorConfig) -> object:
+    def forbidden_factory(
+        _df: pd.DataFrame, _config: StrategyEvaluatorConfig
+    ) -> object:
         raise AssertionError("evaluation should use the already-built split env")
 
     env = _RolloutEnv()
@@ -114,3 +119,34 @@ def test_extract_last_positions_maps_one_hot_actions_to_configured_positions() -
     )
 
     assert single_position == [1]
+
+
+def test_extract_last_positions_keeps_multi_asset_weight_vectors_grouped_by_transition() -> (
+    None
+):
+    """A [T, A] portfolio weight tensor must yield one vector per transition,
+    not a flat reshape(-1) that pairs asset components with unrelated
+    timesteps (issue #473)."""
+    evaluator = StrategyEvaluator(
+        env_factory=lambda _df, _config: object(),
+        policy=object(),
+        config=StrategyEvaluatorConfig(backend="tradingenv"),
+    )
+    actions = torch.tensor([[0.8, -0.1], [-0.5, 0.2], [0.1, 0.9]])
+
+    positions = evaluator._extract_last_positions(actions, max_steps=2)
+
+    np.testing.assert_allclose(positions, [[0.8, -0.1], [-0.5, 0.2]], atol=1e-6)
+
+
+def test_extract_last_positions_scalar_portfolio_stays_flat() -> None:
+    evaluator = StrategyEvaluator(
+        env_factory=lambda _df, _config: object(),
+        policy=object(),
+        config=StrategyEvaluatorConfig(backend="tradingenv"),
+    )
+    actions = torch.tensor([[0.8], [-0.5], [0.1]])
+
+    positions = evaluator._extract_last_positions(actions, max_steps=2)
+
+    assert positions == pytest.approx([0.8, -0.5], abs=1e-6)

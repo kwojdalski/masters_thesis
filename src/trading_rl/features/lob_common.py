@@ -15,7 +15,7 @@ def safe_divide(
 ) -> pd.Series:
     """Divide two Series, returning `fill` wherever denominator is zero."""
     result = pd.Series(fill, index=numerator.index, dtype=float)
-    mask = denominator != 0
+    mask = denominator.notna() & (denominator != 0)
     result[mask] = numerator[mask] / denominator[mask]
     return result
 

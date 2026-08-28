@@ -101,10 +101,17 @@ def save_eval_rollout_artifact(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     n = min(len(last_positions), len(simple_returns), len(df_index))
-    data: dict = {
-        "action": np.array(last_positions[:n], dtype=np.float32),
-        "simple_return": np.asarray(simple_returns[:n], dtype=np.float32),
-    }
+    actions_arr = np.array(last_positions[:n], dtype=np.float32)
+    data: dict = {}
+    if actions_arr.ndim > 1 and actions_arr.shape[-1] > 1:
+        # Multi-asset weight vector per transition -- one column per asset,
+        # not a single "action" column that would otherwise need to flatten
+        # the asset axis and misalign with the per-timestep return/index.
+        for asset_idx in range(actions_arr.shape[-1]):
+            data[f"action_{asset_idx}"] = actions_arr[:, asset_idx]
+    else:
+        data["action"] = actions_arr.reshape(-1)
+    data["simple_return"] = np.asarray(simple_returns[:n], dtype=np.float32)
     if cumulative_returns is not None:
         cum = np.asarray(cumulative_returns)
         if len(cum) == n + 1:

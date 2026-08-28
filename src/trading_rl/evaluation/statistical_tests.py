@@ -145,24 +145,40 @@ def run_all_statistical_tests(
                     max_len,
                     min_len,
                 )
+            # random_returns_mean (pointwise mean across trials at each
+            # timestep) is a fine POINT ESTIMATE for the benchmark comparison
+            # table below, but it must never back a hypothesis test: averaging
+            # ~n_trials independent random draws before testing collapses the
+            # baseline's true variance by ~sqrt(n_trials), making almost any
+            # strategy look "significantly" better than random regardless of
+            # actual skill (issue #474). Significance tests instead compare
+            # against the flat concatenation of all trials, preserving
+            # genuine per-trial variance -- none of t_test/mann_whitney/
+            # permutation_test/sharpe_bootstrap/sortino_bootstrap require
+            # equal-length strategy/baseline samples.
             random_returns_mean = np.mean(
                 [t[:min_len] for t in random_baseline_trials], axis=0
+            )
+            random_returns_flat = np.concatenate(
+                [np.asarray(t[:min_len], dtype=float) for t in random_baseline_trials]
             )
             random_strategy_returns = np.asarray(strategy_returns, dtype=float)[
                 :min_len
             ]
-            random_pair_mask = np.isfinite(random_strategy_returns) & np.isfinite(
-                random_returns_mean
+            strategy_finite_mask = np.isfinite(random_strategy_returns)
+            baseline_finite_mask = np.isfinite(random_returns_flat)
+            n_dropped = int((~strategy_finite_mask).sum()) + int(
+                (~baseline_finite_mask).sum()
             )
-            if int((~random_pair_mask).sum()):
+            if n_dropped:
                 logger.warning(
-                    "{}: dropped {} non-finite/unaligned return pairs",
+                    "{}: dropped {} non-finite strategy/baseline observations",
                     BenchmarkName.RANDOM_ACTIONS,
-                    int((~random_pair_mask).sum()),
+                    n_dropped,
                 )
             random_results = run_statistical_tests(
-                random_strategy_returns[random_pair_mask],
-                random_returns_mean[random_pair_mask],
+                random_strategy_returns[strategy_finite_mask],
+                random_returns_flat[baseline_finite_mask],
                 BenchmarkName.RANDOM_ACTIONS,
                 config,
             )

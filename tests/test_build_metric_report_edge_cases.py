@@ -10,7 +10,9 @@ def _report(returns, benchmark=None, ppy=252, rf=0.0, actions=None):
     """Helper to call build_metric_report with defaults."""
     return build_metric_report(
         strategy_simple_returns=np.asarray(returns, dtype=float),
-        benchmark_simple_returns=np.asarray(benchmark, dtype=float) if benchmark is not None else None,
+        benchmark_simple_returns=np.asarray(benchmark, dtype=float)
+        if benchmark is not None
+        else None,
         actions=actions,
         periods_per_year=ppy,
         risk_free_rate_annual=rf,
@@ -21,6 +23,7 @@ def _report(returns, benchmark=None, ppy=252, rf=0.0, actions=None):
 # build_metric_report — specific edge cases
 # ---------------------------------------------------------------------------
 
+
 class TestBuildMetricReportEdgeCases:
     """Test edge cases and numerical stability for build_metric_report."""
 
@@ -29,7 +32,7 @@ class TestBuildMetricReportEdgeCases:
         report = _report([])
 
         assert all(np.isnan(v) for v in report.to_dict().values())
-        assert len(report.to_dict()) == 43  # All metric keys should be present
+        assert len(report.to_dict()) == 44  # All metric keys should be present
 
     def test_single_return(self):
         """Single return should work correctly."""
@@ -58,10 +61,16 @@ class TestBuildMetricReportEdgeCases:
 
         assert report["total_return"] == pytest.approx(0.0, abs=1e-10)
         assert report["annualized_return_cagr"] == pytest.approx(0.0, abs=1e-10)
-        assert np.isnan(report["sharpe_ratio"]) or report["sharpe_ratio"] == pytest.approx(0.0, abs=1e-10)
-        assert np.isnan(report["sortino_ratio"]) or report["sortino_ratio"] == pytest.approx(0.0, abs=1e-10)
+        assert np.isnan(report["sharpe_ratio"]) or report[
+            "sharpe_ratio"
+        ] == pytest.approx(0.0, abs=1e-10)
+        assert np.isnan(report["sortino_ratio"]) or report[
+            "sortino_ratio"
+        ] == pytest.approx(0.0, abs=1e-10)
         assert report["max_drawdown"] == pytest.approx(0.0, abs=1e-10)
-        assert np.isnan(report["calmar_ratio"]) or report["calmar_ratio"] == pytest.approx(0.0, abs=1e-10)
+        assert np.isnan(report["calmar_ratio"]) or report[
+            "calmar_ratio"
+        ] == pytest.approx(0.0, abs=1e-10)
 
     def test_infinite_return_filtered(self):
         """Infinite returns should be filtered out."""
@@ -71,7 +80,9 @@ class TestBuildMetricReportEdgeCases:
         # Should filter infinite values and compute on finite ones only
         assert np.isfinite(report["total_return"])
         assert np.isfinite(report["annualized_return_cagr"])
-        assert report["max_drawdown"] >= -1.0  # Should be finite and not worse than -100%
+        assert (
+            report["max_drawdown"] >= -1.0
+        )  # Should be finite and not worse than -100%
 
     def test_nan_return_filtered(self):
         """NaN returns should be filtered out."""
@@ -107,9 +118,9 @@ class TestBuildMetricReportEdgeCases:
         report = _report(noisy_returns)
 
         # annual_vol ≈ 1e-10 * sqrt(252) << 1e-3 threshold → Sharpe must be NaN
-        assert np.isnan(report["sharpe_ratio"]), (
-            "near-constant returns should produce NaN Sharpe (flat equity guard)"
-        )
+        assert np.isnan(
+            report["sharpe_ratio"]
+        ), "near-constant returns should produce NaN Sharpe (flat equity guard)"
 
     def test_with_risk_free_rate_excess_correct(self):
         """With positive risk-free rate, excess returns should be calculated."""
@@ -165,7 +176,13 @@ class TestBuildMetricReportEdgeCases:
     def test_recovery_time_from_max_drawdown(self):
         """Recovery time should be calculated correctly."""
         # Series with clear peak, trough, and recovery
-        returns = [0.10, -0.05, 0.03, 0.02, 0.04]  # Peak at 0.10, trough at -0.05, recovers
+        returns = [
+            0.10,
+            -0.05,
+            0.03,
+            0.02,
+            0.04,
+        ]  # Peak at 0.10, trough at -0.05, recovers
         report = _report(returns)
 
         # Recovery time should be number of steps from trough to recovery
@@ -273,8 +290,12 @@ class TestBuildMetricReportEdgeCases:
         normal_returns = rng.normal(loc=0.01, scale=0.02, size=200).tolist()
         report_normal = _report(normal_returns)
 
-        assert abs(report_normal["return_skewness"]) < 0.5  # Near-zero skewness for normal
-        assert abs(report_normal["return_kurtosis"]) < 1.0  # Near-zero excess kurtosis for normal
+        assert (
+            abs(report_normal["return_skewness"]) < 0.5
+        )  # Near-zero skewness for normal
+        assert (
+            abs(report_normal["return_kurtosis"]) < 1.0
+        )  # Near-zero excess kurtosis for normal
 
         # Highly positive skewed: many small gains, few big losses
         skewed_returns = [0.01] * 95 + [-0.5] * 5
@@ -311,6 +332,7 @@ class TestBuildMetricReportEdgeCases:
             "var_99",
             "cvar_99",
             "downside_deviation",
+            "downside_deviation_annualized",
             "tail_ratio",
             "return_skewness",
             "return_kurtosis",
@@ -343,3 +365,27 @@ class TestBuildMetricReportEdgeCases:
         assert np.isnan(report["alpha"])
         assert np.isnan(report["beta"])
         assert np.isnan(report["information_ratio"])
+
+
+class TestDownsideDeviationMatchesSortinoDenominator:
+    """downside_deviation must actually be the value sortino_ratio divides by
+    (issue #477) -- annualized_volatility/std_return already follow this
+    raw-vs-annualized split, downside_deviation previously did not."""
+
+    def test_downside_deviation_is_the_actual_sortino_denominator(self):
+        rng = np.random.default_rng(0)
+        returns = rng.normal(0.0005, 0.01, 300)
+        report = _report(returns, ppy=252)
+
+        recomputed_sortino = report["mean_return"] / report["downside_deviation"]
+        assert recomputed_sortino == pytest.approx(report["sortino_ratio"], rel=1e-9)
+
+    def test_downside_deviation_annualized_is_the_sqrt_ppy_scaled_value(self):
+        rng = np.random.default_rng(1)
+        returns = rng.normal(0.0005, 0.01, 300)
+        report = _report(returns, ppy=252)
+
+        expected = report["downside_deviation"] * np.sqrt(252)
+        assert report["downside_deviation_annualized"] == pytest.approx(
+            expected, rel=1e-9
+        )

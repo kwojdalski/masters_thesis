@@ -124,7 +124,12 @@ class MetricReport:
     cvar_95: float = _NAN
     var_99: float = _NAN
     cvar_99: float = _NAN
-    downside_deviation: float = _NAN
+    downside_deviation: float = (
+        _NAN  # per-bar (σ_downside); matches sortino_ratio's denominator
+    )
+    downside_deviation_annualized: float = (
+        _NAN  # downside_deviation × √periods_per_year
+    )
     tail_ratio: float = _NAN  # 95th-pctile return / |5th-pctile return|
 
     # Distribution shape
@@ -374,13 +379,13 @@ def build_metric_report(
     if _can_annualize:
         annual_vol = sigma * np.sqrt(periods_per_year)
         downside = np.minimum(r - rf_per_period, 0.0)
-        downside_dev = np.sqrt(np.mean(np.square(downside))) * np.sqrt(periods_per_year)
+        _dd_raw = float(np.sqrt(np.mean(np.square(downside))))
+        downside_dev_annualized = _dd_raw * np.sqrt(periods_per_year)
         # When annualised vol is negligibly small the equity curve is essentially flat
         # (e.g. an untrained agent with near-constant actions). mu/sigma is then
         # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
         _MIN_ANNUAL_VOL = 1e-3
         if annual_vol >= _MIN_ANNUAL_VOL:
-            _dd_raw = float(np.sqrt(np.mean(np.square(downside))))
             sharpe = sharpe_raw(mu - rf_per_period, sigma)
             sortino = sortino_raw(mu - rf_per_period, _dd_raw)
         else:
@@ -388,7 +393,8 @@ def build_metric_report(
             sortino = np.nan
     else:
         annual_vol = np.nan
-        downside_dev = np.nan
+        _dd_raw = np.nan
+        downside_dev_annualized = np.nan
         sharpe = np.nan
         sortino = np.nan
 
@@ -549,7 +555,8 @@ def build_metric_report(
         cvar_95=cvar_95,
         var_99=var_99,
         cvar_99=cvar_99,
-        downside_deviation=downside_dev,
+        downside_deviation=_dd_raw,
+        downside_deviation_annualized=downside_dev_annualized,
         tail_ratio=tail_ratio,
         return_skewness=skew,
         return_kurtosis=kurt,

@@ -102,6 +102,12 @@ class RollingWindowScaler:
         # Fill NaNs from insufficient window (fewer than min_periods observations)
         normalized = normalized.fillna(0.0)
 
+        # Replace inf with 0 (e.g. a raw +-inf input value at row t: rolling_mean
+        # and rolling_std are shift(1)'d so they don't yet contain it, leaving
+        # denom finite and the division itself producing a literal inf that
+        # fillna does not catch)
+        normalized = normalized.replace([np.inf, -np.inf], 0.0)
+
         return normalized.values if not isinstance(data, pd.Series) else normalized
 
     def fit_transform(self, data: np.ndarray | pd.Series) -> np.ndarray:
