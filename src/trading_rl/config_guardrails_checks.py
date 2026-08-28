@@ -42,7 +42,7 @@ class Finding:
 
 
 def _is_off_policy(algorithm: str) -> bool:
-    return algorithm.upper() in {"DDPG", "TD3"}
+    return algorithm.upper() in {"DDPG", "TD3", "SAC"}
 
 
 def _is_ppo(algorithm: str) -> bool:
@@ -1664,9 +1664,7 @@ def _check_frames_per_batch_vs_max_steps(config: ExperimentConfig) -> Finding | 
 
 def _check_buffer_size_vs_sample_size(config: ExperimentConfig) -> Finding | None:
     """WARN (off-policy): buffer_size < 10 × sample_size → samples are highly correlated."""
-    if not _is_off_policy(config.training.algorithm) and not _is_sac(
-        config.training.algorithm
-    ):
+    if not _is_off_policy(config.training.algorithm):
         return None
     b = config.training.buffer_size
     s = config.training.sample_size
