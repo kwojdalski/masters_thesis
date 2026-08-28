@@ -74,6 +74,14 @@ def dispatch_from_config(
             consolidation_prob=cfg.get("consolidation_prob", 0.2),
             start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
         )
+    if pattern_type == PatternType.RANDOM_WALK:
+        return generator.generate_random_walk_pattern(
+            output_file=output_file,
+            n_samples=cfg.get("n_samples", 500),
+            base_price=cfg.get("base_price", 50000.0),
+            volatility=cfg.get("volatility", 0.001),
+            start_date=cfg.get("start_date", DEFAULT_SYNTHETIC_START_DATE),
+        )
     if pattern_type == PatternType.HFT_SINE_WAVE_LOB:
         return generator.generate_hft_sine_wave_lob(
             output_file=output_file,

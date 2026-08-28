@@ -97,3 +97,69 @@ def generate_upward_drift_pattern(
         df["close"].pct_change().std(),
     )
     return df
+
+
+def generate_random_walk_pattern(
+    output_dir: Path,
+    output_file: str,
+    logger: Any,
+    *,
+    n_samples: int = 500,
+    base_price: float = 50000.0,
+    volatility: float = 0.001,
+    start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+) -> pd.DataFrame:
+    """Generate a genuine driftless random walk: cumulative i.i.d. log-returns.
+
+    Unlike generate_upward_drift_pattern (a bounded trend with a pullback
+    floor), this has no floor and no smoothing -- both would inject
+    exploitable autocorrelation into what is meant to be a negative control
+    with no predictable pattern (see #485).
+    """
+    logger.info(
+        "Generating random walk pattern -> samples={}, base_price={}, volatility={}",
+        n_samples, base_price, volatility,
+    )
+
+    dates = pd.date_range(start=pd.to_datetime(start_date), periods=n_samples, freq="h")
+    log_returns = np.random.normal(0, volatility, n_samples)
+    log_returns[0] = 0.0
+    close_prices = base_price * np.exp(np.cumsum(log_returns))
+
+    spread_scale = max(volatility * 10, 0.001)
+    highs = close_prices * (
+        1 + spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+    )
+    lows = close_prices * (
+        1 - spread_scale * (1 + 0.1 * np.random.uniform(-1, 1, n_samples))
+    )
+
+    opens = np.roll(close_prices, 1)
+    opens[0] = close_prices[0]
+    opens = np.clip(opens, lows, highs)
+    close_prices = np.clip(close_prices, lows, highs)
+
+    base_volume = 1_000_000
+    volumes = base_volume * (1 + np.random.normal(0, 0.05, n_samples))
+    volumes = np.maximum(volumes, base_volume * 0.5)
+
+    df = pd.DataFrame(
+        {
+            "open": opens,
+            "high": highs,
+            "low": lows,
+            "close": close_prices,
+            "volume": volumes,
+        },
+        index=dates,
+    ).abs()
+
+    output_path = output_dir / output_file
+    df.to_parquet(output_path)
+    log_dataset_summary(df, output_path, context="Random walk pattern", logger=logger)
+    logger.info(
+        "Random walk stats -> total return {:.2f}%, return std {}",
+        (df["close"].iloc[-1] / df["close"].iloc[0] - 1) * 100,
+        df["close"].pct_change().std(),
+    )
+    return df

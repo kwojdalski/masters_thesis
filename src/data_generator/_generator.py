@@ -9,7 +9,7 @@ import pandas as pd
 from logger import get_logger
 
 from ._config import dispatch_from_config, load_config
-from ._drift import generate_upward_drift_pattern
+from ._drift import generate_random_walk_pattern, generate_upward_drift_pattern
 from ._io import copy_data, list_source_files, load_data, log_dataset_summary
 from ._mean_reversion import generate_mean_reversion_pattern
 from ._sine import generate_hft_sine_wave_lob, generate_sine_wave_pattern
@@ -162,6 +162,22 @@ class PriceDataGenerator:
             drift_rate=drift_rate,
             volatility=volatility,
             pullback_floor=pullback_floor,
+            start_date=start_date,
+        )
+
+    def generate_random_walk_pattern(
+        self,
+        output_file: str,
+        n_samples: int = 500,
+        base_price: float = 50000.0,
+        volatility: float = 0.001,
+        start_date: str = DEFAULT_SYNTHETIC_START_DATE,
+    ) -> pd.DataFrame:
+        return generate_random_walk_pattern(
+            self.output_dir, output_file, self.logger,
+            n_samples=n_samples,
+            base_price=base_price,
+            volatility=volatility,
             start_date=start_date,
         )
 

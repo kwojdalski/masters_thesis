@@ -11,6 +11,7 @@ class PatternType(StrEnum):
     MEAN_REVERSION = "mean_reversion"
     TRENDING = "trending"
     HFT_SINE_WAVE_LOB = "hft_sine_wave_lob"
+    RANDOM_WALK = "random_walk"
 
 
 # Default start date for synthetic time indices.  The value is a label only —
