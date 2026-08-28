@@ -74,8 +74,14 @@ if _is_placeholder:
 from thesis_tables import table_note
 
 HTML(benchmark_df.to_html(index=False))
-if _is_placeholder:
-    table_note(note="**Placeholder values** — these figures are illustrative only and will be replaced once the full experiment pipeline has completed and evaluation artifacts are available.")
+table_note(
+    source="Author's own calculations.",
+    note=(
+        "**Placeholder values** — these figures are illustrative only and will be replaced once the full experiment pipeline has completed and evaluation artifacts are available."
+        if _is_placeholder
+        else None
+    ),
+)
 if finished is not None:
     show_table_meta(finished, audit=_audit)
 ```
