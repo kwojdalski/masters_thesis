@@ -2,8 +2,8 @@
   "run_id": null,
   "run_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",
   "status": "FINISHED",
-  "start_time": "2026-08-19T21:28:10.147167+00:00",
-  "end_time": "2026-08-19T21:28:10.147167+00:00",
+  "start_time": "2026-08-28T22:49:14.005213+00:00",
+  "end_time": "2026-08-28T22:49:14.005213+00:00",
   "artifact_uri": null,
   "experiment_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",
   "experiment_id": null,
@@ -11,7 +11,7 @@
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/results.json",
-    "exported_at_utc": "2026-08-19T21:28:10.147167+00:00"
+    "exported_at_utc": "2026-08-28T22:49:14.005213+00:00"
   },
   "files": {
     "params": "params.json",
@@ -24,18 +24,8 @@
   "per_symbol_results": {
     "train": {
       "split": "train",
-      "final_reward": -4.893646240234375,
+      "final_reward": 3.6052894592285156,
       "n_steps": 49999
-    },
-    "val": {
-      "split": "val",
-      "final_reward": -35.59818649291992,
-      "n_steps": 136675
-    },
-    "test": {
-      "split": "test",
-      "final_reward": 49.304046630859375,
-      "n_steps": 136676
     }
   }
 }
