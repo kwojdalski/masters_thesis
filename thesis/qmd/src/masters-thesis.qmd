@@ -88,28 +88,24 @@ jupyter:
 
 This thesis studies whether a deep reinforcement learning agent using
 order-book-derived microstructure features can produce robust, risk-adjusted
-trading performance in a high-frequency single-asset setting. The work focuses
-on continuous portfolio exposure control and addresses the practical constraints
-— execution modeling, transaction cost sensitivity, and evaluation discipline —
-that most often invalidate paper-trading results.
+trading performance in a high-frequency single-asset setting. It targets
+continuous portfolio exposure control under practical constraints — execution
+modeling, transaction cost sensitivity, and evaluation discipline.
 
-A Twin Delayed DDPG (TD3) agent is trained on tick-level order book snapshots from six
-Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO), covering three
-consecutive trading sessions in February 2026, and evaluated against benchmark
-strategies under explicit simulation assumptions.
-The agent achieves positive held-out returns with very low drawdown and a high
-profit factor, but does not dominate passive long exposure on cumulative return
-over the upward-drifting evaluation window. A microstructure-aware state
-representation constructed from order flow, spread regime, and book shape
-features improves policy behavior relative to simpler snapshot-based variants,
-while transaction-cost sensitivity analysis shows that the observed edge is
-fragile once fees increase.
+A Twin Delayed DDPG (TD3) agent trains on tick-level order-book snapshots from
+six Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO) over three
+consecutive trading sessions in February 2026, evaluated against benchmark
+strategies under explicit simulation assumptions. It achieves positive held-out
+returns with low drawdown and a high profit factor but does not beat passive
+long exposure on cumulative return over the upward-drifting window. A
+microstructure-aware state built from order flow, spread regime, and book shape
+improves policy behavior over simpler snapshot-based variants, though the edge
+is fragile once fees rise.
 
 The main contribution is an end-to-end, reproducible pipeline linking LOB
 feature engineering, Differential Sharpe Ratio reward design, TD3 training, and
-rigorous out-of-sample evaluation — together with an explicit account of the
-simulation assumptions that separate these findings from deployable performance
-claims.
+rigorous out-of-sample evaluation, with an explicit account of the simulation
+assumptions separating these findings from deployable performance claims.
 
 \end{abstract}
 

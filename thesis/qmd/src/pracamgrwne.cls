@@ -73,16 +73,23 @@
 \advance\textheight -\footskip
 \marginparwidth15mm
 % Define abstract environment with large font
+% The \null\vfil ... \vfil\null pair previously wrapping this body is the
+% standard "vertically centre the abstract on its own page" idiom. It only
+% works when the abstract is short enough to sit on one page with the glue
+% around it. Once the text grew past that, the leading \vfil stretched to
+% fill the whole page, stranding the "Abstract" heading alone on one page
+% and pushing the body onto the next, itself indented from the top by the
+% trailing \vfil. WNE UW rule 1c expects the abstract, Erasmus codes, and
+% thematic classification to share a single page, so the abstract starts at
+% the top of the page and flows normally instead.
 \renewenvironment{abstract}{%
   \large % Set font size to large for the abstract
-  \null\vfil
   \begin{center}
     \bfseries \abstractname
   \end{center}
   \quotation
 }{%
   \endquotation
-  \vfil\null
 }
 
 \renewcommand\maketitle{%
