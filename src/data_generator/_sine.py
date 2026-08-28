@@ -28,38 +28,51 @@ def generate_sine_wave_pattern(
     logger.info(
         "Generating sine wave pattern -> periods={}, samples_per_period={}, "
         "amplitude={}, trend_slope={}, freq={}",
-        n_periods, samples_per_period, amplitude, trend_slope, freq,
+        n_periods,
+        samples_per_period,
+        amplitude,
+        trend_slope,
+        freq,
     )
 
     total_samples = n_periods * samples_per_period
     t = np.linspace(0, 2 * np.pi * n_periods, total_samples)
-    dates = pd.date_range(start=pd.to_datetime(start_date), periods=total_samples, freq=freq)
+    dates = pd.date_range(
+        start=pd.to_datetime(start_date), periods=total_samples, freq=freq
+    )
 
     trend = trend_slope * np.arange(total_samples)
     base_prices = base_price + trend + amplitude * np.sin(t)
 
     if volatility > 0:
-        noise = (
-            volatility * base_price
-            * np.sin(2.0 * t + np.pi / 4)
-        )
+        # Stochastic noise, not a deterministic harmonic: a fixed sin(2t) term
+        # is perfectly correlated with the signal it's meant to perturb and
+        # carries no actual randomness (see #484).
+        noise = np.random.normal(0.0, volatility * base_price, total_samples)
     else:
         noise = np.zeros_like(base_prices)
     close_prices = base_prices + noise
 
     close_prices = (
-        pd.Series(close_prices).rolling(window=5, min_periods=1, center=False).mean().to_numpy()
+        pd.Series(close_prices)
+        .rolling(window=5, min_periods=1, center=False)
+        .mean()
+        .to_numpy()
     )
 
     variation_scale = max(amplitude * 0.05, base_price * 0.002)
-    highs = close_prices + variation_scale * (0.5 + 0.3 * np.random.uniform(-1, 1, total_samples))
-    lows = close_prices - variation_scale * (0.5 + 0.3 * np.random.uniform(-1, 1, total_samples))
+    highs = close_prices + variation_scale * (
+        0.5 + 0.3 * np.random.uniform(-1, 1, total_samples)
+    )
+    lows = close_prices - variation_scale * (
+        0.5 + 0.3 * np.random.uniform(-1, 1, total_samples)
+    )
 
     opens = np.roll(close_prices, 1)
     opens[0] = close_prices[0]
     gap_amplitude = 0.1 * volatility * base_price
     if gap_amplitude > 0:
-        opens = opens + gap_amplitude * np.sin(t + np.pi / 6)
+        opens = opens + np.random.normal(0.0, gap_amplitude, total_samples)
 
     opens = np.clip(opens, lows, highs)
     close_prices = np.clip(close_prices, lows, highs)
@@ -68,12 +81,21 @@ def generate_sine_wave_pattern(
     price_change_scale = np.max(price_changes) or 1.0
     base_volume = 1_000_000
     volumes = base_volume * (
-        1.0 + 0.5 * (price_changes / price_change_scale) * (0.5 + 0.5 * np.sin(t + np.pi / 2))
+        1.0
+        + 0.5
+        * (price_changes / price_change_scale)
+        * (0.5 + 0.5 * np.sin(t + np.pi / 2))
     )
     volumes = np.maximum(volumes, base_volume * 0.1)
 
     df = pd.DataFrame(
-        {"open": opens, "high": highs, "low": lows, "close": close_prices, "volume": volumes},
+        {
+            "open": opens,
+            "high": highs,
+            "low": lows,
+            "close": close_prices,
+            "volume": volumes,
+        },
         index=dates,
     ).abs()
 
@@ -82,7 +104,8 @@ def generate_sine_wave_pattern(
     log_dataset_summary(df, output_path, context="Sine wave pattern", logger=logger)
     logger.info(
         "Sine wave trading cues -> buy ≈ {}, sell ≈ {}",
-        base_price - amplitude, base_price + amplitude,
+        base_price - amplitude,
+        base_price + amplitude,
     )
     logger.trace("Close price std dev: {:.2f}", df["close"].std())
     return df
@@ -111,7 +134,11 @@ def generate_hft_sine_wave_lob(
     logger.info(
         "Generating HFT sine wave LOB -> n_events={}, n_periods={}, "
         "base_price={}, amplitude={}, spread={}",
-        n_events, n_periods, base_price, amplitude, spread,
+        n_events,
+        n_periods,
+        base_price,
+        amplitude,
+        spread,
     )
 
     rng = np.random.default_rng(seed)
@@ -148,13 +175,19 @@ def generate_hft_sine_wave_lob(
         ask_px[:, lvl] = np.round(raw_ask / tick_size) * tick_size
 
         base_sz = max(50, 300 - lvl * 25)
-        bid_sz[:, lvl] = rng.integers(max(1, base_sz - 50), base_sz + 150, n_events, dtype=np.uint32)
-        ask_sz[:, lvl] = rng.integers(max(1, base_sz - 50), base_sz + 150, n_events, dtype=np.uint32)
+        bid_sz[:, lvl] = rng.integers(
+            max(1, base_sz - 50), base_sz + 150, n_events, dtype=np.uint32
+        )
+        ask_sz[:, lvl] = rng.integers(
+            max(1, base_sz - 50), base_sz + 150, n_events, dtype=np.uint32
+        )
         bid_ct[:, lvl] = rng.integers(1, 5, n_events, dtype=np.uint32)
         ask_ct[:, lvl] = rng.integers(1, 5, n_events, dtype=np.uint32)
 
     # Action distribution matches real AAPL: A ~41%, C ~37%, T ~22%
-    actions = rng.choice(np.array(["A", "C", "T"], dtype=object), size=n_events, p=[0.41, 0.37, 0.22])
+    actions = rng.choice(
+        np.array(["A", "C", "T"], dtype=object), size=n_events, p=[0.41, 0.37, 0.22]
+    )
     is_trade = actions == "T"
     sides = rng.choice(np.array(["B", "A"], dtype=object), size=n_events)
 
@@ -164,7 +197,9 @@ def generate_hft_sine_wave_lob(
 
     is_bid_side = sides == "B"
     row_idx = np.arange(n_events)
-    event_prices = np.where(is_bid_side, bid_px[row_idx, depths], ask_px[row_idx, depths])
+    event_prices = np.where(
+        is_bid_side, bid_px[row_idx, depths], ask_px[row_idx, depths]
+    )
 
     sizes = rng.integers(100, 1001, n_events, dtype=np.uint32)
     n_odd = int(is_trade.sum() * odd_lot_fraction)
@@ -178,7 +213,9 @@ def generate_hft_sine_wave_lob(
 
     utc_index = pd.DatetimeIndex(timestamps_ns, tz="UTC")
     ts_event_naive = pd.DatetimeIndex(timestamps_ns)
-    start_date_str = pd.Timestamp(timestamps_ns[0], unit="ns", tz="UTC").date().isoformat()
+    start_date_str = (
+        pd.Timestamp(timestamps_ns[0], unit="ns", tz="UTC").date().isoformat()
+    )
 
     data: dict[str, Any] = {
         "symbol": pd.array([symbol] * n_events, dtype="string"),
@@ -212,10 +249,15 @@ def generate_hft_sine_wave_lob(
     df = pd.DataFrame(data, index=utc_index)
     output_path = output_dir / output_file
     df.to_parquet(output_path)
-    log_dataset_summary(df, output_path, context="HFT sine wave LOB pattern", logger=logger)
+    log_dataset_summary(
+        df, output_path, context="HFT sine wave LOB pattern", logger=logger
+    )
     logger.info(
         "Mid-price range: {:.4f} - {:.4f} | action mix A/C/T: {}/{}/{}",
-        mid_prices.min(), mid_prices.max(),
-        (actions == "A").sum(), (actions == "C").sum(), is_trade.sum(),
+        mid_prices.min(),
+        mid_prices.max(),
+        (actions == "A").sum(),
+        (actions == "C").sum(),
+        is_trade.sum(),
     )
     return df
