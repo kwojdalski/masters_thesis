@@ -2,6 +2,11 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta}
 
+% Kept byte-for-byte in sync with the inline TikZ block in
+% 02-06-trading-problem-formulation.qmd (the PDF path). This file is the
+% source for rl-loop.svg, which the HTML path serves -- if the two drift,
+% the same Figure 1 renders differently in the PDF and on the web.
+
 \begin{document}
 \begin{tikzpicture}[
   >=Latex,
@@ -14,13 +19,26 @@
 
 % Right path (action)
 \draw[->] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
-\node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$A_t$};
+\node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$a_t$};
 
-% Left path (state + reward)
-\draw[->] (env.west) -- ++(-2.8,0) -- ++(0,3) -- (agent.west);
-\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$S_t$};
-\node[left,  align=right, font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$R_t$};
+% Time-step boundary. The environment emits (r_{t+1}, s_{t+1}) in response to
+% a_t; crossing this line they become the (r_t, s_t) the agent observes on the
+% next iteration. Drawing both label pairs either side of the dashes is what
+% makes the one-step delay visible -- a single t+1 pair on one shared wire
+% cannot express it, and leaves s_t/r_t (named in the prose) undepicted.
+\draw[dashed, thin] (-2.6, -0.75) -- (-2.6, 0.8);
 
+% Reward wire (inner): environment -> left -> up -> agent
+\draw[->] ([yshift=3.5mm]env.west) -- (-3.2, 0.35) -- (-3.2, 2.75)
+          -- ([yshift=-2.5mm]agent.west);
+\node[font=\normalsize] at (-2.1, 0.62) {$r_{t+1}$};
+\node[right, align=left, font=\normalsize] at (-3.1, 1.6) {reward\\[2pt]$r_t$};
+
+% State wire (outer): environment -> left -> up -> agent
+\draw[->] ([yshift=-3.5mm]env.west) -- (-4.3, -0.35) -- (-4.3, 3.25)
+          -- ([yshift=2.5mm]agent.west);
+\node[font=\normalsize] at (-2.1, -0.08) {$s_{t+1}$};
+\node[left, align=right, font=\normalsize] at (-4.4, 1.6) {state\\[2pt]$s_t$};
 
 \end{tikzpicture}
 \end{document}

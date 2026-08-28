@@ -25,15 +25,24 @@ is on why each one is consequential for trading problems.
 \draw[->] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
 \node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$a_t$};
 
-% Left path (state + reward). Labeled t+1, not t: this wire carries what
-% the environment emits in response to a_t, which the agent has not yet
-% observed when it chose a_t. Matches the standard Sutton & Barto loop
-% convention and the prose below -- no separate "current step" labels are
-% needed since a generic single-iteration loop only ever shows one state/
-% reward pair per wire.
-\draw[->] (env.west) -- ++(-2.8,0) -- ++(0,3) -- (agent.west);
-\node[left,  align=right, font=\normalsize] at (-2.8, 3)   {state\\[2pt]$s_{t+1}$};
-\node[left,  align=right, font=\normalsize] at (-2.8, 1.5) {reward\\[2pt]$r_{t+1}$};
+% Time-step boundary. The environment emits (r_{t+1}, s_{t+1}) in response to
+% a_t; crossing this line they become the (r_t, s_t) the agent observes on the
+% next iteration. Drawing both label pairs either side of the dashes is what
+% makes the one-step delay visible -- a single t+1 pair on one shared wire
+% cannot express it, and leaves s_t/r_t (named in the prose) undepicted.
+\draw[dashed, thin] (-2.6, -0.75) -- (-2.6, 0.8);
+
+% Reward wire (inner): environment -> left -> up -> agent
+\draw[->] ([yshift=3.5mm]env.west) -- (-3.2, 0.35) -- (-3.2, 2.75)
+          -- ([yshift=-2.5mm]agent.west);
+\node[font=\normalsize] at (-2.1, 0.62) {$r_{t+1}$};
+\node[right, align=left, font=\normalsize] at (-3.1, 1.6) {reward\\[2pt]$r_t$};
+
+% State wire (outer): environment -> left -> up -> agent
+\draw[->] ([yshift=-3.5mm]env.west) -- (-4.3, -0.35) -- (-4.3, 3.25)
+          -- ([yshift=2.5mm]agent.west);
+\node[font=\normalsize] at (-2.1, -0.08) {$s_{t+1}$};
+\node[left, align=right, font=\normalsize] at (-4.4, 1.6) {state\\[2pt]$s_t$};
 
 \end{tikzpicture}
 \end{figure}
