@@ -11,7 +11,7 @@ studies that focus on lower-frequency inputs and
 evaluate algorithms such as Q-learning, DQN, or PPO primarily in bar-level
 settings.
 
-This thesis  contributes by evaluating the RL trading problem in a
+This thesis contributes by evaluating the RL trading problem in a
 setting where algorithm class, data granularity, and feature design are jointly
 aligned with high-frequency market microstructure. The targeted
 algorithm-data-frequency combination remains less represented in prior work and
