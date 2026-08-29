@@ -145,32 +145,10 @@ else:
 
 ### Key Empirical Questions
 
-The comparison addresses three empirical questions motivated by the theoretical
-analysis in Chapter 3:
-
-**1. Does TD3's overestimation correction translate to improved trading
-performance relative to DDPG?** Overestimated Q-values can lead the policy to
-exploit function approximation errors rather than genuine market signals. In
-financial environments where rewards are noisy and value functions are difficult
-to approximate accurately, reducing overestimation bias could improve both
-training stability and final performance. However, the practical benefit depends
-on whether overestimation is actually a significant problem in the specific
-trading task.
-
-**2. How does PPO's on-policy stability compare to TD3's off-policy efficiency?**
-PPO may achieve more stable convergence due to its clipped objective and lack of
-replay buffer, but its on-policy nature requires more data to achieve comparable
-performance. In high-frequency trading applications where data is limited, this
-trade-off is particularly relevant. The results show whether PPO's stability
-advantages outweigh its sample efficiency disadvantages in this domain.
-
-**3. Which algorithm best balances risk-adjusted return, training stability,
-and computational efficiency under the evaluation constraints?** Different
-applications may prioritize different aspects of algorithm performance. A
-production trading system might value stability and deterministic execution,
-while a research setting might prioritize sample efficiency for rapid
-experimentation. The results inform algorithm selection for specific use
-cases within the broader trading system design.
+The results below are read through the theoretical lens from Chapter 3:
+whether TD3's overestimation correction improves on DDPG, how PPO's
+stability trades off against TD3's efficiency, and which algorithm best
+balances risk-adjusted return against practical deployment constraints.
 
 ### Discussion of Algorithmic Trade-offs
 
