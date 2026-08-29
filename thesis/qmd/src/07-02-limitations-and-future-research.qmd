@@ -1,459 +1,137 @@
-## Limitations and Future Research
+## Limitations and Future Research {#sec-limitations-and-future-research}
 <!-- [PLACEHOLDER] -->
 
-### Order-Book Execution Realism Constraint
+### Execution Realism
 <!-- [PLACEHOLDER] -->
 
-A central limitation of the current empirical setup is the use of a
-mid-price-like execution proxy for portfolio valuation and reward computation.
-This assumption is convenient for controlled RL training, but it is not fully
-realistic for live order-book trading.
+The central limitation of the empirical setup is its execution model: a
+mid-price-like proxy for portfolio valuation and reward computation, with zero
+market impact and zero latency. Live execution instead crosses the spread,
+pays maker/taker fees, faces queue priority and partial fills, and is exposed
+to latency-dependent adverse selection — frictions the transaction-cost
+sensitivity analysis already shows are binding, since the agent's edge
+persists only at low fee levels. At tick frequency, spread-crossing costs can
+be of similar magnitude to the price moves the agent attempts to capture, so a
+strategy profitable at mid-price may be flat or negative under realistic
+bid/ask execution. Reported performance should therefore be read as an upper
+bound on what a deployed version of this policy would achieve, and the most
+direct next step is re-evaluating the same agents under explicit bid/ask
+rules, calibrated fees, and slippage or market-impact models.
 
-In production settings, a strategy that demands immediate execution typically
-crosses the spread, which introduces a mechanical cost on each trade. Realized
-results are also affected by maker/taker fees, queue priority, partial fills,
-and latency-dependent adverse selection. These frictions are only partially
-represented in the present setup.
-
-Relatedly, the current environment assumes zero market impact: agent trades do
-not shift prices or deplete liquidity in a way that changes subsequent
-execution conditions. This is reasonable only for small orders relative to
-available depth. Relaxing this assumption would likely lower net returns,
-increase drawdowns, and penalize high-turnover behavior through impact-driven
-slippage and adverse selection.
-
-The setup also assumes zero latency between observation and execution. This is
-acceptable for the present research objective because the thesis does not target
-latency-arbitrage deployment; however, real HFT environments are highly
-latency-sensitive. Some signals that appear profitable in simulation may decay
-before execution in live markets, making them effectively non-tradeable.
-Additionally, real venues can reject or partially reject orders due to
-insufficient margin, stale quotes, risk limits, or rapid order-book changes,
-which can further degrade realized performance relative to backtest results.
-
-The practical implication is that reported backtest performance is likely
-optimistic relative to deployable net performance. Strategies with high turnover
-are especially sensitive.
-
-At tick frequency, spread-crossing costs can be of
-similar magnitude to the short-horizon price moves the agent attempts to
-capture. This means that a strategy appearing profitable at mid-price may generate
-neutral or negative returns under realistic bid/ask execution. Future research
-should therefore evaluate the same agents under explicit bid/ask execution
-rules, calibrated fee schedules, and slippage/impact models to quantify the
-robustness of the observed edge under realistic microstructure constraints.
-
-### Agent-State Feature Extensions
+### Evaluation Scope
 <!-- [PLACEHOLDER] -->
 
-The current observation vector includes the agent's own portfolio exposure as
-the sole agent-specific feature. A natural extension is to enrich this with
-additional inventory-aware signals that describe the agent's situation within
-the episode rather than the external market state. Candidate features include
-unrealized P&L on the current position. This would allow the agent to
-distinguish a winning long from a losing long. It could also potentially implement
-implicit stop-loss or profit-taking behavior.
+The most important constraint on interpreting the results is the three-day
+evaluation window: train, validation, and test splits all derive from the
+same three consecutive sessions (February 25-27, 2026), sharing one
+volatility regime, spread environment, and intraday seasonality. What this
+thesis calls "out-of-sample" performance is therefore within-window
+out-of-sample — the test split was withheld from training, but the agent has
+never encountered a different trading day, market condition, or instrument.
+This is a necessary but not sufficient condition for practical utility: the
+results establish that the learning problem is tractable in this window, not
+that the policy generalizes beyond it. The comparisons are also based on a
+single completed run per configuration on a single machine with a modest
+compute budget, so multi-seed variance and the ceiling reachable under
+larger-scale infrastructure both remain open. Extending the window across
+volatility and liquidity regimes, walk-forward validation, multi-seed
+reporting, and cross-asset testing — including foreign exchange, futures,
+and cryptocurrency — would be the most direct ways to strengthen the
+generalization claim and determine whether asset-class-specific tuning is
+necessary.
 
-Other candidates include the number of steps the current
-position has been held, which enables time-based exit logic. A rolling
-turnover count would make the agent aware of its own recent transaction cost
-footprint. At a higher level, the agent's drawdown from its episode peak could
-support risk-sensitive behavior during losing runs without requiring explicit
-rule-based overlays. These extensions leave the market observation unchanged
-and add only internal state, making them a low-disruption way to test whether
-richer self-awareness improves policy quality.
-
-### Temporal Context and State Aliasing
+### Partial Observability
 <!-- [PLACEHOLDER] -->
 
-The current observation vector is a snapshot: it represents the state of the
-order book and the agent's position at a single point in time, with no
-explicit encoding of the path that led there. This creates a state aliasing
-problem. Two market configurations that are identical in their current
-snapshot — same mid-price, same spread, same order flow imbalance, same
-portfolio exposure — may have arrived from very different trajectories: one
-following a sustained directional move, the other following a reversal. The
-economically appropriate response to these two situations is different, yet the
-agent receives the same observation and is expected to produce the same action.
+A more fundamental constraint, shared with most academic RL trading
+research, is that the agent sees only the spot limit order book of a single
+instrument at a single venue. Price-relevant information that never reaches
+that book — derivatives and options-implied signals, unstructured data such
+as earnings and macro releases, and proprietary order flow visible only to
+systematic internalizers, market makers, and prime brokers — appears to the
+agent as unexplained noise, which both limits value-estimate precision and
+raises reward variance. This creates a structural information asymmetry
+between academic research, confined to public data, and well-resourced
+industry participants; the results here are best read as a lower bound on
+what such participants could achieve with the same technique, not as a
+statement about the technique's ceiling. The reward signal inherits this
+noise directly, since tick-level returns are dominated by bid-ask bounce and
+transient order-flow effects the agent cannot attribute to a cause — a
+constraint on learning that exists independently of algorithm or reward
+choice, and one that action-frequency sub-sampling (acting every $N$ ticks
+rather than every tick) could partially diagnose at low cost — several of the
+engineered features have been shown in the microstructure literature to
+carry predictive content over horizons of minutes, not just the next event,
+so a lower-frequency action interval might reveal signal the current
+tick-level setup discards as noise.
 
-Adding lagged values of the key state variables — for instance, a fixed-length
-window of past order flow imbalance, mid-price returns, and spread readings —
-would partially resolve this. Even a shallow lag stack of five to ten
-time steps would allow the agent to distinguish an accelerating trend from
-a decelerating one, or a spread that is widening from one that is compressing,
-using only the features already present in the current design. The cost is a
-proportional increase in state dimensionality, which adds sample complexity
-to training but does not require architectural changes. This is a practical
-first step that could be evaluated independently of the more substantial
-redesign implied by sequence encoders.
-
-The architectural answer to state aliasing is to replace the flat observation
-vector with a learned temporal representation — an RNN hidden state or a
-Transformer attention window — as discussed in the alternative architectures
-section below. But the simpler diagnostic is to introduce raw lags first: if
-adding a modest lag window produces a measurable improvement in policy
-stability and out-of-sample performance, that result would directly motivate
-the more complex sequence architecture. If it does not, the aliasing problem
-may be less binding than the missing information sources discussed in the
-following section.
-
-### Training Stability and Policy Collapse
-
-During experimentation, some TD3 runs entered unstable policy regimes in which
-the learned actor produced visibly degenerate behavior, such as persistent
-action saturation or collapse to a narrow range of exposures. These runs were
-not used for the main empirical comparison, which was based on completed runs
-that produced stable evaluation behavior. This manual exclusion is a limitation
-of the present workflow: although it prevents obviously failed optimization
-trajectories from contaminating the comparison, it does not provide an automated
-or statistically principled criterion for distinguishing transient exploration
-noise from genuine policy collapse.
-
-Future work should make this stability filter explicit. A natural extension is
-to add validation-based checkpoint selection and early-stopping rules for
-off-policy actor-critic training, using diagnostics such as validation Sharpe or
-Differential Sharpe Ratio, action saturation rate, action variance, critic-value
-magnitude, drawdown, and NaN or infinite-value checks. In this setup, training
-would retain the best validation checkpoint rather than the final checkpoint and
-terminate runs that satisfy predefined collapse criteria. Such a procedure would
-reduce manual intervention and make the comparison between TD3, DDPG, PPO, and
-benchmark strategies more reproducible.
-
-### Partial Observability and the Limits of the Spot Order Book
+### Training Workflow
 <!-- [PLACEHOLDER] -->
 
-A fundamental constraint of the current setup — and of most academic RL
-trading research — is that the agent operates under severe partial
-observability. The state representation is constructed entirely from
-the spot limit order book of a single instrument at a single venue.
-This is a narrow window onto a market that is simultaneously shaped by
-activity across multiple execution venues, cross-asset dynamics, and
-information sources that have no representation in the LOB at all.
+Some TD3 runs entered unstable regimes — persistent action saturation or
+collapse to a narrow exposure range — and were manually excluded from the
+main comparison. This prevented obviously failed runs from contaminating the
+results, but it is not an automated or statistically principled criterion.
+Future work should make this explicit: validation-based checkpoint selection
+and early-stopping on diagnostics such as validation Sharpe, action
+saturation rate, and critic-value magnitude would reduce manual intervention
+and make cross-algorithm comparisons more reproducible.
 
-Partial observability matters because agents trained on incomplete state
-representations are forced to treat phenomena that have external causes as
-unexplained noise in the environment. A price move driven by a large options
-hedge, a macro news release, or an institutional block trade executed in a
-dark pool appears to the agent as an unpredictable shock to the order book
-rather than as the consequence of an observable event. This limits the
-precision of any value estimate the agent can form and raises the variance
-of the reward signal, both of which degrade policy quality.
+TD3's stability corrections are also not complete. Target policy smoothing
+regularizes the critic to be locally consistent around actions seen in the
+replay buffer, but it does not eliminate extrapolation error: once the actor
+begins producing actions in regions the critic has seen rarely or never, the
+critic's estimates there are extrapolations from the training distribution
+rather than reliable values, and the actor receives no signal that it has
+left the buffer's support. This is distinct from the overestimation-bias
+correction discussed in Chapter 3 (@sec-td3-lineage) — the twin-critic
+minimum addresses optimistic bias at the target computation, not exposure to
+out-of-distribution actions at the actor update. Stochastic-policy methods
+such as SAC are structurally less exposed to this failure mode, since the
+entropy bonus discourages the policy from collapsing onto a narrow region of
+action space.
 
-Two categories of missing information are particularly relevant at the
-short horizons studied here. The first is the derivatives complex.
-Linear derivatives such as index futures and ETFs carry anticipatory price
-information because they trade with lower friction and are often the
-preferred instrument for expressing directional views. Non-linear derivatives
-— most importantly the single-stock and index options markets — embed
-forward-looking information about the distribution of future returns rather
-than just direction. Movements in implied volatility, put/call skew, and the
-term structure of options prices frequently precede movements in the
-underlying spot market, and they capture the aggregate assessment of
-informed participants about tail risk and regime transitions. An observation
-vector that incorporates even a compact representation of the near-term
-implied volatility surface — at-the-money vol, skew, and term structure slope
-— would give the agent access to information that is currently invisible to
-it, at the cost of substantially increasing state dimensionality and
-data infrastructure requirements.
-
-The second category is unstructured data and its downstream signals.
-Earnings announcements, central bank communications, analyst revisions,
-regulatory filings, and macroeconomic releases all move prices at horizons
-that are relevant to intraday positioning. Processing this information — which
-arrives as text, audio, or structured releases rather than as time series
-— requires natural language processing pipelines that sit entirely outside
-the scope of the current framework. A richer agent design would integrate
-processed signals from these sources: event indicators, sentiment scores, or
-embedding-based representations of document content. The practical challenge
-is that the quality and latency of such signals varies enormously across
-providers, and constructing a clean, backtest-safe version of an NLP-derived
-feature set introduces its own lookahead and selection biases that must be
-controlled carefully.
-
-A third category — and arguably the most structurally significant — is
-proprietary order flow. Large financial institutions that operate as systematic
-internalizers, principal trading firms, or prime brokers have access to client
-order flow that never reaches the public limit order book. A systematic
-internalizer may handle a material fraction of retail equity flow across
-hundreds of instruments simultaneously, giving it real-time visibility into the
-aggregate directional demand of its client base before that demand has been
-expressed in public prices. Similarly, large-scale market makers and prop
-trading firms observe their own execution flow across thousands of transactions
-per second — a signal that directly measures the current imbalance between
-buyers and sellers at a granularity that no public data source can replicate.
-Hedge funds and investment banks with large prime brokerage and execution
-operations have analogous visibility into client positioning across instruments
-and time horizons.
-
-This information has substantial predictive value at the short horizons studied
-here. Knowing that a sustained institutional order is being worked in a given
-direction, or that retail flow has shifted from buy-dominated to sell-dominated
-over the preceding seconds, is qualitatively different from inferring order
-imbalance from the public LOB alone. The public order book reflects only the
-fraction of activity that reaches the exchange; the proprietary flow signals
-available to large institutions capture the full picture. This creates a
-structural information asymmetry between academic research, which is confined to
-public data sources, and industry participants who can use their own client flow
-as a predictive feature.
-
-The practical implication is that models trained exclusively on public data —
-regardless of their algorithmic sophistication — may face a performance ceiling
-imposed by this information gap rather than by their architecture or training
-procedure. Closing it is not primarily a matter of feature engineering: it
-requires either operating at sufficient scale to generate proprietary flow
-observations internally, or entering into data-sharing arrangements with
-institutions that already do. This consideration supports interpreting the
-results of this thesis, and of academic RL trading research more broadly, as a
-lower bound on what is achievable by well-resourced industry participants rather
-than as a reflection of the technique's fundamental limits.
-
-Together, these limitations suggest that the performance ceiling of any
-agent that sees only the spot LOB is bounded not by the choice of RL
-algorithm or reward function, but by the information content of its
-observation. Closing this gap incrementally — first by adding futures and
-ETF quote data, then compact options market features, then processed
-text signals — would allow future work to decompose how much of the
-remaining unexplained return variance is attributable to each missing
-information source.
-
-### Cross-Asset and Multi-Asset Extensions
+### Future Research Directions
 <!-- [PLACEHOLDER] -->
 
-The empirical design uses a pooled model trained across six Nasdaq large-cap
-equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO), but the agent still manages a
-single-asset position at a time. A direct extension is to introduce synchronized cross-asset
-observations: intraday VIX futures as a regime-conditioning signal, sector ETF
-order flow as a proxy for institutional activity, or correlated large-cap LOB
-states that may lead price discovery. A more substantial extension is to
-move from single-asset exposure control to genuine multi-asset portfolio optimization,
-where the agent simultaneously manages positions across multiple instruments and
-must account for correlation, capital constraints, and cross-asset execution
-costs.
+Beyond re-evaluating under realistic execution and broadening the evaluation
+window (above), several extensions follow directly from the design choices
+made here:
 
-A more tractable intermediate step would be to design the simulation around
-instrument pairs with an economically well-defined price anchor — for example,
-dual-class shares representing identical economic exposure to the same
-underlying business — where deviations from parity are theoretically bounded
-and the learning target is the spread rather than a directional price level.
-
-### Narrow Evaluation Window and Scope of the Empirical Claim
-<!-- [PLACEHOLDER] -->
-
-The most important constraint on interpreting the empirical results is the
-three-day evaluation window. The training, validation, and test splits all
-derive from the same three consecutive trading sessions (February 25–27,
-2026). What the thesis describes as "out-of-sample" performance is therefore
-within-window out-of-sample: the test split was not used during training, but
-it belongs to the same short market episode, characterized by the same
-volatility regime, the same spread environment, and the same intraday
-seasonality as the training data. The agent has never encountered a different
-trading day, let alone a different market condition or instrument.
-
-This distinction matters for what the results actually support. The empirical
-findings are best read as a viability test. The pipeline can extract
-useful signal from order-book features and translate this into a policy that
-outperforms benchmarks within a controlled, narrow window. This is a necessary
-condition for practical utility, but not a sufficient one. These conclusions would be undermined if the agent had failed to
-beat benchmarks even in this favorable setting. What it does not establish is
-whether the learned policy would remain profitable across a broader range of
-market conditions, or even across a separate three-day window of data
-with different volatility or flow characteristics.
-
-Extending the evaluation window to cover multiple weeks of data, including
-periods of elevated volatility, low liquidity, and structural breaks, would
-be the most direct way to strengthen the generalization claim. Walk-forward
-validation — re-training on an expanding window and evaluating on successive
-held-out periods — would further separate temporal generalization from
-in-window interpolation. Cross-asset testing would include foreign exchange, futures,
-and cryptocurrency. This would establish whether the feature design and training
-protocol are robust to structural differences in order-book dynamics. It would also determine
-whether asset-class-specific tuning is necessary. These extensions are
-identified as the primary experimental directions for future work.
-
-### Algorithm Comparison and Reward Ablation
-<!-- [PLACEHOLDER] -->
-
-The empirical pipeline is structured around TD3 and the Differential Sharpe
-Ratio reward. Two natural ablation axes remain unexplored. First, replacing
-TD3 with SAC — which maximizes a maximum-entropy objective and tends to
-maintain broader exploration throughout training — or with PPO would test
-whether the deterministic actor-critic family is genuinely best suited to this
-problem. Second, replacing the DSR reward with alternatives such as a
-Sortino-based signal, a direct log-return objective, or a reward that
-explicitly penalizes drawdown would test the sensitivity of policy behavior to
-reward specification — a dimension the thesis identifies as important but does
-not empirically vary. Third, a structured search over the network
-architecture within the MLP family — covering learning rates, hidden layer
-width and depth, and activation function — would determine how much of the
-observed performance is attributable to the algorithm itself versus the
-specific parameterization chosen. Activation functions with different
-saturation and gradient propagation properties, such as GELU or ELU in place
-of ReLU, may interact differently with the bounded and often skewed
-distributional properties of order-book features. Layer normalization inside
-the critic, which stabilizes Q-value scale across reward magnitudes, is also
-untested here. These are not incidental details: in environments with a low
-signal-to-noise ratio, architecture choices can dominate algorithm differences
-in their effect on final policy quality.
-
-### Critic Pathologies in Deterministic Actor-Critic Methods
-<!-- [PLACEHOLDER] -->
-
-TD3 inherits two structural failure modes from the deterministic policy gradient
-family that are worth making explicit, because they constrain what the algorithm
-can learn regardless of reward design or observation quality.
-
-The first is overestimation bias. Even with the twin-critic minimum — which
-reduces but does not eliminate optimistic Q-value estimates — the actor is
-updated by ascending the gradient of $Q_1(s, \pi(s))$. If the critic has
-overestimated Q-values in some region of state-action space, the actor is pushed
-toward those states and actions not because they are genuinely good, but because
-the critic is wrong about them in a systematically optimistic direction. The
-twin-critic correction addresses the most severe overestimation at the target
-computation step, but the actor loss itself uses a single critic without the
-min, leaving the actor update exposed to regions where $Q_1$ is locally
-inflated.
-
-The second is extrapolation error. The critic is trained only on $(s, a)$ pairs
-that appear in the replay buffer, which reflects the historical distribution of
-the actor's behavior. When the actor is updated and begins producing actions in
-regions of action space that the critic has seen infrequently or not at all, the
-critic's Q-estimates in those regions are extrapolations from the training
-distribution rather than reliable value estimates. The actor, receiving no signal
-that it has moved outside the buffer's support, may follow these extrapolated
-values toward degenerate behavior — in a market making context, this could
-manifest as locking onto extreme spread width or position sizing that happens to
-receive a spuriously high Q-value in a sparsely visited region of action space.
-Target policy smoothing partially mitigates this by regularizing the critic to be
-locally consistent around actions seen in the buffer, but the fundamental
-exposure to out-of-distribution extrapolation remains. Algorithms that maintain a
-stochastic policy — SAC in particular — are structurally less vulnerable to this
-failure mode because the entropy bonus discourages the policy from collapsing to
-a narrow region of action space.
-
-### Reward Signal Quality at Tick Frequency
-<!-- [PLACEHOLDER] -->
-
-A prior constraint on all reward-driven learning at tick frequency is the
-signal-to-noise ratio of the reward signal itself. This is distinct from the
-question of which reward specification to use — it concerns whether any reward
-signal constructed from short-horizon realized returns is informative enough to
-guide gradient-based learning in the presence of microstructure noise.
-
-At the horizons studied here, individual tick-level price moves are dominated by
-bid-ask bounce, queue-position effects, and short-term order flow imbalance that
-partially reverts within seconds. The reward received at each step therefore
-reflects a mixture of genuine directional signal and transient noise that does
-not represent the agent's skill. The TD target that the critic regresses toward —
-$y = r + \gamma \cdot \min(Q_1^{\text{targ}}, Q_2^{\text{targ}})(s', a')$ —
-inherits this noise directly: if $r$ is dominated by transient microstructure
-effects rather than the agent's decisions, the critic cannot reliably distinguish
-states and actions that are genuinely good from those that happened to coincide
-with favorable noise realizations. The Differential Sharpe Ratio reward used in
-this thesis partially addresses this by constructing a running risk-adjusted
-signal rather than a step-by-step log-return, but the underlying noise floor of
-tick-level returns constrains how much any episode-level reward shaping can
-improve signal quality.
-
-This observation connects to the partial observability limitation discussed
-above. Much of the variance in the reward signal is driven by factors — large
-cross-venue order flow, options-market hedging, institutional block trades — that
-are invisible to the agent. From the agent's perspective this variance is
-irreducible noise, and the critic must fit a value function over a state space
-where a large fraction of the outcome variance has no representation in the
-observation. The practical implication is that even a well-specified reward
-function and a correctly implemented algorithm will face a learning problem whose
-difficulty is partly determined by the informativeness of the observation, not
-just the reward design.
-
-A related and underexplored direction is whether the engineered features retain
-predictive power at longer action intervals. The current setup operates in event
-time — the agent acts on every tick — which maximizes temporal resolution but
-also maximizes exposure to the noise sources described above. Many of the
-features in the observation vector, such as order flow imbalance, depth
-asymmetry, and short-term volatility estimates, have been shown in the
-microstructure literature to carry predictive content for price movements over
-horizons of minutes to tens of minutes, not just the next event. Sub-sampling
-the LOB stream so that the agent acts every $N$ seconds or every $K$ events,
-rather than at every tick, would raise the effective signal-to-noise ratio of
-the reward and might reveal that the feature set generates genuine alpha at a
-horizon where the noise floor is lower. This would require no change to the
-observation vector or reward function — only to the action frequency — making it
-a low-cost diagnostic for whether the current results reflect a fundamental
-limitation of the features or simply a mismatch between the features' predictive
-horizon and the tick-level action frequency at which they are evaluated.
-
-### Alternative Model Architectures
-<!-- [PLACEHOLDER] -->
-
-Two architectural directions appear promising. First, replacing
-the MLP actor and critic with a Transformer-based sequence encoder would allow
-the agent to attend selectively over a window of past order-book states rather
-than acting on a single flattened snapshot. The self-attention mechanism
-underlying Transformer architectures [@Vaswani2017] allows a model to weigh
-relevant elements of a sequence dynamically, a property that motivates their
-growing use on sequential financial data and that aligns well with LOB inputs
-where the relative importance of recent events varies with market conditions.
-
-Second, a hybrid approach combining gradient-boosted trees with the RL framework
-is a particularly interesting direction for this problem. The GBRL framework
-[@Fuhrer2025], presented at ICML 2025, integrates gradient boosting directly
-into the actor-critic architecture, replacing the MLP components with
-gradient-boosted trees while preserving the PPO training loop (the framework
-does not currently implement TD3, so applying it to this thesis's agent would
-require extending it to a deterministic off-policy setting). Unlike
-general-purpose gradient boosting libraries such as XGBoost or CatBoost, GBRL
-is designed specifically for the non-stationary, target-free setting of RL: it
-uses a shared tree structure across the policy and value function and is
-implemented in C++/CUDA to handle the high throughput of parallel rollout
-collection. The value estimation step is effectively a regression on tabular
-features — precisely the setting where gradient-boosted trees are known to match
-or outperform MLPs on structured financial data. This makes GBRL a natural fit
-for the order-book feature set designed in this thesis, where inputs are
-engineered tabular signals rather than raw image or sequence data.
-
-A further advantage is interpretability. Individual trees can be inspected to
-identify which features drive the value estimates at specific states, providing
-transparency that standard MLP critics cannot offer. For a thesis whose
-observation vector is constructed from economically motivated microstructure
-signals, this property is directly useful: it would allow post-hoc analysis of
-whether the value function assigns importance to features in a way that aligns
-with the economic reasoning motivating their inclusion. An open-source
-implementation is maintained by NVIDIA Research and integrates with
-stable-baselines3, making it accessible for future experimental work without
-requiring a full framework rewrite.^[The GBRL implementation is available at
-\url{https://github.com/NVlabs/gbrl}.]
-
-A counterpoint to both directions above is that increased model complexity may
-not be warranted given the signal quality constraints discussed in the preceding
-section. If the reward signal at tick frequency is dominated by microstructure
-noise rather than learnable structure, a high-capacity model — whether an MLP,
-a Transformer, or a gradient-boosted ensemble — will fit that noise rather than
-generalize from it. In this regime, a linear policy and linear critic, or a
-low-capacity model with strong regularization, may outperform more expressive
-architectures precisely because limited capacity prevents memorizing noise. A
-linear baseline should therefore be evaluated as a lower bound before
-committing to more complex designs: if a linear actor matches or exceeds the
-MLP in out-of-sample performance, this would be strong evidence that the
-problem as currently formulated does not contain non-linear structure that
-deep RL can exploit — and the appropriate response is to redesign the problem
-formulation rather than to increase model capacity.
-
-### Evaluation Robustness
-<!-- [PLACEHOLDER] -->
-
-The current results are based on a fixed train/test split and a single random
-seed. Walk-forward validation — expanding the training window and re-evaluating
-on successive out-of-sample periods — would provide a more rigorous assessment
-of temporal generalization. Multi-seed reporting with confidence intervals
-would separate genuine policy quality from favorable initialization, which is a
-known confound in RL research.
-
-### Compute Scale as a Prerequisite for Superior Performance
-<!-- [PLACEHOLDER] -->
-
-The experiments in this thesis were conducted on a single machine with a modest
-GPU budget, covering six instruments over three trading sessions; the ceiling of
-what is achievable under typical academic compute budgets is likely well below
-what would be observed under the infrastructure-scale training regimes available
-to leading quantitative firms, and the results should be interpreted with that
-constraint in mind.
+- **Richer agent state.** The observation includes only current exposure;
+  unrealized P&L, holding duration, rolling turnover, and episode drawdown
+  would add inventory-aware self-state without changing the market
+  observation.
+- **Temporal context.** The observation is a single snapshot, which aliases
+  different price trajectories into the same state. A shallow lag stack (5-10
+  steps) of key features is a low-cost first step before the more substantial
+  redesign implied by a sequence encoder.
+- **Cross-asset and multi-asset extensions.** The pooled model trains across
+  six instruments but manages one position at a time; synchronized cross-asset
+  signals (e.g. VIX futures, sector-ETF flow) or genuine multi-asset portfolio
+  optimization are natural extensions, as is testing on instruments with
+  intermediate liquidity — active enough to generate a rich order book but not
+  so deep that every pattern is immediately arbitraged, unlike the highly
+  liquid large-caps used here. A more tractable intermediate step is a pair
+  with an economically well-defined price anchor, such as dual-class shares
+  representing identical economic exposure to the same underlying business,
+  where deviations from parity are theoretically bounded and the learning
+  target becomes the spread rather than a directional price level.
+- **Algorithm and reward ablation.** Replacing TD3 with SAC or PPO, and the
+  Differential Sharpe Ratio with a Sortino-based or drawdown-penalized
+  reward, would test how much of the observed performance is attributable to
+  the specific algorithm and reward choice rather than the feature design.
+  Within the MLP family, a structured search over learning rate, hidden-layer
+  width and depth, and activation function would separate algorithmic
+  contribution from parameterization: activation functions with different
+  saturation properties, such as GELU or ELU in place of ReLU, may interact
+  differently with the bounded, skewed distribution of order-book features,
+  and layer normalization inside the critic — untested here — could stabilize
+  Q-value scale across reward magnitudes.
+- **Alternative architectures.** Transformer-based sequence encoders and
+  hybrid gradient-boosted-tree approaches such as GBRL [@Fuhrer2025] are
+  promising directions given the tabular, engineered nature of the feature
+  set — but a linear-policy baseline should be evaluated first: if a linear
+  actor matches the MLP's out-of-sample performance, that is stronger
+  evidence about the problem's structure than any higher-capacity model
+  result would be.

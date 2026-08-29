@@ -183,6 +183,10 @@ assumptions separating these findings from deployable performance claims.
 
 \newpage
 {{< include ./07-00-conclusions.qmd >}}
+{{< include ./07-01-summary-of-findings.qmd >}}
+{{< include ./07-02-limitations-and-future-research.qmd >}}
+{{< include ./07-03-implications-for-trading-systems.qmd >}}
+{{< include ./07-05-conclusion.qmd >}}
 
 {{< include ./98-bibliography.qmd >}}
 

@@ -1,57 +1,64 @@
-## Implications for Trading Systems
+## Implications and Recommendations for Practitioners {#sec-implications-and-recommendations}
 <!-- [PLACEHOLDER] -->
 
-The empirical findings carry several implications for the design of deep RL
-trading systems operating on limit order book data, beyond the specific
-experiments studied here.
+The empirical findings carry implications for deep RL trading systems on
+limit order book data beyond the specific experiments studied here, and
+translate directly into recommendations for practitioners building similar
+systems.
 
-**Microstructure-aware features are a necessary, not optional, ingredient.**
-The performance gap between the extended and baseline feature sets demonstrates
-that order-book-derived microstructure information — order flow imbalance, spread
-regime, book shape, and temporal encoding — carries signal that aggregate snapshot
-quantities do not. This finding is consistent with the theoretical argument from
-the microstructure literature reviewed in Chapter 2: the information relevant to
-short-horizon price prediction is embedded in the dynamics of the limit order book
-rather than in best-quote snapshots alone. For practitioners designing RL state
-representations, this implies that the choice of which features to engineer is
-at least as consequential as the selection of algorithm. A well-specified feature
-set operating with a standard actor-critic architecture will likely outperform a
-poorly-specified feature set using a more sophisticated model.
+**Invest in feature engineering before algorithm selection.** The
+performance gap between the extended and baseline feature sets shows that
+order-book-derived microstructure information — order flow imbalance, spread
+regime, book shape, temporal encoding — carries signal that aggregate
+snapshot quantities do not, consistent with the microstructure literature
+reviewed in Chapter 2. Feature quality is at least as consequential as
+algorithm choice: a well-specified feature set with a standard actor-critic
+architecture will likely outperform a poorly-specified feature set with a
+more sophisticated model. A thorough feature validation — correlation
+structure, stationarity, and predictive content on held-out data — is more
+valuable time spent than hyperparameter search over an impoverished state
+space.
 
-**Continuous-action actor-critic methods are best suited to position-sizing tasks.** The continuous action space used here allowed
-the agent to express varying degrees of directional conviction through position
-size, rather than being constrained to binary buy/sell decisions. This expressiveness
-is important in high-frequency settings where the economically correct position
-magnitude varies with the strength of the microstructure signal. Discrete-action
-methods require an arbitrary grid approximation that either loses this precision
-or re-introduces the curse of dimensionality. The TD3 stability mechanisms —
-clipped double Q-learning, delayed policy updates, and target policy smoothing —
-proved important in the noisy high-frequency reward environment: without them,
-value overestimation would have driven the policy toward unreliable actions
+**Continuous-action actor-critic methods suit position-sizing tasks.** The
+continuous action space let the agent express varying directional conviction
+through position size rather than binary buy/sell decisions, which matters
+when the economically correct position magnitude varies with signal
+strength; a discrete-action grid either loses this precision or reintroduces
+the curse of dimensionality. TD3's stability mechanisms — clipped double
+Q-learning, delayed policy updates, target policy smoothing — proved
+important in this noisy reward environment: without them, value
+overestimation would likely have driven the policy toward unreliable actions
 during early training.
 
-**Reward design should separate the training signal from the evaluation metric.**
-A consistent finding across both the literature and the experiments in this
-thesis is that optimizing a shaped reward — in this case the Differential Sharpe
-Ratio — does not guarantee that the cumulative shaped reward will rank-correlate
-with realized financial performance. These must be tracked separately. The
-practical implication is that deep RL trading systems require two distinct evaluation
-pipelines: a training diagnostic that tracks the optimization objective, and a
-financial evaluation that rolls out the deterministic policy on held-out data and
-computes return, Sharpe ratio, drawdown, and turnover from the realized position
-series. Conflating these — for example, treating a high training DSR as evidence
-of a strong held-out Sharpe — is a common source of overoptimistic claims
-in the literature.
+**Enforce a strict chronological evaluation protocol from the start.** Any
+lookahead — features computed from future data, normalization fit on the
+full dataset, non-sequential splits — produces a materially optimistic
+out-of-sample assessment. In high-frequency settings, where signal decay is
+measured in seconds, even mild lookahead can manufacture the appearance of a
+viable strategy from a leakage artifact. Normalization should be fit on the
+training split only and applied frozen, or implemented as a strictly causal
+online transformation that resets at session boundaries. This is a minimum
+requirement for the results to be meaningful, not an optional refinement.
 
-**Execution assumptions impose a binding constraint on achievable net
-performance.** This execution assumption represents an
-upper bound on realizable returns. The spread-crossing cost that arises in live
-execution is of the same order of magnitude as the short-horizon price movements
-the agent attempts to capture, and the agent's demonstrated edge does not
-survive at high transaction cost levels, as shown in the sensitivity analysis.
-For a trading system to be considered deployable — rather than a proof of
-concept — the same policy must be re-evaluated under explicit bid/ask execution
-rules, realistic fee schedules, and queue-position uncertainty. The present
-results establish that a useful signal exists in the microstructure-aware state
-representation; they do not establish that this signal survives the full cost
-structure of live high-frequency execution.
+**Keep reward optimization and financial evaluation strictly separate.** A
+shaped reward such as the Differential Sharpe Ratio is a training objective,
+not a performance report: optimizing it does not guarantee that the
+cumulative shaped reward rank-correlates with realized financial
+performance. Deep RL trading systems need two distinct pipelines — a
+training diagnostic tracking the optimization objective, and a financial
+evaluation that rolls out the deterministic policy on held-out data and
+computes return, Sharpe ratio, drawdown, and turnover from the realized
+position series. Conflating the two — citing a high training DSR as evidence
+of held-out Sharpe — is a common source of overoptimistic claims in the
+literature, and the most consistent failure mode to avoid.
+
+**Treat transaction-cost sensitivity as a go/no-go criterion.** The
+execution model used here is a mid-price proxy, and represents an upper
+bound on realizable returns: spread-crossing costs are of similar magnitude
+to the price moves the agent targets, and the demonstrated edge does not
+survive at high cost levels, as the sensitivity analysis shows. Before
+treating any result as evidence of a deployable strategy, practitioners
+should run the same evaluation across a range of cost levels — from zero to
+the realistic spread-plus-fee regime of the target venue — and check whether
+risk-adjusted return degrades gracefully or collapses abruptly. An edge that
+survives only at zero cost is not a tradeable strategy.

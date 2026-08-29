@@ -1,95 +1,11 @@
 # Conclusions and Future Work
 <!-- [PLACEHOLDER] -->
 
-This thesis examined if a continuous-control deep RL agent
-using order-book-derived microstructure features can achieve economically
+This thesis examined whether a continuous-control deep RL agent using
+order-book-derived microstructure features can achieve economically
 meaningful held-out performance in a high-frequency single-asset setting.
-Within the specified experimental design, the answer is qualified but
-affirmative. The TD3 agent learned a conservative policy with positive held-out
-return, very low drawdown, and a high profit factor, but it did not dominate
-passive long exposure or PPO on cumulative return in the upward-drifting
-evaluation window. The selected microstructure-aware state representation
-improved policy behavior relative to the minimal snapshot-based baseline, while
-the full 33-feature variant did not improve further. These findings support a
-narrow central claim: the informational content of the limit order book can be
-translated into state features that improve an RL trading agent's behavior under
-controlled simulation assumptions, but the exported results do not establish a
-benchmark-dominating trading strategy.
-
-The empirical contribution is accompanied by a methodological one. The thesis
-developed an end-to-end and reproducible pipeline covering feature engineering
-from 10-level order book data, structured experiment management, TD3
-training with a Differential Sharpe Ratio reward, and a strict separation
-between training diagnostics and held-out financial evaluation. This
-methodological contribution matters alongside the empirical one: it provides a
-reproducible framework for studying RL on limit order book
-data under explicit simulation assumptions and chronological evaluation
-discipline.
-
-At the same time, the conclusions must be interpreted within the limits of the
-experimental setup. The simulation uses a mid-price execution proxy rather than
-executable bid/ask fills, assumes zero market impact and zero latency, and is
-evaluated on a narrow four-day dataset from six instruments, with the final
-comparisons based on one completed exported run per configuration. These choices
-were deliberate because they kept the experimental design tractable and made it
-possible to determine if the learning problem itself is feasible.
-They also place a clear boundary on the claim being made. The thesis
-demonstrates feasibility, not deployability. The observed edge cannot yet be
-treated as evidence of a production-ready trading strategy, because realistic
-execution frictions may materially reduce or eliminate it.
-
-These limitations point directly to the most important implications for future
-research and for practical system design. First, transaction-cost sensitivity
-must be treated as a binding constraint rather than as a minor robustness check:
-any apparent edge that disappears once spread-crossing costs, fees, queue
-uncertainty, or latency are introduced should not be interpreted as economically
-meaningful. Second, feature engineering deserves priority over marginal changes
-in model architecture, because the results suggest that policy quality is driven
-primarily by the predictive content of the state representation. Third,
-stronger claims about generalization require broader temporal and cross-market
-evaluation, including longer windows, walk-forward validation, multiple random
-seeds, and eventually cross-asset testing. The transaction-cost experiments
-already show why this boundary matters: the TD3 result remains marginally
-positive only under very low fee assumptions and becomes negative as costs rise.
-
-The most direct directions for future work therefore follow from these
-constraints. The same agents should be re-evaluated under explicit bid/ask
-execution rules, calibrated fee schedules, and slippage or market-impact
-models. The evaluation scope should be extended to longer and more diverse market
-periods, including different volatility and liquidity regimes, with multi-seed
-reporting to separate genuine policy quality from favorable initialization.
-Natural model extensions include richer agent-state variables, broader
-cross-asset information, and comparisons with alternative actor-critic or
-sequence-model architectures.
-
-A separate and underexplored direction concerns instrument selection. This
-thesis deliberately chose highly liquid large-cap equities to make the
-price-taking assumption defensible: in deep, continuously quoted markets,
-simulated agent trades represent a negligible fraction of displayed volume.
-The cost of that choice is that microstructure signals in these instruments
-are competed away rapidly by a large population of sophisticated participants,
-compressing the persistence of any learnable pattern. Assets with intermediate
-liquidity — sufficiently active to generate a rich and informative order book,
-but not so deep that every microstructure pattern is immediately arbitraged —
-may offer more persistent alphas for an RL agent to learn on. Instruments such
-as mid-cap equities, exchange-traded products with moderate average daily
-volume, or less-covered international equities are plausible candidates. The
-trade-off is that lower liquidity also amplifies market impact and widens
-effective execution costs, which would require explicit impact modelling rather
-than the price-taking simplification used here. Exploring this liquidity
-spectrum is therefore a meaningful direction for future work, provided that the
-simulation assumptions are updated accordingly.
-
-Taken together, these extensions would test
-whether the feasibility result established here survives under more realistic
-conditions.
-
-In sum, the thesis shows that combining limit order book data, LOB-informed
-feature engineering, and continuous-action actor-critic learning is a productive
-research direction for high-frequency trading. The defensible conclusion is a
-narrow one: under the conditions studied here, the learning problem is
-tractable and the chosen representation carries enough signal to produce a
-measurably more coherent policy in a controlled setting. That result provides a
-foundation for subsequent work aimed at testing whether the same approach can
-survive under more realistic execution, broader market coverage, and repeated
-seed validation.
+The answer, within the specified experimental design, is qualified but
+affirmative: the following sections detail the evidence
+(@sec-summary-of-findings), the limitations that bound this claim
+(@sec-limitations-and-future-research), and their implications for
+trading-system design and practice.
