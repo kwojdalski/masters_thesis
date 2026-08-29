@@ -23,6 +23,7 @@ Thresholds:
     medium  — balanced (default)
     relaxed — flags only egregious cases (good for legacy code)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -75,10 +76,14 @@ FUNC_DEF_TS = re.compile(
     re.MULTILINE,
 )
 CLASS_DEF_PY = re.compile(r"^\s*class\s+\w+", re.MULTILINE)
-CLASS_DEF_TS = re.compile(r"^\s*(?:export\s+)?(?:abstract\s+)?class\s+\w+", re.MULTILINE)
+CLASS_DEF_TS = re.compile(
+    r"^\s*(?:export\s+)?(?:abstract\s+)?class\s+\w+", re.MULTILINE
+)
 IMPORT_PY = re.compile(r"^(?:import |from \S+ import )", re.MULTILINE)
 IMPORT_TS = re.compile(r"^import\s+", re.MULTILINE)
-ABC_PATTERN = re.compile(r"ABC|abstractmethod|Protocol|@abstract|Abstract\w+Base", re.MULTILINE)
+ABC_PATTERN = re.compile(
+    r"ABC|abstractmethod|Protocol|@abstract|Abstract\w+Base", re.MULTILINE
+)
 INDENT_RE = re.compile(r"^( *)\S", re.MULTILINE)
 
 
@@ -102,8 +107,10 @@ def extract_functions(text, lang):
     lines = text.splitlines()
     funcs = []
     for m in pat.finditer(text):
-        name = m.group(1) or (m.group(2) if m.lastindex and m.lastindex >= 2 else "anonymous")
-        start = text[:m.start()].count("\n")
+        name = m.group(1) or (
+            m.group(2) if m.lastindex and m.lastindex >= 2 else "anonymous"
+        )
+        start = text[: m.start()].count("\n")
         # Estimate function length: count indented lines until next same-level def or end
         indent = len(m.group(0)) - len(m.group(0).lstrip())
         end = start + 1
@@ -112,8 +119,16 @@ def extract_functions(text, lang):
             if not stripped:
                 continue
             line_indent = len(stripped) - len(stripped.lstrip())
-            if line_indent <= indent and stripped.lstrip() and not stripped.lstrip().startswith(("#", "//", "/*", "*")):
-                if lang == "python" and (stripped.lstrip().startswith("def ") or stripped.lstrip().startswith("class ") or stripped.lstrip().startswith("async def ")):
+            if (
+                line_indent <= indent
+                and stripped.lstrip()
+                and not stripped.lstrip().startswith(("#", "//", "/*", "*"))
+            ):
+                if lang == "python" and (
+                    stripped.lstrip().startswith("def ")
+                    or stripped.lstrip().startswith("class ")
+                    or stripped.lstrip().startswith("async def ")
+                ):
                     break
                 if lang == "typescript" and pat.match(stripped):
                     break
@@ -148,21 +163,25 @@ def analyze_file(path, thresholds):
 
     # File length
     if line_count > thresholds["max_file_lines"]:
-        findings.append({
-            "rule": "file-length",
-            "severity": "warn",
-            "message": f"File is {line_count} lines (max {thresholds['max_file_lines']}). Consider splitting.",
-        })
+        findings.append(
+            {
+                "rule": "file-length",
+                "severity": "warn",
+                "message": f"File is {line_count} lines (max {thresholds['max_file_lines']}). Consider splitting.",
+            }
+        )
 
     # Import count
     imp_pat = IMPORT_PY if lang == "python" else IMPORT_TS
     import_count = len(imp_pat.findall(text))
     if import_count > thresholds["max_imports"]:
-        findings.append({
-            "rule": "import-count",
-            "severity": "warn",
-            "message": f"{import_count} imports (max {thresholds['max_imports']}). High coupling?",
-        })
+        findings.append(
+            {
+                "rule": "import-count",
+                "severity": "warn",
+                "message": f"{import_count} imports (max {thresholds['max_imports']}). High coupling?",
+            }
+        )
 
     # Class density
     cls_pat = CLASS_DEF_PY if lang == "python" else CLASS_DEF_TS
@@ -170,28 +189,34 @@ def analyze_file(path, thresholds):
     if line_count > 0:
         density = class_count / (line_count / 100)
         if density > thresholds["max_classes_per_100_lines"]:
-            findings.append({
-                "rule": "class-density",
-                "severity": "warn",
-                "message": f"{class_count} classes in {line_count} lines ({density:.1f} per 100). Premature abstraction?",
-            })
+            findings.append(
+                {
+                    "rule": "class-density",
+                    "severity": "warn",
+                    "message": f"{class_count} classes in {line_count} lines ({density:.1f} per 100). Premature abstraction?",
+                }
+            )
 
     # Premature ABC/Protocol in small files
     if class_count > 0 and line_count < 200 and ABC_PATTERN.search(text):
-        findings.append({
-            "rule": "premature-abstraction",
-            "severity": "warn",
-            "message": "Abstract base class / Protocol in a file under 200 lines. Is this needed yet?",
-        })
+        findings.append(
+            {
+                "rule": "premature-abstraction",
+                "severity": "warn",
+                "message": "Abstract base class / Protocol in a file under 200 lines. Is this needed yet?",
+            }
+        )
 
     # Nesting depth
     depth = max_nesting(text, lang)
     if depth > thresholds["max_nesting"]:
-        findings.append({
-            "rule": "nesting-depth",
-            "severity": "warn",
-            "message": f"Max nesting depth {depth} (max {thresholds['max_nesting']}). Extract or flatten.",
-        })
+        findings.append(
+            {
+                "rule": "nesting-depth",
+                "severity": "warn",
+                "message": f"Max nesting depth {depth} (max {thresholds['max_nesting']}). Extract or flatten.",
+            }
+        )
 
     # Cyclomatic complexity (file-level)
     branches = count_branches(text, lang)
@@ -199,21 +224,25 @@ def analyze_file(path, thresholds):
     func_count = max(len(funcs), 1)
     avg_cyclomatic = branches / func_count
     if avg_cyclomatic > thresholds["max_cyclomatic"]:
-        findings.append({
-            "rule": "cyclomatic-complexity",
-            "severity": "warn",
-            "message": f"Average cyclomatic complexity {avg_cyclomatic:.1f} (max {thresholds['max_cyclomatic']}). Simplify branching.",
-        })
+        findings.append(
+            {
+                "rule": "cyclomatic-complexity",
+                "severity": "warn",
+                "message": f"Average cyclomatic complexity {avg_cyclomatic:.1f} (max {thresholds['max_cyclomatic']}). Simplify branching.",
+            }
+        )
 
     # Function length
     for f in funcs:
         if f["lines"] > thresholds["max_function_lines"]:
-            findings.append({
-                "rule": "function-length",
-                "severity": "warn",
-                "message": f"Function '{f['name']}' is {f['lines']} lines (max {thresholds['max_function_lines']}). Split it.",
-                "line": f["start_line"],
-            })
+            findings.append(
+                {
+                    "rule": "function-length",
+                    "severity": "warn",
+                    "message": f"Function '{f['name']}' is {f['lines']} lines (max {thresholds['max_function_lines']}). Split it.",
+                    "line": f["start_line"],
+                }
+            )
 
     score = max(0, 100 - len(findings) * 15)
     return {
@@ -289,7 +318,9 @@ def main():
         "files_analyzed": len(results),
         "total_findings": total_findings,
         "average_score": round(avg_score, 1),
-        "verdict": "PASS" if total_findings == 0 else ("WARN" if avg_score >= 50 else "FAIL"),
+        "verdict": "PASS"
+        if total_findings == 0
+        else ("WARN" if avg_score >= 50 else "FAIL"),
         "results": results,
     }
 
@@ -297,7 +328,9 @@ def main():
         print(json.dumps(summary, indent=2))
         return
 
-    print(f"Karpathy Simplicity Check — {len(results)} files, threshold: {args.threshold}")
+    print(
+        f"Karpathy Simplicity Check — {len(results)} files, threshold: {args.threshold}"
+    )
     print(f"Average score: {avg_score:.0f}/100  Findings: {total_findings}")
     print()
     for r in results:

@@ -420,8 +420,7 @@ with LogContext(logger, "Training Loop"):
                 # Check if we've exceeded maximum training steps
                 if total_count >= max_steps:
                     logger.info(
-                        f"Training stopped after reaching maximum steps: "
-                        f"{max_steps}"
+                        f"Training stopped after reaching maximum steps: {max_steps}"
                     )
                     break
 

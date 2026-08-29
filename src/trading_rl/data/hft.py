@@ -12,7 +12,9 @@ from trading_rl.constants import EnvBackend, EnvMode, SplitName
 
 logger = get_logger(__name__)
 
-_HFT_MIN_TIMESTAMP_GAP_NS = 1_000  # 1 µs — minimum distinguishable by Python datetime (microsecond precision)
+_HFT_MIN_TIMESTAMP_GAP_NS = (
+    1_000  # 1 µs — minimum distinguishable by Python datetime (microsecond precision)
+)
 
 _Splits = tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]
 
@@ -24,9 +26,14 @@ def _map_splits(
     test_df: pd.DataFrame,
 ) -> _Splits:
     """Apply fn(split_name, df) to each split and return (train, val, test)."""
-    results = {name: fn(name, df) for name, df in (
-        (SplitName.TRAIN, train_df), (SplitName.VAL, val_df), (SplitName.TEST, test_df)
-    )}
+    results = {
+        name: fn(name, df)
+        for name, df in (
+            (SplitName.TRAIN, train_df),
+            (SplitName.VAL, val_df),
+            (SplitName.TEST, test_df),
+        )
+    }
     return results[SplitName.TRAIN], results[SplitName.VAL], results[SplitName.TEST]
 
 
@@ -52,7 +59,12 @@ def _derive_close_hft_single(
     result["close"] = mid_price.ffill().bfill()
     nan_ratio = float(result["close"].isna().mean())
     method = "mid_price+fallback" if "price" in result.columns else "mid_price"
-    logger.info("derive close split={} method={} nan_ratio={:.6f}", split_name, method, nan_ratio)
+    logger.info(
+        "derive close split={} method={} nan_ratio={:.6f}",
+        split_name,
+        method,
+        nan_ratio,
+    )
     return result
 
 
@@ -70,7 +82,9 @@ def _deduplicate_hft_index_single(
     min_gap_ns = _HFT_MIN_TIMESTAMP_GAP_NS
     index = df.index
     index_ns_raw = index.view("i8")
-    old_min_gap_ns = int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
+    old_min_gap_ns = (
+        int(np.diff(index_ns_raw).min()) if len(index_ns_raw) > 1 else min_gap_ns
+    )
     requires_adjustment = (
         not index.is_unique
         or not index.is_monotonic_increasing
@@ -93,10 +107,16 @@ def _deduplicate_hft_index_single(
         raise ValueError(f"Failed to enforce unique index for {split_name} HFT split.")
     duplicate_count = int(df.index.duplicated().sum())
     max_shift_ns = int((adjusted_ns - index_ns).max()) if len(index_ns) else 0
-    new_min_gap_ns = int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
+    new_min_gap_ns = (
+        int(np.diff(adjusted_ns).min()) if len(adjusted_ns) > 1 else min_gap_ns
+    )
     logger.info(
         "adjust hft index split={} duplicates={} min_gap_ns={}->{} max_shift_ns={}",
-        split_name, duplicate_count, old_min_gap_ns, new_min_gap_ns, max_shift_ns,
+        split_name,
+        duplicate_count,
+        old_min_gap_ns,
+        new_min_gap_ns,
+        max_shift_ns,
     )
     return df
 

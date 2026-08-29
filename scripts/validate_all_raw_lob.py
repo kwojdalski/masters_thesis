@@ -42,7 +42,7 @@ def validate_raw_file(file_path: Path) -> dict:
         result["time_span"] = None
 
     # Check key LOB columns
-    key_columns = ['bid_px_00', 'ask_px_00', 'bid_sz_00', 'ask_sz_00']
+    key_columns = ["bid_px_00", "ask_px_00", "bid_sz_00", "ask_sz_00"]
     result["key_columns"] = [col for col in key_columns if col in df.columns]
 
     return result
@@ -77,11 +77,11 @@ def main():
         results.append(result)
 
     # Sort by file name
-    results.sort(key=lambda x: x['file'])
+    results.sort(key=lambda x: x["file"])
 
     # Display results
     for i, result in enumerate(results, 1):
-        if 'error' in result:
+        if "error" in result:
             print(f"\n❌ {i}. {result['file']}")
             print(f"   ERROR: {result['error']}")
             continue
@@ -90,11 +90,11 @@ def main():
         print(f"   Rows: {result['rows']:,} × Columns: {result['columns']:,}")
         print(f"   Null: {result['null_count']:,} ({result['null_pct']:.2f}%)")
 
-        if result['duplicates'] is not None:
+        if result["duplicates"] is not None:
             print(f"   Duplicates: {result['duplicates']:,} ({result['dup_pct']:.2f}%)")
             print(f"   Time span: {result['time_span']}")
 
-        key_cols = result['key_columns']
+        key_cols = result["key_columns"]
         if len(key_cols) == 4:
             print("   ✅ All key LOB columns present")
         else:
@@ -105,11 +105,13 @@ def main():
     print("📋 SUMMARY")
     print(f"{'=' * 70}")
 
-    valid_files = [r for r in results if 'error' not in r]
+    valid_files = [r for r in results if "error" not in r]
     if valid_files:
-        total_rows = sum(r['rows'] for r in valid_files)
-        total_nulls = sum(r['null_count'] for r in valid_files)
-        total_dups = sum(r['duplicates'] for r in valid_files if r['duplicates'] is not None)
+        total_rows = sum(r["rows"] for r in valid_files)
+        total_nulls = sum(r["null_count"] for r in valid_files)
+        total_dups = sum(
+            r["duplicates"] for r in valid_files if r["duplicates"] is not None
+        )
 
         print(f"Total files: {len(results)}")
         print(f"Valid files: {len(valid_files)}")
@@ -120,11 +122,13 @@ def main():
         # Check for issues
         issues = []
 
-        high_null_files = [r['file'] for r in valid_files if r['null_pct'] > 1.0]
+        high_null_files = [r["file"] for r in valid_files if r["null_pct"] > 1.0]
         if high_null_files:
             issues.append(f"High null rates in: {len(high_null_files)} files")
 
-        high_dup_files = [r['file'] for r in valid_files if r['dup_pct'] and r['dup_pct'] > 10.0]
+        high_dup_files = [
+            r["file"] for r in valid_files if r["dup_pct"] and r["dup_pct"] > 10.0
+        ]
         if high_dup_files:
             issues.append(f"High duplicate rates in: {len(high_dup_files)} files")
 

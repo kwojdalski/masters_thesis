@@ -27,7 +27,9 @@ def generate_mean_reversion_pattern(
     """Generate synthetic OHLCV data with mean-reverting price dynamics."""
     logger.info(
         "Generating mean reversion pattern -> samples={}, mean_price={}, reversion_strength={}",
-        n_samples, mean_price, reversion_strength,
+        n_samples,
+        mean_price,
+        reversion_strength,
     )
 
     rng = np.random.default_rng(seed)
@@ -58,9 +60,8 @@ def generate_mean_reversion_pattern(
 
     base_volume = 1_000_000
     price_deviation = np.abs(prices - mean_price) / mean_price
-    volumes = (
-        base_volume * (1 + 2 * price_deviation)
-        + rng.normal(0, base_volume * 0.1, n_samples)
+    volumes = base_volume * (1 + 2 * price_deviation) + rng.normal(
+        0, base_volume * 0.1, n_samples
     )
     volumes = np.maximum(volumes, base_volume * 0.1)
 
@@ -71,15 +72,21 @@ def generate_mean_reversion_pattern(
 
     output_path = output_dir / output_file
     df.to_parquet(output_path)
-    log_dataset_summary(df, output_path, context="Mean reversion pattern", logger=logger)
+    log_dataset_summary(
+        df, output_path, context="Mean reversion pattern", logger=logger
+    )
     mean_deviation = np.mean(np.abs(prices - mean_price))
     max_deviation = np.max(np.abs(prices - mean_price))
     logger.info(
         "Mean price target {}, actual {} (mean deviation {}, max deviation {})",
-        mean_price, df["close"].mean(), mean_deviation, max_deviation,
+        mean_price,
+        df["close"].mean(),
+        mean_deviation,
+        max_deviation,
     )
     logger.info(
         "Strategy hint -> accumulate below {}, distribute above {}",
-        mean_price * 0.98, mean_price * 1.02,
+        mean_price * 0.98,
+        mean_price * 1.02,
     )
     return df

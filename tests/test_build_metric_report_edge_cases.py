@@ -118,9 +118,9 @@ class TestBuildMetricReportEdgeCases:
         report = _report(noisy_returns)
 
         # annual_vol ≈ 1e-10 * sqrt(252) << 1e-3 threshold → Sharpe must be NaN
-        assert np.isnan(
-            report["sharpe_ratio"]
-        ), "near-constant returns should produce NaN Sharpe (flat equity guard)"
+        assert np.isnan(report["sharpe_ratio"]), (
+            "near-constant returns should produce NaN Sharpe (flat equity guard)"
+        )
 
     def test_with_risk_free_rate_excess_correct(self):
         """With positive risk-free rate, excess returns should be calculated."""

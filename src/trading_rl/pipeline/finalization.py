@@ -22,9 +22,7 @@ def build_final_checkpoint_path(
     run = mlflow.active_run()
     if run and run.info.run_name:
         base_name = (
-            run.info.run_name.replace(" ", "_")
-            .replace("/", "_")
-            .replace("\\", "_")
+            run.info.run_name.replace(" ", "_").replace("/", "_").replace("\\", "_")
         )
     else:
         base_name = effective_experiment_name
@@ -52,7 +50,9 @@ def save_final_checkpoint(
         trainer=trainer,
         checkpoint_path=checkpoint_path,
     )
-    trainer.save_checkpoint(str(final_checkpoint_path), feature_pipeline_state=feature_pipeline_state)
+    trainer.save_checkpoint(
+        str(final_checkpoint_path), feature_pipeline_state=feature_pipeline_state
+    )
     return final_checkpoint_path
 
 

@@ -16,7 +16,9 @@ import numpy as np
 import pandas as pd
 
 
-def analyze_column_by_symbol(df: pd.DataFrame, column: str, symbol_col: str = "symbol") -> dict:
+def analyze_column_by_symbol(
+    df: pd.DataFrame, column: str, symbol_col: str = "symbol"
+) -> dict:
     """Analyze a column grouped by symbols."""
     if column not in df.columns or symbol_col not in df.columns:
         return {"error": f"Column '{column}' or '{symbol_col}' not found"}
@@ -31,7 +33,7 @@ def analyze_column_by_symbol(df: pd.DataFrame, column: str, symbol_col: str = "s
             "non_null_count": symbol_data.notna().sum(),
             "null_count": symbol_data.isna().sum(),
             "null_percentage": float(symbol_data.isna().sum() / len(symbol_data) * 100),
-            "dtype": str(symbol_data.dtype)
+            "dtype": str(symbol_data.dtype),
         }
 
         # Numeric analysis
@@ -41,15 +43,17 @@ def analyze_column_by_symbol(df: pd.DataFrame, column: str, symbol_col: str = "s
             is_numeric = False
 
         if is_numeric and not symbol_data.isna().all():
-            symbol_result.update({
-                "mean": float(symbol_data.mean()),
-                "std": float(symbol_data.std()),
-                "min": float(symbol_data.min()),
-                "max": float(symbol_data.max()),
-                "median": float(symbol_data.median()),
-                "q25": float(symbol_data.quantile(0.25)),
-                "q75": float(symbol_data.quantile(0.75))
-            })
+            symbol_result.update(
+                {
+                    "mean": float(symbol_data.mean()),
+                    "std": float(symbol_data.std()),
+                    "min": float(symbol_data.min()),
+                    "max": float(symbol_data.max()),
+                    "median": float(symbol_data.median()),
+                    "q25": float(symbol_data.quantile(0.25)),
+                    "q75": float(symbol_data.quantile(0.75)),
+                }
+            )
 
             # Outlier detection per symbol
             Q1 = symbol_result["q25"]
@@ -63,7 +67,7 @@ def analyze_column_by_symbol(df: pd.DataFrame, column: str, symbol_col: str = "s
                 "count": int(outliers.sum()),
                 "percentage": float(outliers.sum() / len(symbol_data) * 100),
                 "lower_bound": lower_bound,
-                "upper_bound": upper_bound
+                "upper_bound": upper_bound,
             }
 
         result["symbols"][symbol] = symbol_result
@@ -80,25 +84,37 @@ def format_per_symbol_analysis(result: dict) -> str:
 
     for symbol, symbol_data in result["symbols"].items():
         lines.append(f"\n🔸 SYMBOL: {symbol}")
-        lines.append(f"   Rows: {symbol_data['count']:,} ({symbol_data['non_null_count']:,} non-null)")
+        lines.append(
+            f"   Rows: {symbol_data['count']:,} ({symbol_data['non_null_count']:,} non-null)"
+        )
 
-        if symbol_data['null_count'] > 0:
-            lines.append(f"   ⚠️  Nulls: {symbol_data['null_count']:,} ({symbol_data['null_percentage']:.2f}%)")
+        if symbol_data["null_count"] > 0:
+            lines.append(
+                f"   ⚠️  Nulls: {symbol_data['null_count']:,} ({symbol_data['null_percentage']:.2f}%)"
+            )
 
-        if 'mean' in symbol_data:
-            lines.append(f"   Price range: ${symbol_data['min']:.2f} - ${symbol_data['max']:.2f}")
-            lines.append(f"   Mean: ${symbol_data['mean']:.2f}, Median: ${symbol_data['median']:.2f}")
+        if "mean" in symbol_data:
+            lines.append(
+                f"   Price range: ${symbol_data['min']:.2f} - ${symbol_data['max']:.2f}"
+            )
+            lines.append(
+                f"   Mean: ${symbol_data['mean']:.2f}, Median: ${symbol_data['median']:.2f}"
+            )
             lines.append(f"   Std: ${symbol_data['std']:.2f}")
 
-            outliers = symbol_data.get('outliers', {})
+            outliers = symbol_data.get("outliers", {})
             if outliers:
-                lines.append(f"   🚨 Outliers: {outliers['count']:,} ({outliers['percentage']:.2f}%)")
-                lines.append(f"      Bounds: [${outliers['lower_bound']:.2f}, ${outliers['upper_bound']:.2f}]")
+                lines.append(
+                    f"   🚨 Outliers: {outliers['count']:,} ({outliers['percentage']:.2f}%)"
+                )
+                lines.append(
+                    f"      Bounds: [${outliers['lower_bound']:.2f}, ${outliers['upper_bound']:.2f}]"
+                )
 
                 # Flag high outlier percentages
-                if outliers['percentage'] > 10.0:
+                if outliers["percentage"] > 10.0:
                     lines.append("      ⚠️  HIGH OUTLIER % - expected for HFT LOB data")
-                elif outliers['percentage'] > 5.0:
+                elif outliers["percentage"] > 5.0:
                     lines.append("      ⚠️  Moderate outlier %")
                 else:
                     lines.append("      ✅ Normal outlier % for HFT data")
@@ -114,22 +130,25 @@ def compare_symbol_ranges(result: dict) -> str:
     lines.append(f"{'=' * 70}")
 
     symbols_with_data = [
-        (sym, data) for sym, data in result["symbols"].items()
-        if 'mean' in data and 'min' in data
+        (sym, data)
+        for sym, data in result["symbols"].items()
+        if "mean" in data and "min" in data
     ]
 
     if len(symbols_with_data) < 2:
         return "Not enough symbols with numeric data for comparison"
 
     # Sort by mean price
-    symbols_with_data.sort(key=lambda x: x[1]['mean'])
+    symbols_with_data.sort(key=lambda x: x[1]["mean"])
 
     lines.append("\n📊 Symbol Trading Ranges:")
     for symbol, data in symbols_with_data:
-        lines.append(f"  {symbol}: ${data['min']:.2f} - ${data['max']:.2f} (mean: ${data['mean']:.2f})")
+        lines.append(
+            f"  {symbol}: ${data['min']:.2f} - ${data['max']:.2f} (mean: ${data['mean']:.2f})"
+        )
 
     # Calculate range spans
-    ranges = [data['max'] - data['min'] for _, data in symbols_with_data]
+    ranges = [data["max"] - data["min"] for _, data in symbols_with_data]
     min_range = min(ranges)
     max_range = max(ranges)
     mean_range = np.mean(ranges)
@@ -146,13 +165,17 @@ def compare_symbol_ranges(result: dict) -> str:
         lines.append(f"  The highest-priced symbol (max ${max(ranges):.2f}) trades")
         lines.append(f"  {ratio:.1f}× higher range than the lowest-priced symbol.")
         lines.append("  This explains why 'combined' analysis shows 16-17% outliers -")
-        lines.append("  it's comparing different stock price levels, not data quality issues.")
+        lines.append(
+            "  it's comparing different stock price levels, not data quality issues."
+        )
 
     lines.append(f"{'=' * 70}")
     return "\n".join(lines)
 
 
-def validate_split_per_symbol(df: pd.DataFrame, split_name: str, columns_to_analyze: list[str]) -> None:
+def validate_split_per_symbol(
+    df: pd.DataFrame, split_name: str, columns_to_analyze: list[str]
+) -> None:
     """Validate a split showing per-symbol analysis."""
     print(f"\n{'#' * 70}")
     print(f"🔍 VALIDATING {split_name.upper()} SPLIT (PER SYMBOL)")
@@ -160,11 +183,15 @@ def validate_split_per_symbol(df: pd.DataFrame, split_name: str, columns_to_anal
     print(f"Shape: {df.shape}")
     print(f"Symbols: {df['symbol'].nunique()} unique")
 
-    if 'symbol' not in df.columns:
+    if "symbol" not in df.columns:
         print("⚠️  Warning: No 'symbol' column found - using combined analysis")
 
     # Analyze key columns that vary by symbol
-    key_columns = [col for col in columns_to_analyze if col in df.columns and col in ['price', 'size', 'volume']]
+    key_columns = [
+        col
+        for col in columns_to_analyze
+        if col in df.columns and col in ["price", "size", "volume"]
+    ]
 
     if not key_columns:
         print("⚠️  No key numeric columns found for analysis")
@@ -203,7 +230,7 @@ def main():
         sys.exit(1)
 
     # Columns to analyze - focus on key market data
-    columns_to_analyze = ['price', 'size', 'volume', 'bid_px_00', 'ask_px_00']
+    columns_to_analyze = ["price", "size", "volume", "bid_px_00", "ask_px_00"]
 
     # Validate each split
     for split_name, df in splits.items():

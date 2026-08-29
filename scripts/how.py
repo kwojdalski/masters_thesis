@@ -1,4 +1,5 @@
 """how — project-aware LLM helper for quick CLI questions."""
+
 from __future__ import annotations
 
 import os
@@ -40,7 +41,10 @@ def main() -> None:
     try:
         import anthropic
     except ImportError:
-        print("error: anthropic package missing — run: uv add --dev anthropic", file=sys.stderr)
+        print(
+            "error: anthropic package missing — run: uv add --dev anthropic",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     system = _SYSTEM

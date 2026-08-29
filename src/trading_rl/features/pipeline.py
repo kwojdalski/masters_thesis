@@ -115,7 +115,11 @@ class FeaturePipeline:
             )
 
         feature_list = config_data["features"]
-        logger.info("load feature pipeline n_features={} path={}", len(feature_list), config_path)
+        logger.info(
+            "load feature pipeline n_features={} path={}",
+            len(feature_list),
+            config_path,
+        )
 
         return cls.from_config_dict(feature_list)
 
@@ -142,7 +146,8 @@ class FeaturePipeline:
             logger.warning(
                 "feature pipeline fitting symbol_id={} but last reset was for symbol_id={} "
                 "— possible missing pipeline.reset() between symbols",
-                symbol_id, self._current_symbol_id,
+                symbol_id,
+                self._current_symbol_id,
             )
         if symbol_id is not None:
             self._current_symbol_id = symbol_id
@@ -202,7 +207,9 @@ class FeaturePipeline:
         if rows_before != rows_after:
             logger.trace(
                 "transform drop nan n_dropped={} n_rows_before={} n_rows_after={}",
-                rows_before - rows_after, rows_before, rows_after,
+                rows_before - rows_after,
+                rows_before,
+                rows_after,
             )
 
         logger.trace("transform output n_rows={} n_cols={}", *result.shape)
@@ -239,7 +246,11 @@ class FeaturePipeline:
                 feature.scaler.reset()
         self._is_fitted = False
         self._current_symbol_id = symbol_id
-        logger.trace("feature pipeline reset n_features={} symbol_id={}", len(self.features), symbol_id)
+        logger.trace(
+            "feature pipeline reset n_features={} symbol_id={}",
+            len(self.features),
+            symbol_id,
+        )
         return self
 
     @property

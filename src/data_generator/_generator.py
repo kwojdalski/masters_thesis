@@ -42,7 +42,8 @@ class PriceDataGenerator:
 
         self.logger.debug(
             "Initialized generator with source_dir={}, output_dir={}",
-            self.source_dir, self.output_dir,
+            self.source_dir,
+            self.output_dir,
         )
 
     # ------------------------------------------------------------------
@@ -55,7 +56,9 @@ class PriceDataGenerator:
 
     def copy_data(self, source_file: str, output_file: str | None = None) -> None:
         """Copy a parquet file from source_dir to output_dir without modification."""
-        copy_data(self.source_dir, self.output_dir, source_file, output_file, self.logger)
+        copy_data(
+            self.source_dir, self.output_dir, source_file, output_file, self.logger
+        )
 
     def list_source_files(self) -> list[str]:
         """Return names of all parquet files in source_dir."""
@@ -87,7 +90,9 @@ class PriceDataGenerator:
         if start_date or end_date:
             self.logger.debug(
                 "Filtered data to date range {} -> {} (remaining rows: {})",
-                start_date or df.index.min(), end_date or df.index.max(), len(df),
+                start_date or df.index.min(),
+                end_date or df.index.max(),
+                len(df),
             )
 
         if sample_size is not None and sample_size < len(df):
@@ -104,7 +109,9 @@ class PriceDataGenerator:
                 output_path,
             )
         df.to_parquet(output_path)
-        log_dataset_summary(df, output_path, context="Synthetic sample", logger=self.logger)
+        log_dataset_summary(
+            df, output_path, context="Synthetic sample", logger=self.logger
+        )
         return df
 
     # ------------------------------------------------------------------
@@ -135,7 +142,9 @@ class PriceDataGenerator:
         seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_sine_wave_pattern(
-            self.output_dir, output_file, self.logger,
+            self.output_dir,
+            output_file,
+            self.logger,
             n_periods=n_periods,
             samples_per_period=samples_per_period,
             base_price=base_price,
@@ -159,7 +168,9 @@ class PriceDataGenerator:
         seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_upward_drift_pattern(
-            self.output_dir, output_file, self.logger,
+            self.output_dir,
+            output_file,
+            self.logger,
             n_samples=n_samples,
             base_price=base_price,
             drift_rate=drift_rate,
@@ -179,7 +190,9 @@ class PriceDataGenerator:
         seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_random_walk_pattern(
-            self.output_dir, output_file, self.logger,
+            self.output_dir,
+            output_file,
+            self.logger,
             n_samples=n_samples,
             base_price=base_price,
             volatility=volatility,
@@ -200,7 +213,9 @@ class PriceDataGenerator:
         seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_mean_reversion_pattern(
-            self.output_dir, output_file, self.logger,
+            self.output_dir,
+            output_file,
+            self.logger,
             n_samples=n_samples,
             mean_price=mean_price,
             reversion_strength=reversion_strength,
@@ -226,7 +241,9 @@ class PriceDataGenerator:
         seed: int | None = None,
     ) -> pd.DataFrame:
         return generate_trending_pattern(
-            self.output_dir, output_file, self.logger,
+            self.output_dir,
+            output_file,
+            self.logger,
             n_samples=n_samples,
             base_price=base_price,
             n_trends=n_trends,
@@ -257,7 +274,9 @@ class PriceDataGenerator:
         price_noise_std: float = 0.01,
     ) -> pd.DataFrame:
         return generate_hft_sine_wave_lob(
-            self.output_dir, output_file, self.logger,
+            self.output_dir,
+            output_file,
+            self.logger,
             n_events=n_events,
             n_periods=n_periods,
             base_price=base_price,

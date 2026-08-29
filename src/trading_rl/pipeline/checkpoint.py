@@ -73,9 +73,7 @@ def _start_mlflow_run_for_resumption(
 
 def _get_episode_count_from_trainer(trainer: Any) -> int:
     """Extract current episode count from trainer state."""
-    logged = (
-        trainer.logs.get("episode_log_count") if hasattr(trainer, "logs") else None
-    )
+    logged = trainer.logs.get("episode_log_count") if hasattr(trainer, "logs") else None
     if logged:
         return int(logged[-1])
     total = trainer.total_episodes
@@ -152,7 +150,11 @@ def setup_checkpoint_resumption(
 
     if additional_steps:
         trainer.config.max_steps = original_steps + additional_steps
-        logger.info("extend training additional_steps={} target_steps={}", additional_steps, trainer.config.max_steps)
+        logger.info(
+            "extend training additional_steps={} target_steps={}",
+            additional_steps,
+            trainer.config.max_steps,
+        )
 
     tracking_uri = _setup_mlflow_tracking_from_checkpoint(trainer)
     effective_experiment_name = _resolve_experiment_name_from_checkpoint(

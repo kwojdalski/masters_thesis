@@ -45,7 +45,11 @@ def run_explainability_analysis(
                 col for col in train_df.columns if str(col).startswith("feature_")
             ]
 
-        logger.debug("explainability n_features={} features={}", len(feature_names), feature_names)
+        logger.debug(
+            "explainability n_features={} features={}",
+            len(feature_names),
+            feature_names,
+        )
 
         rollout = eval_ctx.env.rollout(max_steps=config.explainability.n_steps)
         obs_batch = rollout["observation"]

@@ -31,7 +31,8 @@ def test_oracle_feature_config_requires_explicit_opt_in(tmp_path: Path) -> None:
     oracle_findings = [
         finding
         for finding in findings
-        if finding.parameter == "data.allow_oracle_features / data.feature_config / env.feature_columns"
+        if finding.parameter
+        == "data.allow_oracle_features / data.feature_config / env.feature_columns"
     ]
     assert len(oracle_findings) == 1
     assert oracle_findings[0].severity == Severity.FATAL
@@ -46,7 +47,8 @@ def test_oracle_feature_column_requires_explicit_opt_in() -> None:
 
     assert any(
         finding.severity == Severity.FATAL
-        and finding.parameter == "data.allow_oracle_features / data.feature_config / env.feature_columns"
+        and finding.parameter
+        == "data.allow_oracle_features / data.feature_config / env.feature_columns"
         for finding in findings
     )
 
@@ -60,6 +62,7 @@ def test_oracle_feature_guard_allows_declared_sanity_check(tmp_path: Path) -> No
     findings = check_config_guardrails(config)
 
     assert not any(
-        finding.parameter == "data.allow_oracle_features / data.feature_config / env.feature_columns"
+        finding.parameter
+        == "data.allow_oracle_features / data.feature_config / env.feature_columns"
         for finding in findings
     )

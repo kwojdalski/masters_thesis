@@ -110,9 +110,9 @@ def test_sortino_bootstrap_result_uses_sortino_metric_names() -> None:
     assert "sortino_difference" in result
 
 
-def _returns_with_p_value_between_one_and_five_percent() -> (
-    tuple[np.ndarray, np.ndarray]
-):
+def _returns_with_p_value_between_one_and_five_percent() -> tuple[
+    np.ndarray, np.ndarray
+]:
     """Two samples whose t_test/mann_whitney/permutation p-values all fall
     strictly between 0.01 and 0.05, so confidence_level=0.99 (alpha=0.01) and
     confidence_level=0.95 (alpha=0.05) disagree on "significant"."""

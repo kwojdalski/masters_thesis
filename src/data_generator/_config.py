@@ -26,7 +26,9 @@ def dispatch_from_config(
     if output_file is None:
         output_file = f"{pattern_type}_validation.parquet"
 
-    generator.logger.info("generate pattern type={} config={}", pattern_type, config_path)
+    generator.logger.info(
+        "generate pattern type={} config={}", pattern_type, config_path
+    )
 
     if pattern_type == PatternType.UPWARD_DRIFT:
         return generator.generate_upward_drift_pattern(

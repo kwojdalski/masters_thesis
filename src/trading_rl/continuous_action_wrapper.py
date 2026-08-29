@@ -51,7 +51,9 @@ class ContinuousToDiscreteAction(Transform):
 
         logger.info(
             "init continuous_to_discrete actions={} thresholds={} action_spec={}",
-            discrete_actions, thresholds, self.action_spec,
+            discrete_actions,
+            thresholds,
+            self.action_spec,
         )
 
     def _apply_transform(self, obs: TensorDict) -> TensorDict:

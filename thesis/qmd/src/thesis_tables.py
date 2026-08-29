@@ -516,10 +516,7 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
     df["Specification"] = df["Specification"].apply(wrap_html)
     html_table = df.to_html(index=False, escape=False)
     html_block = (
-        f"::: {{#tbl-main-experiment-spec}}\n\n"
-        f"{html_table}\n\n"
-        f"{caption}\n\n"
-        f":::"
+        f"::: {{#tbl-main-experiment-spec}}\n\n{html_table}\n\n{caption}\n\n:::"
     )
 
     # ── LaTeX version ─────────────────────────────────────────────────

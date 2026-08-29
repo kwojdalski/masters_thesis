@@ -305,7 +305,15 @@ if __name__ == "__main__":
     _script_dir = os.path.dirname(os.path.abspath(__file__))
     data_path = os.getenv(
         "ORDER_BOOK_DATA_PATH",
-        os.path.join(_script_dir, "..", "data", "raw", "databento", "20250501", "glbx-mdp3-20250501.mbo.dbn"),
+        os.path.join(
+            _script_dir,
+            "..",
+            "data",
+            "raw",
+            "databento",
+            "20250501",
+            "glbx-mdp3-20250501.mbo.dbn",
+        ),
     )
     if os.path.exists(data_path):
         logger.info("load mbo data path={}", data_path)

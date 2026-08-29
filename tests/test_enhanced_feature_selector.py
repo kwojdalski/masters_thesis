@@ -96,9 +96,9 @@ class TestTimeSeriesCV:
         for train_start, train_end, val_start, val_end in splits:
             assert 0 <= train_start < train_end < n_samples
             assert 0 <= val_start < val_end < n_samples
-            assert (
-                train_end + 50 == val_start
-            ), f"Gap of 50 expected: {train_end} -> {val_start}"
+            assert train_end + 50 == val_start, (
+                f"Gap of 50 expected: {train_end} -> {val_start}"
+            )
 
     def test_cv_split_with_insufficient_data(self, sample_ohlcv_data):
         """Test that CV splits handle insufficient data gracefully."""

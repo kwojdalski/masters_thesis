@@ -13,6 +13,7 @@ def _end_mlflow_run():
     """Ensure any active MLflow run from a previous test is closed before each test."""
     try:
         import mlflow
+
         if mlflow.active_run():
             mlflow.end_run()
     except ImportError:
@@ -20,6 +21,7 @@ def _end_mlflow_run():
     yield
     try:
         import mlflow
+
         if mlflow.active_run():
             mlflow.end_run()
     except ImportError:
@@ -31,6 +33,7 @@ def _restore_logging():
     """Restore logging state and LOG_LEVEL env var after each test."""
     import logging
     import os
+
     root = logging.getLogger()
     saved_root_level = root.level
     saved_levels = {

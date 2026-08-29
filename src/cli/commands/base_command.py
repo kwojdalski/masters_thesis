@@ -40,6 +40,7 @@ class BaseCommand(ABC):
             return provided_seed
 
         import random
+
         generated_seed = random.randint(1, 100000)  # noqa: S311
         self.console.print(f"[yellow]Using random seed: {generated_seed}[/yellow]")
         return generated_seed
@@ -59,6 +60,7 @@ class BaseCommand(ABC):
         - src/configs/scenarios/<scenario>
         - src/configs/scenarios/<scenario>.yaml  (legacy flat-file fallback)
         """
+
         def _pick_from_dir(d: Path) -> Path | None:
             specific = d / command_file
             if specific.exists():

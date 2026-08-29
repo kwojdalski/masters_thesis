@@ -13,18 +13,18 @@ from logger import print_df_head
 from .base_command import BaseCommand
 
 _CHECK_DESCRIPTIONS: dict[str, str] = {
-    "empty splits":          "Each split (train/val/test) must contain at least one row.",
-    "close column":          "A 'close' column must be present — used as the pricing signal by the environment.",
-    "feature columns":       "At least one 'feature_*' column must exist in the prepared data.",
-    "env feature prefix":    "All columns listed in env.feature_columns must start with 'feature_'.",
-    "NaN values":            "No NaN (missing) values are allowed in any split — they break normalisation and cause silent gradient corruption.",
-    "inf values":            "No infinite values are allowed — they cause loss NaN and kill training immediately.",
-    "duplicate index":       "No two rows may share the same timestamp index — duplicates indicate a data pipeline bug.",
-    "zero-variance features":"No feature column may be constant across a split — std=0 causes division-by-zero in z-score normalisation.",
-    "LOB deltas":            "Every row must differ from the previous row in at least one price or size field across the tracked LOB levels — fully unchanged books are stale ticks that filter_unchanged_lob() should have removed.",
-    "temporal order":        "Splits must be in strict chronological order: train < val < test. Violation means future data leaked into training.",
-    "index overlap":         "No timestamp may appear in more than one split — shared indices are direct data leakage between train/val/test.",
-    "split sizes":           "Val and test row counts must match config validation_size / test_size. A mismatch means a stale prepared-data cache is being used.",
+    "empty splits": "Each split (train/val/test) must contain at least one row.",
+    "close column": "A 'close' column must be present — used as the pricing signal by the environment.",
+    "feature columns": "At least one 'feature_*' column must exist in the prepared data.",
+    "env feature prefix": "All columns listed in env.feature_columns must start with 'feature_'.",
+    "NaN values": "No NaN (missing) values are allowed in any split — they break normalisation and cause silent gradient corruption.",
+    "inf values": "No infinite values are allowed — they cause loss NaN and kill training immediately.",
+    "duplicate index": "No two rows may share the same timestamp index — duplicates indicate a data pipeline bug.",
+    "zero-variance features": "No feature column may be constant across a split — std=0 causes division-by-zero in z-score normalisation.",
+    "LOB deltas": "Every row must differ from the previous row in at least one price or size field across the tracked LOB levels — fully unchanged books are stale ticks that filter_unchanged_lob() should have removed.",
+    "temporal order": "Splits must be in strict chronological order: train < val < test. Violation means future data leaked into training.",
+    "index overlap": "No timestamp may appear in more than one split — shared indices are direct data leakage between train/val/test.",
+    "split sizes": "Val and test row counts must match config validation_size / test_size. A mismatch means a stale prepared-data cache is being used.",
 }
 
 
@@ -87,43 +87,140 @@ class ValidateDataCommand(BaseCommand):
 
         lob_label = f"LOB deltas (L{params.lob_levels})"
         checks: list[tuple[str, str, object]] = [
-            ("empty splits",       "empty splits",       lambda: validator.check_empty_splits(dataset.train_df, dataset.val_df, dataset.test_df)),
-            ("close column",       "close column",       lambda: validator.check_close_column(dataset.train_df)),
-            ("feature columns",    "feature columns",    lambda: validator.check_feature_columns(dataset.train_df)),
-            ("env feature prefix", "env feature prefix", lambda: validator.check_env_feature_columns_prefix(config)),
+            (
+                "empty splits",
+                "empty splits",
+                lambda: validator.check_empty_splits(
+                    dataset.train_df, dataset.val_df, dataset.test_df
+                ),
+            ),
+            (
+                "close column",
+                "close column",
+                lambda: validator.check_close_column(dataset.train_df),
+            ),
+            (
+                "feature columns",
+                "feature columns",
+                lambda: validator.check_feature_columns(dataset.train_df),
+            ),
+            (
+                "env feature prefix",
+                "env feature prefix",
+                lambda: validator.check_env_feature_columns_prefix(config),
+            ),
         ]
         if params.check_nan:
-            checks.append(("NaN values", "NaN values", lambda: validator.check_nan_values(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    "NaN values",
+                    "NaN values",
+                    lambda: validator.check_nan_values(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_inf:
-            checks.append(("inf values", "inf values", lambda: validator.check_inf_values(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    "inf values",
+                    "inf values",
+                    lambda: validator.check_inf_values(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_duplicates:
-            checks.append(("duplicate index", "duplicate index", lambda: validator.check_duplicate_index(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    "duplicate index",
+                    "duplicate index",
+                    lambda: validator.check_duplicate_index(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_zero_variance:
-            checks.append(("zero-variance features", "zero-variance features", lambda: validator.check_zero_variance_features(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    "zero-variance features",
+                    "zero-variance features",
+                    lambda: validator.check_zero_variance_features(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_lob_deltas:
-            checks.append((lob_label, "LOB deltas", lambda: validator.check_lob_delta(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    lob_label,
+                    "LOB deltas",
+                    lambda: validator.check_lob_delta(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_temporal_order:
-            checks.append(("temporal order", "temporal order", lambda: validator.check_temporal_ordering(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    "temporal order",
+                    "temporal order",
+                    lambda: validator.check_temporal_ordering(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_overlap:
-            checks.append(("index overlap", "index overlap", lambda: validator.check_no_index_overlap(dataset.train_df, dataset.val_df, dataset.test_df)))
+            checks.append(
+                (
+                    "index overlap",
+                    "index overlap",
+                    lambda: validator.check_no_index_overlap(
+                        dataset.train_df, dataset.val_df, dataset.test_df
+                    ),
+                )
+            )
         if params.check_sizes:
-            checks.append(("split sizes", "split sizes", lambda: validator.check_split_sizes(
-                dataset.val_df, dataset.test_df,
-                getattr(getattr(config, "data", None), "validation_size", None),
-                getattr(getattr(config, "data", None), "test_size", None),
-            )))
+            checks.append(
+                (
+                    "split sizes",
+                    "split sizes",
+                    lambda: validator.check_split_sizes(
+                        dataset.val_df,
+                        dataset.test_df,
+                        getattr(getattr(config, "data", None), "validation_size", None),
+                        getattr(getattr(config, "data", None), "test_size", None),
+                    ),
+                )
+            )
 
         results: list[tuple[str, str, str, str]] = []
         failures: list[tuple[str, str]] = []
         for label, desc_key, fn in checks:
             try:
                 fn()
-                results.append((label, "[green]PASS[/green]", "", _CHECK_DESCRIPTIONS.get(desc_key, "")))
+                results.append(
+                    (
+                        label,
+                        "[green]PASS[/green]",
+                        "",
+                        _CHECK_DESCRIPTIONS.get(desc_key, ""),
+                    )
+                )
             except ValueError as exc:
-                results.append((label, "[red]FAIL[/red]", str(exc), _CHECK_DESCRIPTIONS.get(desc_key, "")))
+                results.append(
+                    (
+                        label,
+                        "[red]FAIL[/red]",
+                        str(exc),
+                        _CHECK_DESCRIPTIONS.get(desc_key, ""),
+                    )
+                )
                 failures.append((label, str(exc)))
 
-        tbl = Table(title="Data Validation Results", show_header=True, header_style="bold")
+        tbl = Table(
+            title="Data Validation Results", show_header=True, header_style="bold"
+        )
         tbl.add_column("Check")
         tbl.add_column("Result", justify="center")
         tbl.add_column("Detail")
@@ -137,14 +234,24 @@ class ValidateDataCommand(BaseCommand):
         self.console.print(tbl)
 
         if failures:
-            self.console.print(f"\n[red bold]{len(failures)} check(s) failed.[/red bold]")
+            self.console.print(
+                f"\n[red bold]{len(failures)} check(s) failed.[/red bold]"
+            )
             raise typer.Exit(1)
         else:
             self.console.print("\n[green bold]All checks passed.[/green bold]")
 
-    def _print_data_glimpse(self, dataset, n_rows: int = 5, transpose: bool = False) -> None:
-        for split_name, df in [("train", dataset.train_df), ("val", dataset.val_df), ("test", dataset.test_df)]:
-            title = f"Data Glimpse — {split_name} ({len(df):,} rows × {df.shape[1]} cols)"
+    def _print_data_glimpse(
+        self, dataset, n_rows: int = 5, transpose: bool = False
+    ) -> None:
+        for split_name, df in [
+            ("train", dataset.train_df),
+            ("val", dataset.val_df),
+            ("test", dataset.test_df),
+        ]:
+            title = (
+                f"Data Glimpse — {split_name} ({len(df):,} rows × {df.shape[1]} cols)"
+            )
             print_df_head(
                 df,
                 n_rows=n_rows,
@@ -160,14 +267,22 @@ class ValidateDataCommand(BaseCommand):
         if params.verbose:
             tbl.add_column("Description", style="dim")
         rows = [
-            ("NaN values",                         params.check_nan,           "NaN values"),
-            ("Inf values",                         params.check_inf,           "inf values"),
-            ("Duplicate index",                    params.check_duplicates,    "duplicate index"),
-            ("Zero-variance features",             params.check_zero_variance, "zero-variance features"),
-            (f"LOB deltas (L{params.lob_levels})", params.check_lob_deltas,    "LOB deltas"),
-            ("Temporal order",                     params.check_temporal_order,"temporal order"),
-            ("Index overlap",                      params.check_overlap,       "index overlap"),
-            ("Split sizes",                        params.check_sizes,         "split sizes"),
+            ("NaN values", params.check_nan, "NaN values"),
+            ("Inf values", params.check_inf, "inf values"),
+            ("Duplicate index", params.check_duplicates, "duplicate index"),
+            (
+                "Zero-variance features",
+                params.check_zero_variance,
+                "zero-variance features",
+            ),
+            (
+                f"LOB deltas (L{params.lob_levels})",
+                params.check_lob_deltas,
+                "LOB deltas",
+            ),
+            ("Temporal order", params.check_temporal_order, "temporal order"),
+            ("Index overlap", params.check_overlap, "index overlap"),
+            ("Split sizes", params.check_sizes, "split sizes"),
         ]
         for name, enabled, desc_key in rows:
             cells = [name, "[green]yes[/green]" if enabled else "[dim]no[/dim]"]

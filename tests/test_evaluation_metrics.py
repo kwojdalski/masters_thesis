@@ -400,12 +400,12 @@ class TestEdgeCases:
         tiny = 1e-7
         returns = [tiny] * 200
         report = _report(returns, ppy=98_280)
-        assert np.isnan(
-            report["sharpe_ratio"]
-        ), "flat equity curve should produce NaN Sharpe"
-        assert np.isnan(
-            report["sortino_ratio"]
-        ), "flat equity curve should produce NaN Sortino"
+        assert np.isnan(report["sharpe_ratio"]), (
+            "flat equity curve should produce NaN Sharpe"
+        )
+        assert np.isnan(report["sortino_ratio"]), (
+            "flat equity curve should produce NaN Sortino"
+        )
         # But total_return and max_drawdown should still be finite
         assert np.isfinite(report["total_return"])
 

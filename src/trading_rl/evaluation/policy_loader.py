@@ -12,7 +12,9 @@ Usage::
     evaluator = StrategyEvaluator(
         env_factory=my_env_factory,
         policy=policy,
-        config=StrategyEvaluatorConfig(reward_type=RewardType.LOG_RETURN, max_steps=500),
+        config=StrategyEvaluatorConfig(
+            reward_type=RewardType.LOG_RETURN, max_steps=500
+        ),
     )
     result = evaluator.evaluate_split("test", test_df)
 """
@@ -80,13 +82,15 @@ class PolicyLoader:
                     low=torch.tensor(action_low, dtype=torch.float32),
                     high=torch.tensor(action_high, dtype=torch.float32),
                 )
-            actor = PolicyLoader._build_continuous_actor(n_obs, n_act, hidden_dims, spec)
+            actor = PolicyLoader._build_continuous_actor(
+                n_obs, n_act, hidden_dims, spec
+            )
         else:
             from trading_rl.trainers.registry import TrainerRegistry
+
             available = [a.lower() for a in TrainerRegistry.list_algorithms()]
             raise ValueError(
-                f"Unsupported algorithm '{algorithm}'. "
-                f"Expected one of: {available}."
+                f"Unsupported algorithm '{algorithm}'. Expected one of: {available}."
             )
 
         actor.load_state_dict(state_dict)
@@ -114,8 +118,12 @@ class PolicyLoader:
     ) -> Any:
         if PolicyLoader._is_continuous_ppo(state_dict):
             from trading_rl.models import create_continuous_ppo_actor
-            return create_continuous_ppo_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=None)
+
+            return create_continuous_ppo_actor(
+                n_obs, n_act, hidden_dims=hidden_dims, spec=None
+            )
         from trading_rl.models import create_ppo_actor
+
         return create_ppo_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=None)
 
     @staticmethod
@@ -126,6 +134,7 @@ class PolicyLoader:
         spec: Any | None,
     ) -> Any:
         from trading_rl.models import create_ddpg_actor
+
         return create_ddpg_actor(n_obs, n_act, hidden_dims=hidden_dims, spec=spec)
 
     @staticmethod

@@ -146,9 +146,9 @@ class TestPipelineSmoke:
         feature_cols = ["feature_lag1", "feature_trend"]
         for col in feature_cols:
             bad_train = (~np.isfinite(train_df[col].to_numpy())).sum()
-            assert (
-                bad_train == 0
-            ), f"train_df['{col}'] has {bad_train} non-finite values"
+            assert bad_train == 0, (
+                f"train_df['{col}'] has {bad_train} non-finite values"
+            )
 
     def test_run_single_experiment(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path

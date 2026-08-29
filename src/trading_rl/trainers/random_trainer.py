@@ -24,7 +24,9 @@ class RandomTrainer(BaseTrainer):
         actor = RandomPolicy(env.action_spec)
         return actor, None
 
-    def _optimization_step(self, batch_idx: int, max_length: int, buffer_len: int) -> None:
+    def _optimization_step(
+        self, batch_idx: int, max_length: int, buffer_len: int
+    ) -> None:
         pass
 
     def _evaluate(self) -> None:
@@ -37,12 +39,18 @@ class RandomTrainer(BaseTrainer):
     def load_checkpoint(self, path: str) -> None:
         """No-op — random policy has no learnable state to restore."""
         from logger import get_logger
+
         get_logger(__name__).warning(
             "load_checkpoint called on RandomTrainer; no state to restore path={}", path
         )
 
-    def save_checkpoint(self, path: str, feature_pipeline_state: dict[str, dict[str, float]] | None = None) -> None:
+    def save_checkpoint(
+        self,
+        path: str,
+        feature_pipeline_state: dict[str, dict[str, float]] | None = None,
+    ) -> None:
         import torch
+
         torch.save(
             {
                 "algorithm": "RANDOM",

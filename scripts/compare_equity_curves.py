@@ -62,6 +62,7 @@ _AGENT_COLORS: list[str] = [
 # Data loading
 # ---------------------------------------------------------------------------
 
+
 def _csv_path(log_dir: str | Path, split: str, symbol: str) -> Path:
     return Path(log_dir) / f"{split}_{symbol}_portfolio_value_plot.csv"
 
@@ -124,7 +125,9 @@ def build_merged_df(
 
         # Add benchmarks once (they are identical across scenarios on the same data)
         if not benchmarks_added:
-            bench = raw[raw["Run"].isin(_BENCHMARK_RUNS) & raw["Steps"].isin(keep_steps)].copy()
+            bench = raw[
+                raw["Run"].isin(_BENCHMARK_RUNS) & raw["Steps"].isin(keep_steps)
+            ].copy()
             if not bench.empty:
                 frames.append(bench)
             benchmarks_added = True
@@ -139,7 +142,9 @@ def build_merged_df(
         frames.append(agent)
 
     if not frames:
-        raise SystemExit("No data loaded — check SCENARIOS paths and --symbol / --split args")
+        raise SystemExit(
+            "No data loaded — check SCENARIOS paths and --symbol / --split args"
+        )
 
     return pd.concat(frames, ignore_index=True)
 
@@ -148,7 +153,10 @@ def build_merged_df(
 # Plotting
 # ---------------------------------------------------------------------------
 
-def _build_palette(scenario_labels: list[str], benchmark_runs: list[str]) -> dict[str, str]:
+
+def _build_palette(
+    scenario_labels: list[str], benchmark_runs: list[str]
+) -> dict[str, str]:
     palette: dict[str, str] = {}
     for i, label in enumerate(scenario_labels):
         palette[label] = _AGENT_COLORS[i % len(_AGENT_COLORS)]
@@ -157,7 +165,9 @@ def _build_palette(scenario_labels: list[str], benchmark_runs: list[str]) -> dic
     return palette
 
 
-def _build_linetype(scenario_labels: list[str], benchmark_runs: list[str]) -> dict[str, str]:
+def _build_linetype(
+    scenario_labels: list[str], benchmark_runs: list[str]
+) -> dict[str, str]:
     lt: dict[str, str] = dict.fromkeys(scenario_labels, "solid")
     for run in benchmark_runs:
         lt[run] = LINETYPE.get(run, "dashed")
@@ -192,19 +202,35 @@ def plot_equity_comparison(
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Compare equity curves across scenarios for the same symbol/split"
     )
-    parser.add_argument("--symbols", nargs="+", default=["META"],
-                        help="Symbol(s) to plot, one output file per symbol (default: META)")
-    parser.add_argument("--split", default="val", choices=["val", "test", "train"],
-                        help="Data split (default: val)")
-    parser.add_argument("--stride", type=int, default=50,
-                        help="Plot every Nth step to keep file size manageable (default: 50)")
-    parser.add_argument("--output-dir", type=Path,
-                        default=Path(__file__).parent.parent / "thesis" / "qmd" / "src" / "_figures",
-                        help="Directory for output PNG files (default: thesis/qmd/src/_figures)")
+    parser.add_argument(
+        "--symbols",
+        nargs="+",
+        default=["META"],
+        help="Symbol(s) to plot, one output file per symbol (default: META)",
+    )
+    parser.add_argument(
+        "--split",
+        default="val",
+        choices=["val", "test", "train"],
+        help="Data split (default: val)",
+    )
+    parser.add_argument(
+        "--stride",
+        type=int,
+        default=50,
+        help="Plot every Nth step to keep file size manageable (default: 50)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=Path(__file__).parent.parent / "thesis" / "qmd" / "src" / "_figures",
+        help="Directory for output PNG files (default: thesis/qmd/src/_figures)",
+    )
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -218,7 +244,9 @@ def main() -> None:
         p = plot_equity_comparison(df, scenario_labels, symbol, args.split)
 
         out = args.output_dir / f"compare_{args.split}_{symbol}.png"
-        p.save(str(out), width=FIGURE_WIDTH, height=FIGURE_HEIGHT, dpi=225, verbose=False)
+        p.save(
+            str(out), width=FIGURE_WIDTH, height=FIGURE_HEIGHT, dpi=225, verbose=False
+        )
         print(f"  Saved: {out}")
 
 

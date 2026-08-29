@@ -26,12 +26,12 @@ from rich.table import Table
 _DEFAULT_CONFIG = Path("src/configs/h3_sensitivity.yaml")
 
 _METRICS: list[tuple[str, str, str]] = [
-    ("sharpe_ratio",           "Sharpe",    ".3f"),
-    ("sortino_ratio",          "Sortino",   ".3f"),
-    ("total_return",           "Return",    ".2%"),
-    ("max_drawdown",           "Max DD",    ".2%"),
-    ("win_rate",               "Win Rate",  ".2%"),
-    ("profit_factor",          "PF",        ".3f"),
+    ("sharpe_ratio", "Sharpe", ".3f"),
+    ("sortino_ratio", "Sortino", ".3f"),
+    ("total_return", "Return", ".2%"),
+    ("max_drawdown", "Max DD", ".2%"),
+    ("win_rate", "Win Rate", ".2%"),
+    ("profit_factor", "PF", ".3f"),
 ]
 
 
@@ -61,7 +61,9 @@ def fmt_val(key: str, val: Any, fmt: str) -> str:
         return "—"
 
 
-def build_axis_table(axis: dict[str, Any], split: str, console: Console) -> Table | None:
+def build_axis_table(
+    axis: dict[str, Any], split: str, console: Console
+) -> Table | None:
     axis_label = axis.get("label", axis.get("name", ""))
     scenarios = axis.get("scenarios", [])
 
@@ -74,7 +76,9 @@ def build_axis_table(axis: dict[str, Any], split: str, console: Console) -> Tabl
         rows.append((label, metrics, is_baseline))
 
     if not any(m for _, m, _ in rows):
-        console.print(f"[yellow]  {axis_label}: no results.json found — skipping[/yellow]")
+        console.print(
+            f"[yellow]  {axis_label}: no results.json found — skipping[/yellow]"
+        )
         return None
 
     t = Table(title=axis_label, show_header=True, header_style="bold")
@@ -97,7 +101,8 @@ def build_axis_table(axis: dict[str, Any], split: str, console: Console) -> Tabl
 def main() -> None:
     parser = argparse.ArgumentParser(description="H3 sensitivity analysis report")
     parser.add_argument(
-        "--config", "-c",
+        "--config",
+        "-c",
         type=Path,
         default=_DEFAULT_CONFIG,
         help=f"Path to sensitivity config YAML (default: {_DEFAULT_CONFIG})",
@@ -127,11 +132,15 @@ def main() -> None:
             tables.append(table)
 
     if not tables:
-        console.print("[yellow]No results found. Train the H3 scenarios first.[/yellow]")
+        console.print(
+            "[yellow]No results found. Train the H3 scenarios first.[/yellow]"
+        )
         sys.exit(0)
 
     console.print()
-    console.print(f"[bold]H3 Sensitivity Analysis[/bold]  [dim](split: {args.split})[/dim]")
+    console.print(
+        f"[bold]H3 Sensitivity Analysis[/bold]  [dim](split: {args.split})[/dim]"
+    )
     console.print()
     console.print(Columns(tables, equal=False, expand=False))
     console.print()

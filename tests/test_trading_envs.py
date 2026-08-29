@@ -277,7 +277,7 @@ def test_custom_factory_rejects_non_log_return_reward_type() -> None:
     config = _config("gym_trading_env.discrete", positions=[-1, 0, 1])
     config.env.reward_type = RewardType.DIFFERENTIAL_SHARPE
 
-    with pytest.raises(ValueError, match="differential_sharpe.*not supported"):
+    with pytest.raises(ValueError, match=r"differential_sharpe.*not supported"):
         CustomTradingEnvironmentFactory(config)._create_base_environment(_df(), config)
 
 

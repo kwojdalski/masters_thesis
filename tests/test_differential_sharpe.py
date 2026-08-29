@@ -273,7 +273,7 @@ class TestDifferentialSharpeRatio:
         from trading_rl.rewards import DifferentialSharpeRatio
 
         # Same return sequence
-        nlv_sequence = [10000 * (1.01 ** i) for i in range(10)]
+        nlv_sequence = [10000 * (1.01**i) for i in range(10)]
 
         # Fast learning (high eta)
         dsr_fast = DifferentialSharpeRatio(eta=0.5)
@@ -343,7 +343,9 @@ class TestDifferentialSharpeRatioAnyTrading:
         """reset() with no argument respects persist_moments=False set at construction."""
         from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
 
-        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=False)
+        dsr = DifferentialSharpeRatioAnyTrading(
+            eta=0.1, clip_reward=None, persist_moments=False
+        )
         _run_dsr_any_episode(dsr, [10000, 10100, 10200])
 
         dsr.reset()
@@ -356,7 +358,9 @@ class TestDifferentialSharpeRatioAnyTrading:
         """reset() with no argument respects persist_moments=True set at construction."""
         from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
 
-        dsr = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=True)
+        dsr = DifferentialSharpeRatioAnyTrading(
+            eta=0.1, clip_reward=None, persist_moments=True
+        )
         _run_dsr_any_episode(dsr, [10000, 10100, 10200])
 
         a_before = dsr.A_t
@@ -372,8 +376,12 @@ class TestDifferentialSharpeRatioAnyTrading:
         """With persist_moments=True, EMA warms up across episodes instead of restarting."""
         from trading_rl.rewards.dsr_wrapper import DifferentialSharpeRatioAnyTrading
 
-        dsr_persist = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=True)
-        dsr_reset = DifferentialSharpeRatioAnyTrading(eta=0.1, clip_reward=None, persist_moments=False)
+        dsr_persist = DifferentialSharpeRatioAnyTrading(
+            eta=0.1, clip_reward=None, persist_moments=True
+        )
+        dsr_reset = DifferentialSharpeRatioAnyTrading(
+            eta=0.1, clip_reward=None, persist_moments=False
+        )
 
         nlv_ep1 = [10000, 10100, 10200]
         nlv_ep2 = [10200, 10250, 10300]

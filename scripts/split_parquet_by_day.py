@@ -68,7 +68,9 @@ def split_symbol(symbol: str, dry_run: bool = False) -> list[Path]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Split raw parquet files by day")
-    parser.add_argument("--dry-run", action="store_true", help="Print plan without writing")
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Print plan without writing"
+    )
     args = parser.parse_args()
 
     if args.dry_run:

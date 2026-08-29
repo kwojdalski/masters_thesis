@@ -78,19 +78,27 @@ def main() -> None:
     n_obs = env.observation_spec["observation"].shape[-1]
     n_act = env.action_spec.shape[-1]
     actor, qnets = TD3Trainer.build_models(n_obs, n_act, config, env)
-    trainer = TD3Trainer(actor=actor, qvalue_nets=qnets, env=env, config=config.training)
+    trainer = TD3Trainer(
+        actor=actor, qvalue_nets=qnets, env=env, config=config.training
+    )
 
     actor_before = _summarize_params("actor_before", trainer.actor.parameters())
     critics_before = _summarize_params(
-        "critics_before", list(trainer.value_net[0].parameters()) + list(trainer.value_net[1].parameters())
+        "critics_before",
+        list(trainer.value_net[0].parameters())
+        + list(trainer.value_net[1].parameters()),
     )
-    _print_summary("Parameter stats before training", {**actor_before, **critics_before})
+    _print_summary(
+        "Parameter stats before training", {**actor_before, **critics_before}
+    )
 
     logs = trainer.train(callback=None)
 
     actor_after = _summarize_params("actor_after", trainer.actor.parameters())
     critics_after = _summarize_params(
-        "critics_after", list(trainer.value_net[0].parameters()) + list(trainer.value_net[1].parameters())
+        "critics_after",
+        list(trainer.value_net[0].parameters())
+        + list(trainer.value_net[1].parameters()),
     )
     _print_summary("Parameter stats after training", {**actor_after, **critics_after})
 

@@ -15,16 +15,19 @@ def _cfg(feature_type: str, **params) -> FeatureConfig:
 class TestFeatureRegistryCreate:
     def test_create_log_return_returns_feature_instance(self):
         import trading_rl.features.price_features  # noqa: F401 — side-effect: registers
+
         feature = FeatureRegistry.create(_cfg("log_return"))
         assert isinstance(feature, Feature)
 
     def test_create_realized_volatility_returns_feature_instance(self):
         import trading_rl.features.volatility_features  # noqa: F401
+
         feature = FeatureRegistry.create(_cfg("realized_volatility"))
         assert isinstance(feature, Feature)
 
     def test_create_log_volume_returns_feature_instance(self):
         import trading_rl.features.volume_features  # noqa: F401
+
         feature = FeatureRegistry.create(_cfg("log_volume"))
         assert isinstance(feature, Feature)
 
@@ -38,12 +41,14 @@ class TestFeatureRegistryCreate:
 
     def test_create_passes_config_to_feature(self):
         import trading_rl.features.volatility_features  # noqa: F401
+
         cfg = _cfg("realized_volatility", window=42)
         feature = FeatureRegistry.create(cfg)
         assert feature.config.params["window"] == 42
 
     def test_create_rsi_with_custom_period(self):
         import trading_rl.features.price_features  # noqa: F401
+
         cfg = _cfg("rsi", period=7)
         feature = FeatureRegistry.create(cfg)
         assert feature.config.params["period"] == 7
@@ -57,14 +62,17 @@ class TestFeatureRegistryList:
 
     def test_list_features_includes_log_return(self):
         import trading_rl.features.price_features  # noqa: F401
+
         assert "log_return" in FeatureRegistry.list_features()
 
     def test_list_features_includes_log_volume(self):
         import trading_rl.features.volume_features  # noqa: F401
+
         assert "log_volume" in FeatureRegistry.list_features()
 
     def test_list_features_includes_realized_volatility(self):
         import trading_rl.features.volatility_features  # noqa: F401
+
         assert "realized_volatility" in FeatureRegistry.list_features()
 
     def test_newly_registered_feature_appears_in_list(self):
@@ -72,8 +80,10 @@ class TestFeatureRegistryList:
         class _SentinelFeature(Feature):
             def required_columns(self):
                 return []
+
             def compute(self, df):
                 import pandas as pd
+
                 return pd.Series([], dtype=float)
 
         assert "_test_sentinel_feature_do_not_use" in FeatureRegistry.list_features()
@@ -85,10 +95,12 @@ class TestFeatureRegistryList:
 
         original_class = FeatureRegistry._registry.get("log_return")
         try:
+
             @register_feature("log_return")
             class _Dummy(Feature):
                 def required_columns(self):
                     return []
+
                 def compute(self, df):
                     return pd.Series([], dtype=float)
 

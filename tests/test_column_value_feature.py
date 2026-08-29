@@ -64,4 +64,3 @@ def test_column_value_feature_normalizes_with_train_fit():
     assert abs(float(train_out["feature_close"].mean())) < 1e-7
     # Test split uses train-fitted scaler, so a shifted series should not be centered.
     assert abs(float(test_out["feature_close"].mean())) > 1.0
-

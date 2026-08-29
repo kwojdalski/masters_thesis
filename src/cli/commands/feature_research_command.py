@@ -29,7 +29,9 @@ class FeatureResearchCommand(BaseCommand):
         try:
             config = self._load_config(params)
 
-            self.console.print("[bold blue]Running Offline Feature Research[/bold blue]")
+            self.console.print(
+                "[bold blue]Running Offline Feature Research[/bold blue]"
+            )
             self.console.print(f"Experiment: [green]{config.experiment_name}[/green]")
             self.console.print(
                 f"Feature config: [cyan]{config.data.feature_config}[/cyan]"
@@ -40,15 +42,21 @@ class FeatureResearchCommand(BaseCommand):
             self._display_feature_scores(artifacts)
 
             self.console.print(f"\n[green]Scores:[/green] {artifacts.scores_csv}")
-            self.console.print(f"[green]Correlations:[/green] {artifacts.correlation_csv}")
-            self.console.print(f"[green]Suggested feature config:[/green] {artifacts.selected_yaml}")
+            self.console.print(
+                f"[green]Correlations:[/green] {artifacts.correlation_csv}"
+            )
+            self.console.print(
+                f"[green]Suggested feature config:[/green] {artifacts.selected_yaml}"
+            )
             self.console.print(f"[green]Summary:[/green] {artifacts.summary_md}")
         except Exception as error:
             self.handle_error(error, "Offline feature research")
 
     def _display_feature_scores(self, artifacts) -> None:
         selected_set = set(artifacts.selected_names)
-        table = Table(title="Feature Research Results", show_header=True, header_style="bold")
+        table = Table(
+            title="Feature Research Results", show_header=True, header_style="bold"
+        )
         table.add_column("#", style="dim", justify="right", width=4)
         table.add_column("Feature", style="cyan")
         table.add_column("ICIR", justify="right", style="green")
@@ -62,9 +70,15 @@ class FeatureResearchCommand(BaseCommand):
         for rank, row in enumerate(artifacts.scores.itertuples(), start=1):
             name = str(row.feature).removeprefix("feature_")
             is_selected = row.feature in selected_set
-            selected_cell = "[bold green]YES[/bold green]" if is_selected else "[dim]-[/dim]"
-            val_ic_str = f"{row.val_mean_ic:.4f}" if row.val_mean_ic == row.val_mean_ic else "-"
-            horizon_str = str(int(row.best_horizon)) if hasattr(row, "best_horizon") else "-"
+            selected_cell = (
+                "[bold green]YES[/bold green]" if is_selected else "[dim]-[/dim]"
+            )
+            val_ic_str = (
+                f"{row.val_mean_ic:.4f}" if row.val_mean_ic == row.val_mean_ic else "-"
+            )
+            horizon_str = (
+                str(int(row.best_horizon)) if hasattr(row, "best_horizon") else "-"
+            )
             n_sig = int(getattr(row, "n_files_significant", 0))
             pct_sig = float(getattr(row, "pct_files_significant", 0.0))
             table.add_row(
@@ -106,7 +120,9 @@ class FeatureResearchCommand(BaseCommand):
             )
         if params.experiment_config_file:
             experiment_config = self._load_experiment_config(
-                params.experiment_config_file, command="train", overrides=params.config_overrides
+                params.experiment_config_file,
+                command="train",
+                overrides=params.config_overrides,
             )
             return FeatureResearchConfig.from_experiment_config(
                 experiment_config, overrides=params.config_overrides
@@ -121,4 +137,3 @@ class FeatureResearchCommand(BaseCommand):
         raise typer.BadParameter(
             "Provide --config, --experiment-config, or --scenario for feature research."
         )
-

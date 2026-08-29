@@ -8,7 +8,9 @@ from cli.commands import TrainingCommand, TrainingParams
 from cli.commands.validation_command import ValidationCommand, ValidationParams
 
 
-def _write_config(path: Path, data_path: str, feature_config: str | None = None) -> Path:
+def _write_config(
+    path: Path, data_path: str, feature_config: str | None = None
+) -> Path:
     feature_cfg_line = (
         f'  feature_config: "{feature_config}"\n' if feature_config is not None else ""
     )
@@ -75,7 +77,9 @@ def test_validate_command_success_exit_code(tmp_path: Path):
 
 def test_validate_command_fails_with_errors(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet")
-    cfg = _write_config(tmp_path / "cfg.yaml", str(data_path), str(tmp_path / "missing.yaml"))
+    cfg = _write_config(
+        tmp_path / "cfg.yaml", str(data_path), str(tmp_path / "missing.yaml")
+    )
 
     console = Console(record=True, force_terminal=False)
     cmd = ValidationCommand(console)
@@ -85,7 +89,9 @@ def test_validate_command_fails_with_errors(tmp_path: Path):
 
 def test_train_fails_fast_when_validation_errors_exist(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet")
-    cfg = _write_config(tmp_path / "cfg.yaml", str(data_path), str(tmp_path / "missing.yaml"))
+    cfg = _write_config(
+        tmp_path / "cfg.yaml", str(data_path), str(tmp_path / "missing.yaml")
+    )
 
     console = Console(record=True, force_terminal=False)
     cmd = TrainingCommand(console)

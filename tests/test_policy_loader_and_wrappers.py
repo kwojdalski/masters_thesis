@@ -121,7 +121,9 @@ def test_policy_loader_build_actor_passes_continuous_action_spec(monkeypatch) ->
     torch.testing.assert_close(captured["spec"].high, torch.tensor([0.5]))
 
 
-def test_policy_loader_from_checkpoint_loads_file_and_delegates(monkeypatch, tmp_path) -> None:
+def test_policy_loader_from_checkpoint_loads_file_and_delegates(
+    monkeypatch, tmp_path
+) -> None:
     path = tmp_path / "checkpoint.pt"
     checkpoint = _checkpoint()
     torch.save(checkpoint, path)
@@ -159,7 +161,9 @@ def test_continuous_action_wrapper_maps_values_to_discrete_indices() -> None:
     torch.testing.assert_close(discrete, torch.tensor([0, 0, 1, 1, 1, 2, 2]))
 
 
-def test_continuous_action_wrapper_preserves_batch_shape_without_last_action_dim() -> None:
+def test_continuous_action_wrapper_preserves_batch_shape_without_last_action_dim() -> (
+    None
+):
     actions = torch.zeros((2, 3, 1), dtype=torch.float32)
 
     discrete = _wrapper()._continuous_to_discrete(actions)

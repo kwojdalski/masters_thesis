@@ -15,9 +15,18 @@ from trading_rl.evaluation.metric_meta import METRIC_META_BY_KEY
 
 # Columns shown in both JSON and the rendered PNG — derived from the shared registry.
 _PERF_KEYS = [
-    "total_return", "sharpe_ratio", "sortino_ratio", "max_drawdown",
-    "win_rate", "profit_factor", "expectancy_per_period", "annualized_volatility",
-    "return_skewness", "return_kurtosis", "pct_long", "pct_short",
+    "total_return",
+    "sharpe_ratio",
+    "sortino_ratio",
+    "max_drawdown",
+    "win_rate",
+    "profit_factor",
+    "expectancy_per_period",
+    "annualized_volatility",
+    "return_skewness",
+    "return_kurtosis",
+    "pct_long",
+    "pct_short",
 ]
 _REL_KEYS = ["alpha", "beta", "information_ratio", "tracking_error"]
 
@@ -116,6 +125,7 @@ def save_benchmark_table_artifact(
 ) -> tuple[Path, Path]:
     """Write {split}_benchmark_table.json and {split}_benchmark_table.png."""
     import matplotlib
+
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
@@ -141,12 +151,14 @@ def save_benchmark_table_artifact(
     if strategy_metrics:
         rows.append(_row_data("Strategy", strategy_metrics, {}, is_strategy=True))
     for bench_name, entry in bench_out.items():
-        rows.append(_row_data(
-            bench_name,
-            entry.get("benchmark_metrics", entry),
-            entry.get("relative_metrics", {}),
-            is_strategy=False,
-        ))
+        rows.append(
+            _row_data(
+                bench_name,
+                entry.get("benchmark_metrics", entry),
+                entry.get("relative_metrics", {}),
+                is_strategy=False,
+            )
+        )
 
     artifact: dict[str, Any] = {
         "split": split,
@@ -175,7 +187,9 @@ def save_benchmark_table_artifact(
 
     n_rows = len(cell_data)
     n_cols = len(col_labels)
-    fig, ax = plt.subplots(figsize=(max(22, n_cols * 1.25), max(2.5, 0.55 * (n_rows + 2))))
+    fig, ax = plt.subplots(
+        figsize=(max(22, n_cols * 1.25), max(2.5, 0.55 * (n_rows + 2)))
+    )
     ax.axis("off")
 
     meta_parts = [f"split: {split}", f"n_obs: {n_obs:,}"]
@@ -185,7 +199,9 @@ def save_benchmark_table_artifact(
         meta_parts.append(f"to: {end_dt}")
     ax.set_title("  |  ".join(meta_parts), fontsize=8, loc="left", pad=6)
 
-    tbl = ax.table(cellText=cell_data, colLabels=col_labels, cellLoc="center", loc="center")
+    tbl = ax.table(
+        cellText=cell_data, colLabels=col_labels, cellLoc="center", loc="center"
+    )
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(7.5)
     tbl.auto_set_column_width(col=list(range(n_cols)))
@@ -210,6 +226,7 @@ def save_benchmark_table_artifact(
 
     png_path = output_dir / f"{split}_benchmark_table.png"
     from trading_rl.evaluation.thesis_theme import PLOT_DPI
+
     fig.savefig(str(png_path), dpi=PLOT_DPI, bbox_inches="tight")
     plt.close(fig)
     write_asset_meta(png_path, generator="evaluation/benchmark_table.py")

@@ -44,7 +44,7 @@ def filter_unchanged_lob(
     Example:
         >>> df_active = filter_unchanged_lob(df, levels=5)
         >>> print(
-        ...     f"Kept {len(df_active)}/{len(df)} rows ({100*len(df_active)/len(df):.1f}%)"
+        ...     f"Kept {len(df_active)}/{len(df)} rows ({100 * len(df_active) / len(df):.1f}%)"
         ... )
     """
     if len(df) == 0:
@@ -182,8 +182,8 @@ def filter_valid_lob(
 
         # 4. Prices are ordered correctly within side
         if i > 0:
-            prev_bid_col = f"{bid_px_prefix}{i-1:02d}"
-            prev_ask_col = f"{ask_px_prefix}{i-1:02d}"
+            prev_bid_col = f"{bid_px_prefix}{i - 1:02d}"
+            prev_ask_col = f"{ask_px_prefix}{i - 1:02d}"
 
             # Bids should decrease as levels go deeper
             valid_mask &= bid_px <= df[prev_bid_col]

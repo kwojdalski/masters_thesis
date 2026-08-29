@@ -12,7 +12,9 @@ from trading_rl.evaluation import EvaluationContext
 
 class _NoRolloutEnv:
     def rollout(self, *, max_steps: int, policy):
-        raise AssertionError("statistical tests should reuse precomputed strategy returns")
+        raise AssertionError(
+            "statistical tests should reuse precomputed strategy returns"
+        )
 
 
 def test_statistical_tests_reuse_precomputed_strategy_returns(
@@ -39,7 +41,12 @@ def test_statistical_tests_reuse_precomputed_strategy_returns(
     monkeypatch.setattr(
         evaluation_module.BenchmarkEngine,
         "build",
-        staticmethod(lambda df, benchmarks_config, price_column: ({"buy_hold": np.array([0.0, 0.0])}, {})),
+        staticmethod(
+            lambda df, benchmarks_config, price_column: (
+                {"buy_hold": np.array([0.0, 0.0])},
+                {},
+            )
+        ),
     )
 
     def fake_run_all_statistical_tests(**kwargs):

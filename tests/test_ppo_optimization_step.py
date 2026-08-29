@@ -192,6 +192,6 @@ def test_ppo_optimization_step_covers_every_transition_each_epoch() -> None:
     for epoch_calls in epochs:
         assert [call["n"] for call in epoch_calls] == [3, 3, 2]
         covered = sorted(obs for call in epoch_calls for obs in call["observations"])
-        assert covered == list(
-            range(n_transitions)
-        ), "each epoch must cover every transition exactly once"
+        assert covered == list(range(n_transitions)), (
+            "each epoch must cover every transition exactly once"
+        )

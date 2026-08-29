@@ -96,17 +96,17 @@ trainer.save_checkpoint(str(checkpoint_path))
 # %%
 # Visualize results
 logger.info("create visualizations")
-loss_plot = visualize_training(
-    logs
-)
+loss_plot = visualize_training(logs)
 # %%
 loss_plot
 # %%
-reward_plot, action_plot, action_probs_plot, final_reward, last_positions = evaluate_agent(
-    env,
-    actor,
-    train_df,
-    max_steps=1000,
+reward_plot, action_plot, action_probs_plot, final_reward, last_positions = (
+    evaluate_agent(
+        env,
+        actor,
+        train_df,
+        max_steps=1000,
+    )
 )
 # %%
 reward_plot

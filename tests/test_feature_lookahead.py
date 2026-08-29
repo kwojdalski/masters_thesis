@@ -37,8 +37,8 @@ from trading_rl.features.registry import FeatureRegistry
 # ---------------------------------------------------------------------------
 
 _N_ROWS = 300
-_N_PREFIX = 150   # first half used as the "prefix"
-_WARMUP = 70      # skip; rolling features need history to stabilise
+_N_PREFIX = 150  # first half used as the "prefix"
+_WARMUP = 70  # skip; rolling features need history to stabilise
 
 
 @pytest.fixture(scope="module")
@@ -86,18 +86,21 @@ def _mid_next_return(df: pd.DataFrame) -> pd.Series:
 # ---------------------------------------------------------------------------
 
 _SCENARIO_FEATURES: list[tuple[str, dict, str]] = [
-    ("book_pressure",           {"level": 0},                                         "book_pressure_l0"),
-    ("order_book_imbalance",    {"levels": 3},                                         "order_book_imbalance_3l"),
-    ("order_count_imbalance",   {"level": 0},                                         "order_count_imbalance_l0"),
-    ("microprice",              {},                                                    "microprice"),
-    ("microprice_divergence",   {},                                                    "microprice_divergence"),
-    ("bid_ask_slope",           {"side": "bid", "levels": 5},                         "bid_slope"),
-    ("bid_ask_slope",           {"side": "ask", "levels": 5},                         "ask_slope"),
-    ("ofi",                     {},                                                    "ofi"),
-    ("ofi_rolling",             {"window": 50},                                        "ofi_rolling_50"),
-    ("signed_trade_flow",       {"window": 50, "action_col": "action",
-                                  "side_col": "side", "size_col": "size"},            "signed_trade_flow_50"),
-    ("mid_price_velocity",      {},                                                    "mid_price_velocity"),
+    ("book_pressure", {"level": 0}, "book_pressure_l0"),
+    ("order_book_imbalance", {"levels": 3}, "order_book_imbalance_3l"),
+    ("order_count_imbalance", {"level": 0}, "order_count_imbalance_l0"),
+    ("microprice", {}, "microprice"),
+    ("microprice_divergence", {}, "microprice_divergence"),
+    ("bid_ask_slope", {"side": "bid", "levels": 5}, "bid_slope"),
+    ("bid_ask_slope", {"side": "ask", "levels": 5}, "ask_slope"),
+    ("ofi", {}, "ofi"),
+    ("ofi_rolling", {"window": 50}, "ofi_rolling_50"),
+    (
+        "signed_trade_flow",
+        {"window": 50, "action_col": "action", "side_col": "side", "size_col": "size"},
+        "signed_trade_flow_50",
+    ),
+    ("mid_price_velocity", {}, "mid_price_velocity"),
 ]
 
 _SCENARIO_IDS = [label for _, _, label in _SCENARIO_FEATURES]
@@ -107,6 +110,7 @@ _SCENARIO_PARAMS = [(ft, p) for ft, p, _ in _SCENARIO_FEATURES]
 # ---------------------------------------------------------------------------
 # Causality tests (investigation step 3)
 # ---------------------------------------------------------------------------
+
 
 class TestFeatureCausality:
     """Adding future rows to a DataFrame must not change the feature value at
@@ -159,7 +163,9 @@ class TestFeatureCausality:
 
         # The arrays must NOT be equal — if they were, the test above would fail
         # to catch real look-ahead.
-        assert not np.allclose(prefix_vals, full_vals, rtol=1e-6, atol=1e-10, equal_nan=False), (
+        assert not np.allclose(
+            prefix_vals, full_vals, rtol=1e-6, atol=1e-10, equal_nan=False
+        ), (
             "mid_price_future_velocity should fail the causality check "
             "(shift(-1) makes the last prefix row depend on the first future row). "
             "If this assertion fails the fixture data has a zero diff — increase _N_ROWS."
