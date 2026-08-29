@@ -54,10 +54,9 @@ where:
 
 This is the first term of @eq-reward-baseline without the transaction cost
 penalty. At tick frequency, this signal is dominated by microstructure noise.
-Individual price changes on an MBP-10 order book are a fraction of the spread.^[
-MBP-10 (Market By Price, 10 levels) is a hybrid order book format provided by Databento that sits between L2 (aggregated depth) and L3 (order-by-order) data: it captures depth-of-book snapshots at up to ten price levels and includes the order count at each level via `side_ct_xx` fields (e.g., `bid_ct_00` for the number of orders at the best bid). Schema documentation: https://databento.com/docs/schemas-and-data-formats/mbp-10]
-The agent cannot distinguish genuine directional movement from quote flickering in
-a single step.
+Individual price changes on an MBP-10 order book (defined in Chapter 5.1) are
+a fraction of the spread. The agent cannot distinguish genuine directional
+movement from quote flickering in a single step.
 
 Training on raw log-return produces highly variable gradient
 estimates. It also tends to reward high-turnover behavior regardless of risk.
@@ -134,76 +133,39 @@ Conflating the two would invalidate the
 empirical comparison. For example, treating a high training DSR as
 evidence of a strong Sharpe ratio on the test set would be incorrect.
 
-The DSR approach has several limitations that should be acknowledged. First, it
-assumes that the first and second moments of returns are approximately stationary
-over the effective memory window ($\approx 1/\eta$ steps). In reality, intraday
-trading exhibits well-documented non-stationarity in both mean and variance due
-to market opening effects, scheduled announcements, and regime shifts
-[@Engle2000; @Cont2014]. While the exponential weighting does provide some
-adaptation, sudden structural breaks can temporarily destabilize the DSR signal
-during transition periods.
+The DSR approach has four limitations. First, it assumes the first and second
+moments of returns are approximately stationary over the effective memory
+window ($\approx 1/\eta$ steps); intraday trading is well documented to
+violate this through market opening effects, scheduled announcements, and
+regime shifts [@Engle2000; @Cont2014], and exponential weighting only
+partially compensates. Second, like other variance-based measures, it
+penalizes upside and downside volatility symmetrically, whereas traders
+typically care more about downside risk; the Sortino ratio, the Calmar ratio,
+or utility-based rewards would align better with that preference but are
+non-recursive or computationally intractable at tick frequency. Third, it can
+become unstable when the denominator $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$
+is small — early in training or during low-variance regimes — amplifying
+microstructure noise into extreme reward values; the implementation clamps
+$D_t$ to $[-10, 10]$, following standard reward-clipping practice
+[@Mnih2015].^[In the DSR scenario, the reward scale is $\kappa = 1$: at tick
+frequency the empirical variance term dominates $\varepsilon = 10^{-16}$ by
+several orders of magnitude, so the resulting signal falls naturally in a
+well-conditioned $\mathcal{O}(1)$ range for the Adam optimiser and Huber
+critic loss, and no ad-hoc reward rescaling is required.] Fourth, because the
+running moments $A_t, B_t$ are not part of the observation, the reward at
+time $t$ depends on a hidden trajectory of past returns. TD3 samples replayed
+transitions out of order, so the same state-action pair can yield different
+rewards depending on when it was collected, violating the stationarity its
+Bellman backup assumes — an effect strongest early in each episode, before
+the EMA moments stabilize after $\approx 1/\eta$ steps. Augmenting the
+observation with $(A_t, B_t)$ would restore the Markov property and is left
+for future work.
 
-Second, the DSR inherits the fundamental limitation of variance-based risk
-measures: it treats upside and downside volatility symmetrically. Investors and
-traders typically care more about downside risk and tail events than about overall
-variance. Alternative risk-adjusted measures such as the Sortino ratio (which
-penalizes only downside deviation), the Calmar ratio (which normalizes returns by
-maximum drawdown), or utility-based rewards (which can incorporate asymmetric
-loss functions) would better align with investor preferences but are either
-non-recursive or computationally intractable for online learning at tick frequency.
-
-Third, the DSR can be unstable when the denominator $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$ is
-small — either because the effective sample size is insufficient (early in training)
-or because realized variance is temporarily low. This can amplify microstructure
-noise and produce extreme reward values that destabilize gradient estimates.
-The implementation addresses this by clamping $D_t$ to the interval $[-c,\, c]$
-with $c = 10$, following the standard reward-clipping practice in deep RL
-[@Mnih2015]. The bound preserves the sign and relative ordering of rewards while
-preventing large gradient updates during low-variance regimes. DSR values outside
-this range occur rarely under normal market conditions and typically indicate
-numerical instability rather than genuine policy performance.^[In the DSR
-scenario, the reward scale is $\kappa = 1$ — no additional rescaling is applied.
-At tick frequency, with $\varepsilon = 10^{-16}$, the denominator
-$(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$ is dominated by the empirical
-variance term: for typical intraday tick-level returns with
-$\sigma \approx 4.5 \times 10^{-5}$, the variance is of order $2 \times 10^{-9}$
-and its $3/2$ power is of order $10^{-13}$, far exceeding $\varepsilon = 10^{-16}$.
-The resulting DSR signal is therefore approximately $R_t / \sigma \sim \mathcal{O}(1)$,
-which lies naturally in a well-conditioned range for the Adam optimiser and the
-smooth-$L_1$ (Huber) critic loss. Crucially, this means no ad-hoc reward
-rescaling is required; the normalisation is an intrinsic property of the DSR
-formula once $\varepsilon$ is chosen small enough that the empirical variance
-dominates the stabiliser.]
-
-Fourth, the DSR introduces a latent-state dependency that conflicts with the
-Markovian assumption required by off-policy algorithms such as TD3. The running
-moments $A_t$ and $B_t$ are not included in the agent's observation vector, so
-the reward at time $t$ depends on the hidden trajectory of past returns through
-the episode. During training, TD3 stores transitions
-$(s_t, a_t, r_t, s_{t+1})$ in a replay buffer and samples them in random order;
-the stored reward $r_t = D_t$ was computed under the EMA state
-$(A_{t-1}, B_{t-1})$ prevailing at collection time, which differs from the EMA
-state at replay time. Consequently, the same state-action pair $(s, a)$ can
-produce different reward values when retrieved from the buffer at different
-training epochs, violating the assumption that $p(r, s' \mid s, a)$ is
-stationary. This produces contradictory Q-value targets and slows convergence.
-The effect is most pronounced early in each episode, before the EMA moments
-have stabilized; after approximately $1/\eta$ steps the moments approach a
-regime-consistent steady state and the reward distribution becomes approximately
-stationary. A theoretically clean resolution is to augment the observation with
-$(A_t, B_t)$, transforming the problem into a fully Markovian MDP; this is left
-as a direction for future work.
-
-The DSR was chosen despite these limitations for three reasons. First, its
-recursive formulation makes it uniquely suitable for online RL: alternatives such
-as fixed-window Sharpe or utility-based rewards require storing unbounded history
-or solving optimization problems at each step, which is infeasible at tick frequency.
-Second, while variance is an imperfect proxy for risk, it provides a tractable
-baseline that discourages the most pathological high-turnover behaviors. Third,
-the empirical evaluation in Chapter 6 uses actual financial metrics (Sharpe ratio,
-drawdown, annualized return) computed from deterministic rollouts, so any systematic
-biases introduced by DSR's limitations will be visible in the final performance
-assessment rather than masked by the reward signal itself. The limitations chapter
-identifies reward ablation — comparing DSR to Sortino-based signals, direct
-log-return objectives, and drawdown-penalizing rewards — as a priority direction for
-future work.
+The DSR was chosen despite these limitations for two reasons: its recursive
+formulation makes it uniquely suitable for online RL, where alternatives such
+as fixed-window Sharpe or utility-based rewards require storing unbounded
+history or solving optimization problems at each step; and while variance is
+an imperfect proxy for risk, it provides a tractable baseline that discourages
+the most pathological high-turnover behaviors. Whether an alternative reward
+formulation performs better is a question for future work, addressed in
+Chapter 7.

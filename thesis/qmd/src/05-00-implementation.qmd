@@ -61,12 +61,11 @@ not to move quoted prices, consume displayed depth, or alter subsequent order-bo
 states. The environment therefore treats the agent as price-taking rather than
 market-shaping. This is defensible only while position sizes remain small
 relative to displayed order-book depth, which holds for the MBP-10 dataset
-used here^[
-MBP-10 (Market By Price, 10 levels) is a hybrid order book format provided by Databento that sits between L2 (aggregated depth) and L3 (order-by-order) data: it captures depth-of-book snapshots at up to ten price levels and records the order count at each level via `side_ct_xx` fields (e.g., `bid_ct_00` for the number of orders at the best bid). Schema documentation: https://databento.com/docs/schemas-and-data-formats/mbp-10]
-: all six instruments — AAPL, MSFT, TSLA, META, AMZN, and AVGO — are
-highly liquid Nasdaq-listed blue-chips with tight spreads, deep displayed
-depth, and continuous two-sided quoting, ensuring that simulated agent
-trades represent a negligible fraction of resting book volume at any level.
+used here (defined in Chapter 5.1)^[All six instruments — AAPL, MSFT, TSLA,
+META, AMZN, and AVGO — are highly liquid Nasdaq-listed blue-chips with tight
+spreads, deep displayed depth, and continuous two-sided quoting, ensuring
+that simulated agent trades represent a negligible fraction of resting book
+volume at any level.]
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies

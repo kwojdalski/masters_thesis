@@ -218,11 +218,8 @@ experimental conditions that produced the reported results.
 ### Evaluation
 
 Final performance is reported on the held-out test split using a dedicated
-evaluation environment. Two output streams are kept strictly separate. First is the
-training reward, which serves as an optimization diagnostic. Second is the realized portfolio return
-series from which financial metrics are computed.
-
-Conflating these would invalidate
-the empirical comparison. For example, treating cumulative DSR as a Sharpe ratio
-estimate would be incorrect. Metrics derived from the test rollout are described
+evaluation environment. Training reward and realized portfolio return are kept
+as two separate output streams — one for optimization diagnostics, one for the
+financial metrics computed from the deterministic rollout — for the reasons
+discussed in Section 4.3. Metrics derived from the test rollout are described
 in Chapter 6.
