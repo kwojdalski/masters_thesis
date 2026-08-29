@@ -22,6 +22,10 @@ class _EvalConfig:
     eval_steps = 2
 
     def __init__(self, resolved_steps: int = 3) -> None:
+        # periodic_eval_steps is what the in-training _evaluate() must read;
+        # resolve_eval_steps/requested_lengths stay so the tests can assert the
+        # periodic path never consults eval_fraction (#515).
+        self.periodic_eval_steps = resolved_steps
         self.resolved_steps = resolved_steps
         self.requested_lengths: list[int] = []
 
@@ -211,7 +215,7 @@ def test_ppo_evaluate_falls_back_after_mode_rollout_error() -> None:
 
     PPOTrainer._evaluate(trainer)
 
-    assert trainer.eval_config.requested_lengths == [17]
+    assert trainer.eval_config.requested_lengths == []
     assert trainer._eval_env.calls == [(5, "actor"), (5, "actor")]
     assert trainer.env.calls == []
     assert trainer.logs["eval_reward_mean"] == pytest.approx([2.0])
@@ -230,7 +234,7 @@ def test_td3_evaluate_uses_dedicated_eval_env_and_logs_rollout_stats() -> None:
 
     TD3Trainer._evaluate(trainer)
 
-    assert trainer.eval_config.requested_lengths == [23]
+    assert trainer.eval_config.requested_lengths == []
     assert trainer._eval_env.calls == [(4, "td3-actor")]
     assert trainer.env.calls == []
     assert trainer.logs["eval_reward_mean"] == pytest.approx([0.5])
@@ -249,7 +253,7 @@ def test_ddpg_evaluate_uses_dedicated_eval_env_and_logs_rollout_stats() -> None:
 
     DDPGTrainer._evaluate(trainer)
 
-    assert trainer.eval_config.requested_lengths == [31]
+    assert trainer.eval_config.requested_lengths == []
     assert trainer._eval_env.calls == [(6, "ddpg-actor")]
     assert trainer.env.calls == []
     assert trainer.logs["eval_reward_mean"] == pytest.approx([5.0 / 3.0])
