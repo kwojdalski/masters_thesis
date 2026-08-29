@@ -211,43 +211,20 @@ Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in
 
 #### Transformed Feature Example
 
-To illustrate how the raw order book data is transformed into the input features used by the RL agent, @tbl-transformed-features shows twelve consecutive events from the AAPL feed. Each row represents one order-book event; the left columns display the raw order book state (best bid/ask prices and sizes), while the right columns show the corresponding normalized microstructure features computed from that state. The table is wide (nine columns), so in the PDF it is placed on its own landscape-oriented page; the HTML version scrolls horizontally instead.
-
-::: {.content-visible when-format="pdf"}
-```{=latex}
-\clearpage
-\begin{landscape}
-```
-:::
-
-```{python}
-#| label: tbl-transformed-features
-#| tbl-cap: "Twelve consecutive AAPL LOB events and their transformed microstructure features."
-#| echo: false
-#| warning: false
-
-from thesis_mlflow_results import find_observation_sample
-from thesis_tables import lob_events_table, missing_data_notice
-
-df = find_observation_sample(split="test", symbol="AAPL")
-if df is not None:
-    lob_events_table(df)
-else:
-    missing_data_notice(
-        "Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts."
-    )
-```
-
-::: {.content-visible when-format="pdf"}
-```{=latex}
-\end{landscape}
-\clearpage
-```
-:::
-
-The transformed features in @tbl-transformed-features demonstrate several key properties of the feature engineering approach. First, **Book Pressure** and **Order Imbalance** capture instantaneous order-book liquidity and directional pressure: positive values indicate net buying pressure (bid depth dominates), while negative values signal selling pressure (visible in E12 after a bid-side refresh). Second, **Microprice Deviation** tracks how far the current microprice lies from the simple mid-price, providing a depth-weighted estimate of the fair transaction price. Third, **OFI** (Order Flow Imbalance) captures signed net trade flow over a short window, jumping sharply at events where displayed depth is consumed or replenished.
-
-These features are computed from the raw order book data using the causal running normalization described in @eq-running-normalize. The normalization ensures that features are on comparable scales across different securities and time periods, while the causal structure guarantees that the agent never has access to future information when making decisions. The four features shown here (Book Pressure, Order Imbalance, Microprice Deviation, OFI) are a representative subset; the full feature set includes additional microstructure signals such as depth slopes, queue depletion rates, VPIN, and rolling order-flow statistics.
+The causal running normalization in @eq-running-normalize converts each raw
+order-book event into the microstructure features consumed by the policy. A
+twelve-event AAPL window, reported in Appendix, @tbl-transformed-features,
+illustrates this pipeline end to end: raw best bid/ask prices and sizes
+alongside the corresponding normalized features. Three properties stand out.
+**Book Pressure** and **Order Imbalance** capture instantaneous liquidity and
+directional pressure — positive when bid depth dominates, negative when a
+bid-side refresh shifts pressure toward the ask (visible at event 12 in the
+appendix table). **Microprice Deviation** tracks how far the microprice lies
+from the simple mid-price, a depth-weighted estimate of fair value. **OFI**
+captures signed net trade flow over a short window and spikes sharply when
+displayed depth is consumed or replenished. These four features are a
+representative subset; the full feature set additionally includes depth
+slopes, queue depletion rates, VPIN, and rolling order-flow statistics.
 
 ### Feature–Return Correlations {#sec-feature-return-correlations}
 
