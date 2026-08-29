@@ -1,7 +1,8 @@
 # Trading RL Master's Thesis
 
 This codebase supports the research behind the thesis by implementing and
-comparing three deep reinforcement learning algorithms — [PPO](docs/ppo_implementation_overview.md), [DDPG](docs/ddpg_implementation_overview.md), and [TD3](docs/td3_implementation_overview.md) —
+comparing deep reinforcement learning algorithms — [PPO](docs/ppo_implementation_overview.md), [DDPG](docs/ddpg_implementation_overview.md),
+[TD3](docs/td3_implementation_overview.md), [SAC](docs/sac_implementation_overview.md), and recurrent PPO —
 applied to algorithmic trading across synthetic and real market data (OHLCV and
 high-frequency limit order book). The goal is to evaluate whether modern RL
 agents can learn profitable, generalizable trading policies under realistic
@@ -16,7 +17,7 @@ are modular and independently testable.
 
 ## Highlights
 
-- [PPO](docs/ppo_implementation_overview.md), [DDPG](docs/ddpg_implementation_overview.md), and [TD3](docs/td3_implementation_overview.md) trainers for discrete and continuous action spaces
+- [PPO](docs/ppo_implementation_overview.md), [DDPG](docs/ddpg_implementation_overview.md), [TD3](docs/td3_implementation_overview.md), [SAC](docs/sac_implementation_overview.md), and recurrent PPO trainers for discrete and continuous action spaces
 - Scenario-driven YAML configs in `src/configs/scenarios`
 - Synthetic data generator (sine wave, upward drift, sampled OHLCV)
 - MLflow tracking plus CLI utilities for experiments, checkpoints, and artifacts
@@ -24,7 +25,7 @@ are modular and independently testable.
 
 ## Prerequisites
 
-- Python 3.12
+- Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/)
 
 ## Installation
@@ -77,6 +78,31 @@ through an automated agent. Run `uv run poe --help` to list all tasks.
   uv run poe fonts
   ```
 
+## Reproducing the Thesis Experiments
+
+`uv run thesis-experiments <h1|h2|h3|h4|all>` runs one hypothesis end to end —
+guardrails, train, evaluate, the hypothesis-specific report, and export to the
+thesis snapshots that `poe thesis-pdf` renders. Each hypothesis trains a fixed
+set of scenarios (see `src/masters_thesis/experiments.py`):
+
+| Hypothesis | Tests |
+| --- | --- |
+| `h1` | Whether TD3 outperforms DDPG, PPO, and a random-policy baseline |
+| `h2` | How the observation feature set affects TD3 performance |
+| `h3` | Whether the main result is robust to modelling choices (features, reward, transaction costs) |
+| `h4` | Whether TD3 learns consistently across independent short trials |
+
+<!--pytest.mark.skip-->
+```bash
+uv run thesis-experiments h1              # train + evaluate + report + export
+uv run thesis-experiments h1 --skip-train # re-evaluate an already-trained agent
+uv run thesis-experiments h3 --parallel   # run this hypothesis's scenarios concurrently
+uv run thesis-experiments all --dev       # every hypothesis, capped training steps, for a smoke test
+```
+
+Run `uv run thesis-experiments --help` (or `<hypothesis> --help`) for the full
+option list, including `--config-override` for OmegaConf dotlist overrides.
+
 ## Quick Start
 
 Common commands:
@@ -88,6 +114,8 @@ Common commands:
 | `uv run python src/cli.py train --scenario sine_wave/ppo_no_trend` | Train a single agent |
 | `uv run python src/cli.py train --scenario sine_wave/ppo_no_trend --trials 3` | Run multiple trials |
 | `uv run python src/cli.py train --config sine_wave/ppo_no_trend --from-last-checkpoint --additional-steps 5000` | Resume from last checkpoint |
+| `uv run python src/cli.py evaluate --scenario <name>` | Evaluate a trained checkpoint: metrics, benchmarks, plots, statistical tests |
+| `uv run python src/cli.py validate guardrails --scenario <name>` | Pre-flight sanity checks before a training run (also `--all` for every scenario) |
 | `uv run python src/cli.py validate config --scenario <name>` | Validate scenario config and data dependencies |
 | `uv run python src/cli.py validate data --scenario <name>` | Validate prepared dataset (NaN, inf, duplicate index, zero-variance features, LOB delta checks) |
 | `uv run python src/cli.py feature-research --scenario sine_wave/ppo_no_trend` | Run offline feature scoring |
@@ -186,12 +214,13 @@ masters_thesis/
 │   │   │   ├── sine_wave/
 │   │   │   └── synthetic/
 │   │   └── data/            # Data-source/data-generation configs
-│   ├── data_generator.py    # Synthetic data generation
+│   ├── data_generator/      # Synthetic data generation (sine, trend, drift, mean-reversion)
+│   ├── masters_thesis/      # `thesis-experiments` hypothesis-runner CLI
 │   ├── logger/              # Shared logging utilities
 │   └── trading_rl/          # Core RL package
 │       ├── envs/            # Environment builders/wrappers
 │       ├── rewards/         # Reward functions
-│       ├── trainers/        # PPO, DDPG, TD3 trainers
+│       ├── trainers/        # PPO, DDPG, TD3, SAC, recurrent PPO trainers
 │       └── training.py      # Training loops and helpers
 ├── data/                    # Raw and synthetic data
 ├── docs/                    # Experiment and algorithm docs
@@ -211,14 +240,47 @@ uv run scripts/sync_dsh_skills.py --check  # verify sync (also runs as a pre-com
 
 Edit `.claude/` sources and re-run the sync — never edit `.dsh/skills/` directly. Generic machine-wide skills sync separately from the dotfiles repository into `~/.dsh/skills/`.
 
+## Development
+
+<!--pytest.mark.skip-->
+```bash
+uv run poe test           # uv run pytest
+uv run poe lint           # uv run ruff check .
+uv run pre-commit install # one-time: run the same checks locally on every commit
+```
+
+`pre-commit` mirrors the checks that gate every commit, including `ruff` and
+`ruff-format`. `.pre-commit-config.yaml` pins an exact ruff version, while
+`pyproject.toml`'s `ruff>=0.5.0` is only a floor — `uv run ruff` resolves to
+whatever is newest — so the two can drift apart. If `uv run ruff check`
+passes but `pre-commit` fails on a rule you don't recognize, bump the `rev:`
+in `.pre-commit-config.yaml` to match `uv run ruff --version`.
+
 ## Docs and References
 
-- [Data Download and Generation Guide](docs/data_guide.md)
+**Concepts and background**
+- [The Big Picture of Reinforcement Learning](docs/big_picture.md)
+- [RL Algorithm Comparison: TD3, DDPG, PPO](docs/comparison.md)
+- [Feature Selection in DRL Trading (literature review)](docs/feature_selection_in_drl.md)
+- [HFT LOB Feature Formulas](docs/hft_features.md)
+
+**Pipeline and architecture**
+- [End-to-End Workflow Overview](docs/overview.md)
 - [End-to-End Training Workflow](docs/experiment_workflow.md)
+- [Training Pipeline Architecture](docs/training_pipeline.md)
+- [Feature Pipeline Architecture](docs/feature_pipeline.md)
+- [Data Preparation Flow](docs/prepare_data.md)
+- [Thesis Artifact Bridge](docs/thesis_artifact_bridge.md) — how experiment metrics/plots reach the rendered thesis
+- [The `step_count` Training Metric](docs/max_step_count_metric.md)
+- [Data Download and Generation Guide](docs/data_guide.md)
 - [MCP Server Workflow](docs/mcp_server.md)
+
+**Algorithm implementations**
 - [PPO Implementation Overview](docs/ppo_implementation_overview.md)
 - [DDPG Implementation Overview](docs/ddpg_implementation_overview.md)
 - [TD3 Implementation Overview](docs/td3_implementation_overview.md)
 - [SAC Implementation Overview](docs/sac_implementation_overview.md)
+
+**Package READMEs**
 - [Core RL Package Overview](src/trading_rl/README.md)
 - [Logging Utilities](src/logger/README.md)
