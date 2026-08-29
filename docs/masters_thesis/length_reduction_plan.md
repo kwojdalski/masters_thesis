@@ -11,20 +11,22 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **146 pages** (measured 2026-08-29, fresh render after item 22)
-Body word count (chapters 01-07): **31,737 words**
-Body page range: printed pages 8-111 (physical PDF pages 9-112), **104 body
-pages**; Bibliography begins on printed page 112
-words_per_page: ~305 (31,737 / 104 measured body pages)
-Cumulative body reduction from the complete pre-condensation draft: **6,864
+Current: **146 pages** (measured 2026-08-29, fresh render after item 23)
+Body word count (chapters 01-07): **31,458 words**
+Body page range: printed pages 8-110 (physical PDF pages 9-111), **103 body
+pages**; Bibliography begins on printed page 111
+words_per_page: ~305 (31,458 / 103 measured body pages)
+Cumulative body reduction from the complete pre-condensation draft: **7,143
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
 body table moved into the appendix. Session 6 moved a second body table into
 the appendix, reducing the body by 2 further pages (107 -> 105) at unchanged
 total PDF length (148 pages before and after), since the appendix absorbed the
-page the body gave up. Session 7 cut a 4-way restated methodological warning
-and tightened an over-derived reward-function subsection, taking total pages
-148 -> 146 and body 105 -> 104.
+page the body gave up. Session 7 cut a 4-way restated methodological warning,
+tightened an over-derived reward-function subsection, deduplicated a
+four-way-copy-pasted MBP-10 format definition, and condensed the state-space
+chapter's fragmented scope-justification prose, taking total pages 148 -> 146
+and body 105 -> 103.
 
 Session 1 scope note: started with chapter 7 (closing material) rather than
 chapter-number order, because initial reconnaissance (word counts across all
@@ -116,6 +118,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 20 | 2 | 05-01, 99-appendix | User-directed re-review of tables specifically. `tbl-transformed-features` (12-row x 9-col AAPL example) forced its own dedicated landscape page purely for illustration; the row-selection window is hardcoded in `thesis_tables.py::lob_events_table()`, so shrinking it in place would have required a Python edit with uncertain page payoff (landscape is driven by column width, not row count). Moved the full table and its intro paragraph to a new listed appendix section (`#sec-appendix-transformed-features`); the body keeps the three interpretive claims (bid-refresh sign flip at event 12, microprice-deviation intuition, OFI spike) in one condensed paragraph pointing to the appendix table. | -2 body pages (107 -> 105); words -198 (32,392 -> 32,194); total PDF unchanged (148) since the appendix absorbed the page | applied (`75ad10de`) |
 | 21 | 1 | 04-03, 05-02, 07-03 | First full read of `04-03` (reward function), `04-04`, `04-06`, `04-07`, and `05-02` (all previously untouched by any session). Found a genuine methodological point restated in full 4 times: "training reward (DSR) is not the evaluation financial metric; conflating them (e.g. citing a high training DSR as evidence of held-out Sharpe) is invalid" appears in `04-03` (fullest, kept as authoritative), `05-02`'s "two output streams" implementation note, `07-03`'s practitioner-recommendation bullet, and a fourth copy at the end of `04-03` itself restating `07-02`'s "Algorithm and reward ablation" future-work item down to the same Sortino/drawdown-penalized alternatives. Kept 04-03's version, compressed 05-02 and 07-03 to their own distinct framing with a pointer to Section 4.3, and replaced 04-03's closing sentence with a plain forward pointer to Chapter 7. `04-04`, `04-06`, `04-07`, and the pseudocode in `05-02` were checked and found tightly scoped — no further findings. | -70 (05-02+07-03) | applied (`997e1e0e`) |
 | 22 | 3 | 04-03 | User asked directly whether "4.3.2 Differential Sharpe Ratio" was too long. Confirmed: not cross-chapter duplication (checked `07-02` for overlap — none), but internal disproportion — four full-paragraph limitations, a footnote deriving a complete numeric order-of-magnitude chain ($\sigma\approx4.5\times10^{-5}$ -> variance $2\times10^{-9}$ -> its $3/2$ power $10^{-13}$) just to justify not rescaling the reward, and a "why chosen anyway" reason that restated the training-vs-evaluation separation point made two paragraphs earlier in the same subsection. Condensed the four limitations to their substance, collapsed the footnote to its conclusion, and cut the redundant third reason. | -372 (1808 -> 1436); total PDF -2 pages (148 -> 146, crossed a page boundary), body -1 page (105 -> 104) | applied (`1927073a`) |
+| 23 | 1 | 04-02, 04-03, 05-00 | User asked whether 4.2 State Space was too long. Found: (a) the full MBP-10 format definition copy-pasted verbatim as a footnote in `04-02`, `04-03`, and `05-00`, on top of the proper main-text explanation already in `05-01` — kept `05-01` as authoritative, replaced the other three with a short cross-reference; (b) within `04-02`, the position feature's normalization rationale stated in full twice ~40 lines apart; (c) `04-02`'s "augment with VIX futures/sector-ETF/options-skew" future-work aside duplicated `07-02`'s "Cross-asset and multi-asset extensions" item almost verbatim — cut to a plain forward pointer; (d) a closing paragraph in `04-02` that only recapped facts (d=11, normalization, Appendix A) already established earlier in the same file; (e) the "Scope and timescale consistency" criterion was fragmented into six 1-2 sentence paragraphs — consolidated into two denser paragraphs, no content lost. | -279 net across 3 files (04-02: 2125->1960; 04-03: 1436->1380; 05-00: shrunk) | applied (`1e7afecf`) |
 
 ## Session log
 
@@ -224,6 +227,16 @@ are now fully read end to end. Working in a dedicated branch
 concurrent-session incident in session 6, and committing after every edit.
 Fresh Quarto render succeeded: total PDF 148 -> 146 pages (crossed a page
 boundary), body 105 -> 104 pages, body words 32,194 -> 31,737.
+
+User then asked directly whether `04-02` (State Space) was too long. This
+surfaced a second whole-thesis mechanical duplication in the same vein as the
+DSR training-vs-evaluation warning: the full MBP-10 format definition was
+copy-pasted as a footnote in `04-02`, `04-03`, and `05-00` on top of the
+proper explanation in `05-01` (item 23a), plus three more `04-02`-local
+issues (a within-file repeat, a future-work duplicate against `07-02`, and a
+pure-recap closing paragraph) and one fragmented-prose consolidation. Applied
+as item 23. Fresh render: total PDF unchanged at 146, body 104 -> 103 pages,
+body words 31,737 -> 31,458.
 
 **Remaining unreviewed material:** Chapter 2's six files other than `02-04`
 and `02-07` were read fresh in the previous session's reconnaissance and found
