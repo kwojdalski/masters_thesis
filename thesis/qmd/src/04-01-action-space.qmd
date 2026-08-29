@@ -57,9 +57,10 @@ where:
 - $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise
 - $\sigma$ — exploration noise standard deviation^[The main experiment uses $\sigma = 0.3$. This value is at the upper end of the 0.1--0.3 range commonly used in continuous-action TD3 applications and was chosen to maintain sufficient action diversity in the low-signal tick-level setting.]
 
-This exploration mechanism is used by DDPG and TD3, as shown in
-@eq-ddpg-exploration and @eq-td3-exploration. It contrasts with PPO's
-entropy-based exploration approach in @eq-ppo-entropy, where the stochastic
-policy itself provides action diversity. The clipping operation ensures actions remain within valid bounds. This exploration mechanism encourages the agent to discover diverse trading strategies during early training phases while gradually converging to deterministic exploitation as learning progresses.
+DDPG and TD3 use this mechanism during data collection; at evaluation they
+apply the unperturbed deterministic policy. PPO instead obtains action diversity
+from its stochastic policy and entropy bonus (@eq-ppo-entropy). Clipping keeps
+the exploratory actions within the valid bounds.
 
-Additionally, TD3 employs target policy smoothing during critic updates, adding noise to target actions when computing Bellman targets. This regularization technique prevents the critics from overfitting to narrow peaks in the value function caused by function approximation errors.
+TD3 separately applies target policy smoothing during critic updates, as
+specified with the policy implementation in @sec-policy-deterministic.
