@@ -137,7 +137,9 @@ def _derive_random_scenario(scenario: str) -> str:
     return f"{prefix}/{random_name}" if prefix else random_name
 
 
-def load_random_baseline(scenario: str) -> RandomBaseline | None:
+def load_random_baseline(
+    scenario: str, experiment_dir: Path = Path("thesis/qmd/results")
+) -> RandomBaseline | None:
     """Load the random-policy baseline metrics for a scenario, or None.
 
     Reads the thesis snapshot written by export_eval_to_thesis.py for the
@@ -146,10 +148,7 @@ def load_random_baseline(scenario: str) -> RandomBaseline | None:
     """
     experiment = scenario.replace("/", "_")
     snapshot = (
-        Path("thesis/qmd/results")
-        / experiment
-        / "latest_finished"
-        / "evaluation_report.json"
+        experiment_dir / experiment / "latest_finished" / "evaluation_report.json"
     )
     if not snapshot.exists():
         return None
@@ -318,6 +317,23 @@ def main() -> None:
         default=200000,
         help="Max steps per trial (for reference)",
     )
+    parser.add_argument(
+        "--experiment-dir",
+        type=Path,
+        default=Path("thesis/qmd/results"),
+        help="Root containing experiment snapshots and random-baseline results.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Directory for h4_learning_report.json.",
+    )
+    parser.add_argument(
+        "--no-export",
+        action="store_true",
+        help="Do not write a thesis snapshot.",
+    )
     args = parser.parse_args()
 
     console.print(
@@ -339,7 +355,7 @@ def main() -> None:
 
     # Compare to the measured random-policy baseline
     random_scenario = args.random_scenario or _derive_random_scenario(args.scenario)
-    baseline = load_random_baseline(random_scenario)
+    baseline = load_random_baseline(random_scenario, args.experiment_dir)
     if baseline is None:
         console.print(
             f"[yellow]No random baseline found for {random_scenario!r}; "
@@ -450,7 +466,9 @@ def main() -> None:
         )
 
     # Save results for reference
-    output_dir = Path("eval_results") / args.scenario.replace("/", "_")
+    output_dir = args.output_dir or (
+        Path("eval_results") / args.scenario.replace("/", "_")
+    )
     output_dir.mkdir(parents=True, exist_ok=True)
 
     results_file = output_dir / "h4_learning_report.json"
@@ -468,9 +486,12 @@ def main() -> None:
 
     console.print(f"\nReport saved to: {results_file}")
 
+    if args.no_export:
+        return
+
     # Export to thesis snapshot
     console.print("\nExporting to thesis snapshot...")
-    thesis_results_root = Path("thesis/qmd/results")
+    thesis_results_root = args.experiment_dir
     experiment_name = f"{args.scenario.replace('/', '_')}_h4_n{args.n_trials}"
     experiment_dir = thesis_results_root / experiment_name
     snapshot_dir = experiment_dir / "latest_finished"

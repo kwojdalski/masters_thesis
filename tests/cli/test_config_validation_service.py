@@ -75,6 +75,17 @@ def test_valid_config_no_errors(tmp_path: Path):
     assert report.error_count == 0
 
 
+def test_non_positive_max_rows_per_file_is_error(tmp_path: Path):
+    data_path = _write_dataset(tmp_path / "data.parquet")
+    config = ExperimentConfig()
+    config.data.data_path = str(data_path)
+    config.data.max_rows_per_file = 0
+
+    report = validate_experiment_config(config)
+
+    assert any(i.code == "MAX_ROWS_PER_FILE_INVALID" for i in report.issues)
+
+
 def test_missing_feature_config_is_error(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet")
     config = ExperimentConfig()
