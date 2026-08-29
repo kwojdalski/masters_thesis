@@ -785,31 +785,21 @@ def build_final_metrics(
     val_data_paths = getattr(config.data, "val_data_paths", None) or []
     memmap_dir_cfg = getattr(config.data, "memmap_dir", None)
     if val_data_paths and memmap_dir_cfg:
-        symbol_file = Path(memmap_dir_cfg) / ".eval_symbol_used"
-        if symbol_file.exists():
-            val_test_symbols = [symbol_file.read_text().strip()]
-        else:
-            strategy = getattr(
-                config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST
-            )
-            if strategy == EvalSymbolSelection.FIRST:
-                val_test_symbols = [Path(val_data_paths[0]).parent.name]
-            elif strategy == EvalSymbolSelection.ROTATED:
-                counter_path = Path(memmap_dir_cfg) / ".eval_symbol_counter"
-                try:
-                    count = (
-                        int(counter_path.read_text().strip())
-                        if counter_path.exists()
-                        else 1
-                    )
-                    idx = (count - 1) % len(val_data_paths)
-                    val_test_symbols = [Path(val_data_paths[idx]).parent.name]
-                except (ValueError, ZeroDivisionError):
-                    val_test_symbols = sorted(
-                        {Path(p).parent.name for p in val_data_paths}
-                    )
-            else:
-                val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
+        # Recompute the index rather than reading it back from disk. The
+        # resolver is pure in (strategy, n_symbols, seed), so this is the same
+        # symbol the dataset was built with -- and it cannot be clobbered by a
+        # concurrent run the way the shared .eval_symbol_used file was (#518).
+        from trading_rl.data.preparation import _resolve_symbol_index
+
+        strategy = getattr(
+            config.data, "eval_symbol_selection", EvalSymbolSelection.FIRST
+        )
+        idx = _resolve_symbol_index(
+            strategy, len(val_data_paths), seed=getattr(config, "seed", None)
+        )
+        val_test_symbols = [
+            Path(val_data_paths[min(idx, len(val_data_paths) - 1)]).parent.name
+        ]
     elif val_data_paths:
         val_test_symbols = sorted({Path(p).parent.name for p in val_data_paths})
     else:
