@@ -17,17 +17,12 @@ simulation — that agent trades do not move quoted prices — is empirically
 defensible, and that the microstructure features derived from the order book
 reflect genuine supply and demand rather than thin-market artifacts.
 
-Blue-chip selection minimizes borrow costs, supporting the action space's
-short-selling capability. For these highly liquid large-cap equities, stock
-loan supply is abundant and borrowing is effectively unconstrained, with
-lending rates typically below 0.5% per annum.^[These rates apply to positions
-held overnight. Intraday short positions — those opened and closed within the
-same trading session — generally do not incur borrow costs, as the securities
-are returned before the daily settlement cycle.] This cost is negligible
-relative to transaction fees and expected high-frequency returns, justifying the
-symmetric long/short treatment in the simulation. Had the study focused on
+Blue-chip selection also minimizes borrow costs, supporting the action
+space's cost-symmetric short-selling treatment (Section 4.1): loan supply is
+abundant for these highly liquid large-caps, keeping the symmetric-cost
+assumption negligible relative to transaction fees. Had the study focused on
 smaller-cap or illiquid instruments, borrow costs could reach 5–10% or more,
-rendering the symmetric cost assumption invalid.
+rendering that assumption invalid.
 
 The choice to train a single pooled model across multiple instruments, rather
 than a separate model per instrument, is a deliberate design decision.
