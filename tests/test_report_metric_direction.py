@@ -87,3 +87,18 @@ def test_h2_deeper_drawdown_delta_is_red(h2) -> None:
 def test_h2_sharpe_delta_direction_unaffected(h2) -> None:
     assert "green" in h2.fmt_delta("sharpe_ratio", 1.4, 0.9, ".3f")
     assert "red" in h2.fmt_delta("sharpe_ratio", 0.9, 1.4, ".3f")
+
+
+def test_h1_benchmark_labels_have_no_duplicate_keys() -> None:
+    """A duplicate `label:` key silently relabelled buy_and_hold as "Short & Hold".
+
+    YAML keeps only the last duplicate, and the metric lookup keys off `name`,
+    so the numbers stayed correct while the row carried the name of a different
+    strategy -- invisible from the rendered output alone (#499).
+    """
+    import yaml
+
+    config = yaml.safe_load(Path("src/configs/h1_performance.yaml").read_text())
+    labels = {spec["name"]: spec["label"] for spec in config["benchmarks"]}
+    assert labels["buy_and_hold"] == "Buy & Hold"
+    assert "Short & Hold" not in labels.values()
