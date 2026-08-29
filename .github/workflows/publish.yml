@@ -20,6 +20,11 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    env:
+      AUDIT_PLOTS: "1"
+      THESIS_DEBUG_ASSETS: "1"
+      PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
+      MPLBACKEND: Agg
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -59,15 +64,8 @@ jobs:
           cp -r thesis/qmd/src/masters-thesis_files _site/
           mkdir -p _site/diagrams
           cp thesis/qmd/src/diagrams/*.svg _site/diagrams/
-        env:
-          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
-          MPLBACKEND: Agg
-
       - name: Render thesis to PDF
         run: uv run quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
-        env:
-          PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
-          MPLBACKEND: Agg
 
       - name: Rebase on latest master
         # The render takes minutes; origin/master can advance in that window,

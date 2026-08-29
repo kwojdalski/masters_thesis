@@ -2,10 +2,10 @@
   "run_id": null,
   "run_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5",
   "status": "FINISHED",
-  "start_time": "2026-08-19T21:28:06.384805+00:00",
-  "end_time": "2026-08-19T21:28:06.384805+00:00",
+  "start_time": "2026-08-29T01:37:44.067040+00:00",
+  "end_time": "2026-08-29T01:37:44.067040+00:00",
   "experiment_name": "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5",
   "h4_experiment": true,
   "n_trials": 5,
-  "max_steps_per_trial": 25000
+  "max_steps_per_trial": 200000
 }

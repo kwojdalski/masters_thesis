@@ -5,9 +5,6 @@ from __future__ import annotations
 import gc
 import hashlib
 import json
-import logging
-import logging.handlers
-import multiprocessing
 import os
 import shutil
 import tempfile
@@ -20,7 +17,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from logger import get_logger
+from logger import get_logger, setup_logging
 from trading_rl.constants import EnvBackend, EnvMode, EvalSymbolSelection
 from trading_rl.data.cache import (
     _feature_cache_key,
@@ -56,28 +53,12 @@ from trading_rl.data_loading import (
 logger = get_logger(__name__)
 
 
-class _WorkerLogFilter(logging.Filter):
-    """Append [worker X/N] to every log record emitted from a worker process."""
-
-    def __init__(self, tag: str) -> None:
-        super().__init__()
-        self.tag = tag
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.msg = f"{record.msg} [{self.tag}]"
-        return True
-
-
-def _worker_log_init(queue: multiprocessing.Queue) -> None:
-    """Install a QueueHandler on the root logger in each worker process.
-
-    Every log record emitted by the worker is forwarded to the parent's
-    QueueListener, which dispatches it through the parent's handlers.
-    """
-    root = logging.getLogger()
-    root.handlers.clear()
-    root.addHandler(logging.handlers.QueueHandler(queue))
-    root.setLevel(logging.DEBUG)
+def _worker_log_init() -> None:
+    """Configure Loguru in a spawned data-preparation worker."""
+    setup_logging(
+        level=os.environ.get("LOGURU_LEVEL", "INFO"),
+        colored_output=os.environ.get("LOGURU_COLORIZE", "NO") == "YES",
+    )
 
 
 def _resolve_symbol_index(
@@ -349,27 +330,28 @@ def _per_symbol_worker(
     import gc as _gc
     import hashlib as _hashlib
     import json as _json
-    import logging as _logging
     from pathlib import Path as _Path
 
     import numpy as _np
     import pandas as _pd
 
     from logger import get_logger as _get_logger
-    from trading_rl.constants import EnvBackend, EnvMode
 
-    # Attach worker tag to every log record from this process.
     _tag = f"worker {worker_idx}/{n_workers_total}"
-    _root = _logging.getLogger()
-    for _h in _root.handlers:
-        _h.addFilter(_WorkerLogFilter(_tag))
+    _logger = _get_logger(__name__)
+
+    def _add_worker_tag(record: dict) -> None:
+        record["message"] = f"{record['message']} [{_tag}]"
+
+    _logger.configure(patcher=_add_worker_tag)
+
+    from trading_rl.constants import EnvBackend, EnvMode
     from trading_rl.data.hft import _deduplicate_hft_index_single
     from trading_rl.data.loading import load_trading_data
     from trading_rl.data_loading import save_symbol_memmap
     from trading_rl.features import FeaturePipeline
     from trading_rl.features.base import NormalizationMethod
 
-    _logger = _get_logger(__name__)
     memmap_dir = _Path(memmap_dir_str) if memmap_dir_str else None
     tmp_dir = _Path(tmp_dir_str)
 
@@ -679,42 +661,29 @@ def _build_per_day_splits(
     val_entries_by_idx: dict[int, dict[str, str]] = {}
     pipeline_states_by_val_idx: dict[int, dict | None] = {}
 
-    # Forward worker log records to the parent's handlers via a shared queue.
-    log_queue: multiprocessing.Queue = multiprocessing.Queue()
-    parent_handlers = logging.getLogger().handlers or [logging.StreamHandler()]
-    listener = logging.handlers.QueueListener(
-        log_queue, *parent_handlers, respect_handler_level=True
-    )
-    listener.start()
-    try:
-        with ProcessPoolExecutor(
-            max_workers=n_workers,
-            initializer=_worker_log_init,
-            initargs=(log_queue,),
-        ) as executor:
-            futures = {
-                executor.submit(_per_symbol_worker, args): args.symbol
-                for args in worker_args
-            }
-            for future in as_completed(futures):
-                sym = futures[future]
-                try:
-                    _sym, train_results, val_entry, val_idx, worker_pipeline_state = (
-                        future.result()
-                    )
-                except Exception as exc:
-                    raise RuntimeError(
-                        f"Worker for symbol '{sym}' failed: {exc}"
-                    ) from exc
-                for orig_idx, memmap_entry in train_results:
-                    train_memmap_by_idx[orig_idx] = memmap_entry
-                if val_entry is not None and val_idx is not None:
-                    val_entries_by_idx[val_idx] = val_entry
-                    pipeline_states_by_val_idx[val_idx] = worker_pipeline_state
-                if progress_callback:
-                    progress_callback(f"done {sym}")
-    finally:
-        listener.stop()
+    with ProcessPoolExecutor(
+        max_workers=n_workers,
+        initializer=_worker_log_init,
+    ) as executor:
+        futures = {
+            executor.submit(_per_symbol_worker, args): args.symbol
+            for args in worker_args
+        }
+        for future in as_completed(futures):
+            sym = futures[future]
+            try:
+                _sym, train_results, val_entry, val_idx, worker_pipeline_state = (
+                    future.result()
+                )
+            except Exception as exc:
+                raise RuntimeError(f"Worker for symbol '{sym}' failed: {exc}") from exc
+            for orig_idx, memmap_entry in train_results:
+                train_memmap_by_idx[orig_idx] = memmap_entry
+            if val_entry is not None and val_idx is not None:
+                val_entries_by_idx[val_idx] = val_entry
+                pipeline_states_by_val_idx[val_idx] = worker_pipeline_state
+            if progress_callback:
+                progress_callback(f"done {sym}")
 
     # Reconstruct ordered memmap list
     collected_memmap_paths: list[MemmapPaths] = []

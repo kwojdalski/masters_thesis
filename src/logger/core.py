@@ -20,6 +20,7 @@ from loguru import logger
 # Level-check helper (replaces logging.Logger.isEnabledFor)
 # ---------------------------------------------------------------------------
 
+
 def is_level_enabled(level: str) -> bool:
     """Return True if messages at *level* would reach at least one handler."""
     try:
@@ -50,10 +51,23 @@ _PLAIN_FMT = (
 # comma-formatted numbers like 11,643 are captured as a single token.
 _KV_VALUE_RE = re.compile(r"(?<==)([^\s,\)\]\[|{}<>]+(?:,[0-9]+)*)")
 
-_PATH_EXTENSIONS: frozenset[str] = frozenset({
-    ".py", ".yaml", ".yml", ".npy", ".parquet", ".json", ".csv",
-    ".txt", ".pkl", ".pt", ".pth", ".log", ".db",
-})
+_PATH_EXTENSIONS: frozenset[str] = frozenset(
+    {
+        ".py",
+        ".yaml",
+        ".yml",
+        ".npy",
+        ".parquet",
+        ".json",
+        ".csv",
+        ".txt",
+        ".pkl",
+        ".pt",
+        ".pth",
+        ".log",
+        ".db",
+    }
+)
 
 
 def _looks_like_path(val: str) -> bool:
@@ -71,6 +85,7 @@ def _highlight_kv(msg: str) -> str:
     - negative numbers → red, positive numbers → magenta
     - strings → light-cyan
     """
+
     def _replace(m: re.Match) -> str:
         val = m.group(1)
 
@@ -96,7 +111,10 @@ def _highlight_kv(msg: str) -> str:
             if len(parts) == 2:
                 left, right = parts
                 left_ok = left.replace(".", "", 1).replace("-", "", 1).isdigit()
-                right_ok = right == "s" or right.replace(".", "", 1).replace("-", "", 1).isdigit()
+                right_ok = (
+                    right == "s"
+                    or right.replace(".", "", 1).replace("-", "", 1).isdigit()
+                )
                 if left_ok and right_ok:
                     return f"<magenta>{val}</magenta>"
 
@@ -111,6 +129,7 @@ def _highlight_kv(msg: str) -> str:
 
 def _make_kv_format(fmt: str) -> Any:
     """Return a loguru format callable that highlights key=value pairs."""
+
     def _format(record: dict) -> str:
         # Escape bare < so loguru's colorizer does not treat them as color tags.
         # In a format callable, loguru strips the leading \ and renders plain <.
@@ -119,6 +138,7 @@ def _make_kv_format(fmt: str) -> Any:
         # Escape bare braces so format_map doesn't misinterpret message content.
         safe = highlighted.replace("{", "{{").replace("}", "}}")
         return fmt.replace("{message}", safe, 1) + "\n"
+
     return _format
 
 
@@ -135,6 +155,14 @@ def setup_logging(
 ) -> Any:
     """Configure loguru sinks for the project and return the logger."""
     logger.remove()
+
+    use_color = (
+        colored_output and not structured_logging and "NO_COLOR" not in os.environ
+    )
+    # Spawned workers import Loguru before application initializers run. These
+    # defaults make their initial sink match the parent process from first import.
+    os.environ["LOGURU_LEVEL"] = level.upper()
+    os.environ["LOGURU_COLORIZE"] = "YES" if use_color else "NO"
 
     if log_regex is None:
         log_regex = os.environ.get("LOG_REGEX")
@@ -153,12 +181,13 @@ def setup_logging(
         return True
 
     if format_string is None:
-        fmt = _DEFAULT_FMT if (colored_output and not structured_logging) else _PLAIN_FMT
+        fmt = (
+            _DEFAULT_FMT if (colored_output and not structured_logging) else _PLAIN_FMT
+        )
     else:
         fmt = format_string
 
     if console_output:
-        use_color = colored_output and not structured_logging
         console_fmt = _make_kv_format(fmt) if use_color else fmt
         logger.add(
             sys.stdout,
