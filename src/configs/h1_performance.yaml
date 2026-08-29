@@ -8,7 +8,7 @@
 # `cli.py evaluate` run that produced results.json in log_dir.
 #
 # Run training + evaluation with:
-#   bash scripts/run_h1_experiments.sh
+#   uv run thesis-experiments h1
 
 agents:
   - label: "TD3"

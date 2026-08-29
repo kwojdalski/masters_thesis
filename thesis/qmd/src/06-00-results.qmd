@@ -124,7 +124,7 @@ for exp_name, label in _H1_AGENTS:
 
 h1_df = pd.DataFrame(rows)
 if h1_df.iloc[:, 1:].isin(["—"]).all().all():
-    print("No H1 results available. Run: bash scripts/run_h1_experiments.sh")
+    print("No H1 results available. Run: uv run thesis-experiments h1")
 else:
     display_df(h1_df)
     table_note(source="Author's own calculations.")

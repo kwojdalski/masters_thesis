@@ -34,7 +34,9 @@ def load_results(eval_dir: Path) -> dict[str, Any]:
         return json.load(f)
 
 
-def find_trial_results(scenario: str, n_trials: int, max_steps: int) -> list[dict[str, Any]]:
+def find_trial_results(
+    scenario: str, n_trials: int, max_steps: int
+) -> list[dict[str, Any]]:
     """Find results from all trials for the given scenario."""
     # MLflow experiment name is typically derived from scenario
     experiment_name = scenario.replace("/", "_")
@@ -148,14 +150,10 @@ def check_learning_criteria(significance: dict[str, Any]) -> dict[str, bool]:
     criteria["positive_sharpe"] = significance.get("mean_sharpe", 0) > 0
 
     # Criteria 3: Statistically significant return (p < 0.05)
-    criteria["significant_return"] = (
-        significance.get("p_value_return", 1) < 0.05
-    )
+    criteria["significant_return"] = significance.get("p_value_return", 1) < 0.05
 
     # Criteria 4: Win rate above 50% (random baseline)
-    criteria["win_rate_above_baseline"] = (
-        significance.get("mean_win_rate", 0) > 0.5
-    )
+    criteria["win_rate_above_baseline"] = significance.get("mean_win_rate", 0) > 0.5
 
     # Overall conclusion
     passed = sum(criteria.values())
@@ -201,7 +199,7 @@ def main() -> None:
 
     if not trial_results:
         console.print("[red]No trial results found. Have you trained yet?[/red]")
-        console.print("Run: bash scripts/run_h4_experiments.sh")
+        console.print("Run: uv run thesis-experiments h4")
         return
 
     console.print(f"[green]Found {len(trial_results)} trial results[/green]\n")
@@ -328,10 +326,15 @@ def main() -> None:
     }
 
     from datetime import datetime
+
     now = datetime.now(UTC).isoformat()
 
-    (snapshot_dir / "evaluation_report.json").write_text(json.dumps(evaluation_report, indent=2))
-    (snapshot_dir / "h4_learning_report.json").write_text(json.dumps(report_data, indent=2))
+    (snapshot_dir / "evaluation_report.json").write_text(
+        json.dumps(evaluation_report, indent=2)
+    )
+    (snapshot_dir / "h4_learning_report.json").write_text(
+        json.dumps(report_data, indent=2)
+    )
 
     # Write run.json for consistency
     run_json = {

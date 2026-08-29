@@ -85,6 +85,7 @@ docs = [
 [project.scripts]
 train-agent = "scripts.train_trading_agent:main"
 trading-rl-mcp = "mcp_server.server:main"
+thesis-experiments = "masters_thesis.experiments:app"
 
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
