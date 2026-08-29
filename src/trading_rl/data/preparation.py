@@ -62,13 +62,22 @@ def _worker_log_init() -> None:
 
 
 def _resolve_symbol_index(
-    strategy: str, n_symbols: int, memmap_dir: Path | None, seed: int | None = None
+    strategy: str, n_symbols: int, seed: int | None = None
 ) -> int:
     """Return the index of the representative symbol for streaming-mode splits.
 
     "first"   — always 0
     "random"  — uniform random pick; seeded from `seed` for reproducibility
-    "rotated" — increments a per-run counter stored in memmap_dir/.eval_symbol_counter
+    "rotated" — ``seed % n_symbols``
+
+    Pure in (strategy, n_symbols, seed) by design. "rotated" previously read and
+    incremented a counter file under memmap_dir, which every pooled scenario
+    shares: each train invocation advanced it, so the agents compared within one
+    hypothesis were each scored on a different symbol, and no rerun reproduced
+    the previous assignment (#518). Rotating on the seed keeps scenarios sharing
+    a seed aligned — which is what H1/H2/H3 need, since they compare algorithms
+    or feature sets and must hold the eval symbol fixed — while still letting a
+    multi-seed sweep cover different held-out symbols.
     """
     if strategy == EvalSymbolSelection.RANDOM:
         idx = int(np.random.default_rng(seed).integers(n_symbols))
@@ -80,26 +89,35 @@ def _resolve_symbol_index(
         )
         return idx
     if strategy == EvalSymbolSelection.ROTATED:
-        counter_path = (memmap_dir / ".eval_symbol_counter") if memmap_dir else None
-        count = 0
-        if counter_path and counter_path.exists():
-            try:
-                count = int(counter_path.read_text().strip())
-            except ValueError:
-                count = 0
-        idx = count % n_symbols
-        if counter_path:
-            counter_path.parent.mkdir(parents=True, exist_ok=True)
-            counter_path.write_text(str(count + 1))
+        idx = (seed if seed is not None else 0) % n_symbols
         logger.info(
-            "eval_symbol_selection=rotated counter={} idx={} of {}",
-            count,
+            "eval_symbol_selection=rotated seed={} idx={} of {}",
+            seed,
             idx,
             n_symbols,
         )
         return idx
     # EvalSymbolSelection.FIRST or unrecognised
     return 0
+
+
+def _record_eval_symbol(config: Any, symbol: str) -> None:
+    """Record the resolved eval symbol under this run's log_dir.
+
+    Deliberately not memmap_dir: every pooled scenario shares that directory, so
+    whichever process wrote last determined what all of them reported (#518).
+    log_dir is per-scenario, so the train and evaluate invocations of one
+    scenario agree and other scenarios cannot clobber it.
+    """
+    log_dir = getattr(getattr(config, "logging", None), "log_dir", None)
+    if not log_dir:
+        return
+    try:
+        out = Path(log_dir)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / ".eval_symbol_used").write_text(symbol)
+    except OSError:
+        logger.debug("could not record eval symbol under log_dir={}", log_dir)
 
 
 @dataclass
@@ -1089,7 +1107,6 @@ def build_prepared_dataset(
                 _idx = _resolve_symbol_index(
                     _strategy,
                     len(_val_paths_cfg),
-                    memmap_dir,
                     seed=getattr(config, "seed", None),
                 )
                 _sym = _syms[_idx]
@@ -1107,8 +1124,7 @@ def build_prepared_dataset(
                     if test_size_cfg is not None
                     else _test_ldf
                 )
-                memmap_dir.mkdir(parents=True, exist_ok=True)
-                (memmap_dir / ".eval_symbol_used").write_text(_sym)
+                _record_eval_symbol(config, _sym)
                 logger.info("cache-hit rotated val/test sym={} idx={}", _sym, _idx)
 
         return _make_dataset(
@@ -1139,14 +1155,12 @@ def build_prepared_dataset(
         # which counts training day-files (n_symbols * n_days) in per-day mode.
         # The cache-hit path (len(_val_paths_cfg) above) already does this correctly.
         _symbol_index = _resolve_symbol_index(
-            _strategy, len(_val_paths), memmap_dir, seed=getattr(config, "seed", None)
+            _strategy, len(_val_paths), seed=getattr(config, "seed", None)
         )
         _eval_symbol = Path(
             _val_paths[min(_symbol_index, len(_val_paths) - 1)]
         ).parent.name
-        if memmap_dir:
-            memmap_dir.mkdir(parents=True, exist_ok=True)
-            (memmap_dir / ".eval_symbol_used").write_text(_eval_symbol)
+        _record_eval_symbol(config, _eval_symbol)
         train_df, val_df, test_df, memmap_paths, pipeline_state = _build_pooled_splits(
             config,
             logger,
