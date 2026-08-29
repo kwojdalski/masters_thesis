@@ -200,6 +200,59 @@ else:
 
 ---
 
+# Feature Distribution Statistics {#sec-appendix-feature-statistics}
+
+```{=latex}
+\addcontentsline{loa}{section}{Feature Distribution Statistics}
+```
+
+@tbl-feature-stats reports distributional statistics for all engineered
+microstructure features computed over the training split, after skipping the
+first 500 events to allow rolling-window features to stabilise. Means close to
+zero and standard deviations near one confirm that causal running normalisation
+is operating as intended. Q1, Q2, and Q3 show the interquartile spread; Skew and
+Kurt (excess kurtosis) characterise the shape of each marginal distribution.
+
+Several features — most notably `ofi` and `ofi_rolling_50` — exhibit extreme
+minimum and maximum values despite their near-unit standard deviations. This is
+a structural property of order-flow imbalance, not a data-quality issue. Most
+tick events represent small queue adjustments that produce z-scores close to
+zero, while occasional aggressive orders consume multiple price levels in
+rapid succession. Because the running standard deviation is dominated by the
+quiet majority, these rare spikes emerge as z-scores of $\pm 290$ or more and
+produce the large positive excess kurtosis visible for OFI features.
+
+The values in @tbl-feature-stats are post-normalisation but pre-clipping. The
+environment applies a hard observation clip of $[-5, 5]$ through `obs_clip`, so
+the policy network never receives the extreme tails shown in the table.
+
+```{python}
+#| label: cell-feature-stats
+#| output: asis
+#| echo: false
+#| warning: false
+
+import pandas as pd
+from thesis_mlflow_results import repo_root
+from thesis_tables import feature_stats_table, missing_data_notice
+
+_feat_path = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/feature_stats.csv"
+)
+if _feat_path.exists():
+    feature_stats_table(pd.read_csv(_feat_path))
+else:
+    missing_data_notice(
+        "feature_stats.csv not found — run: uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export, then: "
+        "uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+    )
+```
+
+---
+
 # Data Preparation Pipeline
 
 ```{=latex}
