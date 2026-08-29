@@ -112,30 +112,20 @@ assumptions separating these findings from deployable performance claims.
 
 ```{=latex}
 \makeatletter
-\begin{center}
-\bfseries Key words
-\end{center}
+{\centering\bfseries Key words\par}
 \noindent\@keywords\par
-\begin{center}
-(\textit{Słowa kluczowe: \keywordspl})
-\end{center}
+{\centering(\textit{Słowa kluczowe: \keywordspl})\par}
 
-\vspace{12pt}
-\begin{center}
-\bfseries Area of study (codes according to Erasmus Subject Area Codes List)
-\end{center}
+\vspace{6pt}
+{\centering\bfseries Area of study (codes according to Erasmus Subject Area Codes List)\par}
 \noindent\@dziedzina\par
 
-\vspace{12pt}
-\begin{center}
-\bfseries Thematic classification
-\end{center}
+\vspace{6pt}
+{\centering\bfseries Thematic classification\par}
 \noindent\@klasyfikacja\par
 
-\vspace{12pt}
-\begin{center}
-\bfseries Title of the thesis in Polish
-\end{center}
+\vspace{6pt}
+{\centering\bfseries Title of the thesis in Polish\par}
 \noindent\@tytulang\par
 \makeatother
 ```
