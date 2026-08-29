@@ -150,6 +150,12 @@ docstring-code-format = true
 
 [dependency-groups]
 dev = [
+    # Needed by `mlflow mcp run` (MLflow's built-in MCP server), which imports
+    # fastmcp but does not depend on it. The 3.x line pins mcp<2.0 via
+    # fastmcp-slim[client], which is unsatisfiable here: trading-rl-mcp needs
+    # mcp>=2.0.0. Only the 4.0 line drops that cap, so this stays on a
+    # prerelease until 4.0.0 ships.
+    "fastmcp>=4.0.0b5",
     "jupyter>=1.1.1",
     "nbformat>=5.10.4",
     "poethepoet>=0.48.0",
