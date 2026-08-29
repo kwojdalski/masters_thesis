@@ -64,12 +64,8 @@ class OddLotImbalanceFeature(LOBFeature):
         is_odd = (action == MBOAction.TRADE) & (size < round_lot)
         odd_buy = pd.Series(0.0, index=df.index)
         odd_sell = pd.Series(0.0, index=df.index)
-        odd_buy[is_odd & (side == MBOSide.BID)] = size[
-            is_odd & (side == MBOSide.BID)
-        ]
-        odd_sell[is_odd & (side == MBOSide.ASK)] = size[
-            is_odd & (side == MBOSide.ASK)
-        ]
+        odd_buy[is_odd & (side == MBOSide.BID)] = size[is_odd & (side == MBOSide.BID)]
+        odd_sell[is_odd & (side == MBOSide.ASK)] = size[is_odd & (side == MBOSide.ASK)]
         rb = odd_buy.rolling(window=window, min_periods=1).sum()
         rs = odd_sell.rolling(window=window, min_periods=1).sum()
         return safe_divide(rb - rs, rb + rs)

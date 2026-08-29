@@ -52,11 +52,13 @@ def test_return_series_rejects_equity_returns_without_initial_value() -> None:
 
 
 def test_return_series_converts_cumulative_log_with_initial_to_simple_returns() -> None:
-    cumulative = np.array([
-        0.0,
-        np.log1p(0.10),
-        np.log1p(0.10) + np.log1p(-0.05),
-    ])
+    cumulative = np.array(
+        [
+            0.0,
+            np.log1p(0.10),
+            np.log1p(0.10) + np.log1p(-0.05),
+        ]
+    )
     series = ReturnSeries(
         cumulative,
         ReturnKind.CUMULATIVE_LOG,
@@ -68,11 +70,15 @@ def test_return_series_converts_cumulative_log_with_initial_to_simple_returns() 
     np.testing.assert_allclose(simple.values, np.array([0.10, -0.05]))
 
 
-def test_return_series_converts_cumulative_log_without_initial_to_simple_returns() -> None:
-    cumulative = np.array([
-        np.log1p(0.10),
-        np.log1p(0.10) + np.log1p(-0.05),
-    ])
+def test_return_series_converts_cumulative_log_without_initial_to_simple_returns() -> (
+    None
+):
+    cumulative = np.array(
+        [
+            np.log1p(0.10),
+            np.log1p(0.10) + np.log1p(-0.05),
+        ]
+    )
     series = ReturnSeries(
         cumulative,
         ReturnKind.CUMULATIVE_LOG,
@@ -90,11 +96,13 @@ def test_return_series_simple_to_cumulative_log_can_include_initial_zero() -> No
     cumulative = series.to_cumulative_log(include_initial=True)
 
     assert cumulative.includes_initial is True
-    expected = np.array([
-        0.0,
-        np.log1p(0.10),
-        np.log1p(0.10) + np.log1p(-0.05),
-    ])
+    expected = np.array(
+        [
+            0.0,
+            np.log1p(0.10),
+            np.log1p(0.10) + np.log1p(-0.05),
+        ]
+    )
     np.testing.assert_allclose(cumulative.values, expected)
 
 

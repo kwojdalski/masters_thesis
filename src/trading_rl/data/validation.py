@@ -65,7 +65,9 @@ class DataValidator:
         if val_df.empty:
             raise ValueError("Validation data is empty. Check train/validation sizes.")
         if test_df.empty:
-            raise ValueError("Test data is empty. Check train/validation size settings.")
+            raise ValueError(
+                "Test data is empty. Check train/validation size settings."
+            )
 
     def check_close_column(self, train_df: pd.DataFrame) -> None:
         """Raise ValueError if the 'close' column is missing from training data."""
@@ -77,7 +79,9 @@ class DataValidator:
 
     def check_feature_columns(self, train_df: pd.DataFrame) -> None:
         """Raise ValueError if no feature_* columns are present."""
-        feature_cols = [col for col in train_df.columns if str(col).startswith("feature_")]
+        feature_cols = [
+            col for col in train_df.columns if str(col).startswith("feature_")
+        ]
         if not feature_cols:
             raise ValueError(
                 "No feature_* columns found in prepared data. "
@@ -107,7 +111,11 @@ class DataValidator:
         test_df: pd.DataFrame,
     ) -> None:
         """Raise ValueError if any split contains NaN values."""
-        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        for split_name, split_df in [
+            ("train", train_df),
+            ("val", val_df),
+            ("test", test_df),
+        ]:
             if split_df.isnull().any().any():
                 nan_cols = split_df.columns[split_df.isnull().any()].tolist()
                 raise ValueError(
@@ -122,10 +130,16 @@ class DataValidator:
         test_df: pd.DataFrame,
     ) -> None:
         """Raise ValueError if any split contains infinite values."""
-        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        for split_name, split_df in [
+            ("train", train_df),
+            ("val", val_df),
+            ("test", test_df),
+        ]:
             numeric_cols = split_df.select_dtypes(include="number").columns
             if np.isinf(split_df[numeric_cols].values).any():
-                inf_cols = [c for c in numeric_cols if np.isinf(split_df[c].values).any()]
+                inf_cols = [
+                    c for c in numeric_cols if np.isinf(split_df[c].values).any()
+                ]
                 raise ValueError(
                     f"{split_name} data contains infinite values in columns: {inf_cols}. "
                     f"Clean the data before training."
@@ -138,7 +152,11 @@ class DataValidator:
         test_df: pd.DataFrame,
     ) -> None:
         """Raise ValueError if any split contains duplicate index entries."""
-        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        for split_name, split_df in [
+            ("train", train_df),
+            ("val", val_df),
+            ("test", test_df),
+        ]:
             # Duplicate row check — identical index + identical data is a data pipeline bug.
             if split_df.index.duplicated().any():
                 n_dups = split_df.index.duplicated().sum()
@@ -160,11 +178,19 @@ class DataValidator:
         computed-but-not-selected features (e.g. hour_sin on single-day data)
         are ignored so a stale cache doesn't force a full rebuild.
         """
-        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        for split_name, split_df in [
+            ("train", train_df),
+            ("val", val_df),
+            ("test", test_df),
+        ]:
             if selected_columns is not None:
-                feat_cols_in_split = [c for c in selected_columns if c in split_df.columns]
+                feat_cols_in_split = [
+                    c for c in selected_columns if c in split_df.columns
+                ]
             else:
-                feat_cols_in_split = [c for c in split_df.columns if str(c).startswith("feature_")]
+                feat_cols_in_split = [
+                    c for c in split_df.columns if str(c).startswith("feature_")
+                ]
             if feat_cols_in_split:
                 stds = split_df[feat_cols_in_split].std()
                 zero_var = stds[stds == 0].index.tolist()
@@ -271,10 +297,19 @@ class DataValidator:
         data that should have been filtered by filter_unchanged_lob.
         """
         n_levels = levels if levels is not None else self.lob_levels
-        for split_name, split_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        for split_name, split_df in [
+            ("train", train_df),
+            ("val", val_df),
+            ("test", test_df),
+        ]:
             lob_cols = []
             for i in range(n_levels):
-                for prefix in (bid_px_prefix, ask_px_prefix, bid_sz_prefix, ask_sz_prefix):
+                for prefix in (
+                    bid_px_prefix,
+                    ask_px_prefix,
+                    bid_sz_prefix,
+                    ask_sz_prefix,
+                ):
                     col = f"{prefix}{i:02d}"
                     if col in split_df.columns:
                         lob_cols.append(col)
@@ -328,8 +363,12 @@ class DataValidator:
         if self.check_duplicates:
             self.check_duplicate_index(train_df, val_df, test_df)
         if self.check_zero_variance:
-            selected_columns = getattr(getattr(config, "env", None), "feature_columns", None)
-            self.check_zero_variance_features(train_df, val_df, test_df, selected_columns)
+            selected_columns = getattr(
+                getattr(config, "env", None), "feature_columns", None
+            )
+            self.check_zero_variance_features(
+                train_df, val_df, test_df, selected_columns
+            )
         if self.check_lob_deltas:
             self.check_lob_delta(train_df, val_df, test_df)
         if self.check_temporal_order:
@@ -337,9 +376,15 @@ class DataValidator:
         if self.check_overlap:
             self.check_no_index_overlap(train_df, val_df, test_df)
         if self.check_sizes:
-            expected_val_size = getattr(getattr(config, "data", None), "validation_size", None)
-            expected_test_size = getattr(getattr(config, "data", None), "test_size", None)
-            self.check_split_sizes(val_df, test_df, expected_val_size, expected_test_size)
+            expected_val_size = getattr(
+                getattr(config, "data", None), "validation_size", None
+            )
+            expected_test_size = getattr(
+                getattr(config, "data", None), "test_size", None
+            )
+            self.check_split_sizes(
+                val_df, test_df, expected_val_size, expected_test_size
+            )
 
 
 def validate_prepared_data(

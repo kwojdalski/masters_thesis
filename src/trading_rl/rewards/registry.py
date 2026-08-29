@@ -63,8 +63,7 @@ class RewardRegistry:
         factory = _REGISTRY.get(reward_type)
         if factory is None:
             raise ValueError(
-                f"Unknown reward type: {reward_type!r}. "
-                f"Registered: {list(_REGISTRY)}"
+                f"Unknown reward type: {reward_type!r}. Registered: {list(_REGISTRY)}"
             )
         return factory(eta=eta, scale=scale)
 

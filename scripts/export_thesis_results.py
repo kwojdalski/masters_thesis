@@ -17,7 +17,9 @@ def _repo_root() -> Path:
 
 
 def _parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Export thesis result snapshot from MLflow artifacts.")
+    parser = argparse.ArgumentParser(
+        description="Export thesis result snapshot from MLflow artifacts."
+    )
     parser.add_argument(
         "--experiment",
         required=True,

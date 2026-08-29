@@ -36,7 +36,7 @@ def detect_outliers_iqr(series: pd.Series) -> dict:
         "percentage": float(outlier_count / len(series) * 100),
         "lower_bound": float(lower_bound),
         "upper_bound": float(upper_bound),
-        "method": "IQR (1.5 * IQR)"
+        "method": "IQR (1.5 * IQR)",
     }
 
 
@@ -60,7 +60,7 @@ def detect_outliers_zscore(series: pd.Series, threshold: float = 3.0) -> dict:
         "count": int(outlier_count),
         "percentage": float(outlier_count / len(series) * 100),
         "threshold": threshold,
-        "method": f"Z-score (> {threshold})"
+        "method": f"Z-score (> {threshold})",
     }
 
 
@@ -81,16 +81,22 @@ def analyze_column(series: pd.Series, column_name: str) -> dict:
         is_numeric = False
 
     if is_numeric:
-        result.update({
-            "count": len(series),
-            "mean": float(series.mean()) if not series.isna().all() else None,
-            "std": float(series.std()) if not series.isna().all() else None,
-            "min": float(series.min()) if not series.isna().all() else None,
-            "max": float(series.max()) if not series.isna().all() else None,
-            "median": float(series.median()) if not series.isna().all() else None,
-            "q25": float(series.quantile(0.25)) if not series.isna().all() else None,
-            "q75": float(series.quantile(0.75)) if not series.isna().all() else None,
-        })
+        result.update(
+            {
+                "count": len(series),
+                "mean": float(series.mean()) if not series.isna().all() else None,
+                "std": float(series.std()) if not series.isna().all() else None,
+                "min": float(series.min()) if not series.isna().all() else None,
+                "max": float(series.max()) if not series.isna().all() else None,
+                "median": float(series.median()) if not series.isna().all() else None,
+                "q25": float(series.quantile(0.25))
+                if not series.isna().all()
+                else None,
+                "q75": float(series.quantile(0.75))
+                if not series.isna().all()
+                else None,
+            }
+        )
 
         # Outlier detection
         result["outliers_iqr"] = detect_outliers_iqr(series.dropna())
@@ -98,12 +104,18 @@ def analyze_column(series: pd.Series, column_name: str) -> dict:
 
     # Categorical/text analysis
     else:
-        result.update({
-            "count": len(series),
-            "unique_count": series.nunique(),
-            "most_common": series.mode().iloc[0] if not series.isna().all() and len(series.mode()) > 0 else None,
-            "unique_percentage": float(series.nunique() / len(series) * 100) if len(series) > 0 else 0.0
-        })
+        result.update(
+            {
+                "count": len(series),
+                "unique_count": series.nunique(),
+                "most_common": series.mode().iloc[0]
+                if not series.isna().all() and len(series.mode()) > 0
+                else None,
+                "unique_percentage": float(series.nunique() / len(series) * 100)
+                if len(series) > 0
+                else 0.0,
+            }
+        )
 
     return result
 
@@ -118,13 +130,17 @@ def format_analysis_result(result: dict, max_col_width: int = 30) -> str:
     lines.append(f"{'=' * max_col_width}")
     lines.append(f"Type: {result['dtype']}")
     lines.append(f"Total rows: {result['count']:,}")
-    lines.append(f"Non-null: {result['non_null_count']:,} ({100 - result['null_percentage']:.2f}%)")
+    lines.append(
+        f"Non-null: {result['non_null_count']:,} ({100 - result['null_percentage']:.2f}%)"
+    )
 
-    if result['null_count'] > 0:
-        lines.append(f"⚠️  NULL VALUES: {result['null_count']:,} ({result['null_percentage']:.2f}%)")
+    if result["null_count"] > 0:
+        lines.append(
+            f"⚠️  NULL VALUES: {result['null_count']:,} ({result['null_percentage']:.2f}%)"
+        )
 
     # Numeric results
-    if 'mean' in result:
+    if "mean" in result:
         lines.append("\n📈 STATISTICS:")
         lines.append(f"  Mean:   {result['mean']:.4f}")
         lines.append(f"  Median: {result['median']:.4f}")
@@ -135,27 +151,38 @@ def format_analysis_result(result: dict, max_col_width: int = 30) -> str:
         lines.append(f"  Q75:    {result['q75']:.4f}")
 
         # Outlier results
-        outliers_iqr = result.get('outliers_iqr', {})
-        outliers_zscore = result.get('outliers_zscore', {})
+        outliers_iqr = result.get("outliers_iqr", {})
+        outliers_zscore = result.get("outliers_zscore", {})
 
         if outliers_iqr and outliers_zscore:
             lines.append("\n🚨 OUTLIERS:")
-            lines.append(f"  IQR Method: {outliers_iqr.get('count', 0):,} ({outliers_iqr.get('percentage', 0):.2f}%)")
-            if 'lower_bound' in outliers_iqr and 'upper_bound' in outliers_iqr:
-                lines.append(f"    Bounds: [{outliers_iqr['lower_bound']:.4f}, {outliers_iqr['upper_bound']:.4f}]")
-            lines.append(f"  Z-Score Method: {outliers_zscore.get('count', 0):,} ({outliers_zscore.get('percentage', 0):.2f}%)")
-            if 'threshold' in outliers_zscore:
+            lines.append(
+                f"  IQR Method: {outliers_iqr.get('count', 0):,} ({outliers_iqr.get('percentage', 0):.2f}%)"
+            )
+            if "lower_bound" in outliers_iqr and "upper_bound" in outliers_iqr:
+                lines.append(
+                    f"    Bounds: [{outliers_iqr['lower_bound']:.4f}, {outliers_iqr['upper_bound']:.4f}]"
+                )
+            lines.append(
+                f"  Z-Score Method: {outliers_zscore.get('count', 0):,} ({outliers_zscore.get('percentage', 0):.2f}%)"
+            )
+            if "threshold" in outliers_zscore:
                 lines.append(f"    Threshold: > {outliers_zscore['threshold']}")
 
             # Warning for high outlier percentages
-            if outliers_iqr.get('percentage', 0) > 10.0 or outliers_zscore.get('percentage', 0) > 10.0:
+            if (
+                outliers_iqr.get("percentage", 0) > 10.0
+                or outliers_zscore.get("percentage", 0) > 10.0
+            ):
                 lines.append("⚠️  WARNING: High outlier percentage detected!")
 
     # Categorical results
     else:
         lines.append("\n📊 CATEGORICAL:")
-        lines.append(f"  Unique values: {result['unique_count']:,} ({result['unique_percentage']:.2f}%)")
-        if result['most_common'] is not None:
+        lines.append(
+            f"  Unique values: {result['unique_count']:,} ({result['unique_percentage']:.2f}%)"
+        )
+        if result["most_common"] is not None:
             lines.append(f"  Most common: {result['most_common']}")
 
     lines.append("")
@@ -170,7 +197,7 @@ def generate_summary_report(results: list[dict]) -> str:
     lines.append(f"{'=' * 60}")
 
     total_columns = len(results)
-    numeric_columns = sum(1 for r in results if 'mean' in r)
+    numeric_columns = sum(1 for r in results if "mean" in r)
     categorical_columns = total_columns - numeric_columns
 
     lines.append(f"Total columns analyzed: {total_columns}")
@@ -178,22 +205,25 @@ def generate_summary_report(results: list[dict]) -> str:
     lines.append(f"  Categorical: {categorical_columns}")
 
     # Columns with high null percentages
-    high_null_cols = [r['column'] for r in results if r['null_percentage'] > 5.0]
+    high_null_cols = [r["column"] for r in results if r["null_percentage"] > 5.0]
     if high_null_cols:
         lines.append("\n⚠️  COLUMNS WITH HIGH NULL VALUES (>5%):")
         for col in high_null_cols:
-            null_pct = next(r['null_percentage'] for r in results if r['column'] == col)
+            null_pct = next(r["null_percentage"] for r in results if r["column"] == col)
             lines.append(f"  - {col}: {null_pct:.2f}%")
 
     # Columns with high outlier percentages
     high_outlier_cols = [
-        r['column'] for r in results
-        if 'outliers_iqr' in r and r['outliers_iqr']['percentage'] > 10.0
+        r["column"]
+        for r in results
+        if "outliers_iqr" in r and r["outliers_iqr"]["percentage"] > 10.0
     ]
     if high_outlier_cols:
         lines.append("\n🚨 COLUMNS WITH HIGH OUTLIER PERCENTAGES (>10%):")
         for col in high_outlier_cols:
-            outlier_pct = next(r['outliers_iqr']['percentage'] for r in results if r['column'] == col)
+            outlier_pct = next(
+                r["outliers_iqr"]["percentage"] for r in results if r["column"] == col
+            )
             lines.append(f"  - {col}: {outlier_pct:.2f}%")
 
     # Potential issues
@@ -201,20 +231,27 @@ def generate_summary_report(results: list[dict]) -> str:
 
     # Check for constant columns
     constant_cols = [
-        r['column'] for r in results
-        if 'std' in r and r['std'] is not None and r['std'] < 1e-10
+        r["column"]
+        for r in results
+        if "std" in r and r["std"] is not None and r["std"] < 1e-10
     ]
     if constant_cols:
-        potential_issues.append(f"Constant columns (zero variance): {len(constant_cols)}")
+        potential_issues.append(
+            f"Constant columns (zero variance): {len(constant_cols)}"
+        )
 
     # Check for columns with extreme ranges
     extreme_range_cols = [
-        r['column'] for r in results
-        if 'mean' in r and r['std'] is not None and
-        abs(r['max'] - r['min']) > 1e6  # Very large range
+        r["column"]
+        for r in results
+        if "mean" in r
+        and r["std"] is not None
+        and abs(r["max"] - r["min"]) > 1e6  # Very large range
     ]
     if extreme_range_cols:
-        potential_issues.append(f"Columns with extreme ranges: {len(extreme_range_cols)}")
+        potential_issues.append(
+            f"Columns with extreme ranges: {len(extreme_range_cols)}"
+        )
 
     if potential_issues:
         lines.append("\n🔍 POTENTIAL ISSUES:")
@@ -234,7 +271,7 @@ def validate_split(df: pd.DataFrame, split_name: str, max_columns: int = 20) -> 
     print(f"{'#' * 60}")
     print(f"Shape: {df.shape}")
     print(f"Index: {type(df.index).__name__}")
-    if hasattr(df.index, 'min'):
+    if hasattr(df.index, "min"):
         print(f"Time range: {df.index.min()} to {df.index.max()}")
 
     # Analyze first N columns

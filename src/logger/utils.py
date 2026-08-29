@@ -38,8 +38,12 @@ def log_dataframe_info(
     if not is_level_enabled(level.upper()):
         return
 
-    logger.log(level.upper(), "dataframe shape name={} n_rows={} n_cols={}", name, *df.shape)
-    logger.log(level.upper(), "dataframe columns name={} columns={}", name, df.columns.tolist())
+    logger.log(
+        level.upper(), "dataframe shape name={} n_rows={} n_cols={}", name, *df.shape
+    )
+    logger.log(
+        level.upper(), "dataframe columns name={} columns={}", name, df.columns.tolist()
+    )
 
     if hasattr(df, "dtypes"):
         logger.trace("dataframe dtypes name={} dtypes={}", name, df.dtypes.to_dict())
@@ -47,14 +51,20 @@ def log_dataframe_info(
     if hasattr(df, "memory_usage"):
         try:
             total_memory = df.memory_usage(deep=True).sum()
-            logger.trace("dataframe memory name={} mb={:.2f}", name, total_memory / 1024 / 1024)
+            logger.trace(
+                "dataframe memory name={} mb={:.2f}", name, total_memory / 1024 / 1024
+            )
         except Exception as e:
             logger.trace("dataframe memory error name={} err={}", name, e)
 
     if hasattr(df, "isnull"):
         null_counts = df.isnull().sum()
         if null_counts.any():
-            logger.trace("dataframe nulls name={} nulls={}", name, null_counts[null_counts > 0].to_dict())
+            logger.trace(
+                "dataframe nulls name={} nulls={}",
+                name,
+                null_counts[null_counts > 0].to_dict(),
+            )
 
     if is_level_enabled("TRACE") and hasattr(df, "head"):
         logger.trace("dataframe sample name={}\n{}", name, df.head())
@@ -188,13 +198,17 @@ def logged_function(
                 duration = time.time() - start_time
 
                 if log_performance:
-                    log_performance_metrics(func_logger, f"Function {func.__name__}", duration)
+                    log_performance_metrics(
+                        func_logger, f"Function {func.__name__}", duration
+                    )
 
                 if log_result:
                     result_str = str(result)
                     if len(result_str) > 100:
                         result_str = result_str[:100] + "..."
-                    func_logger.debug("Function {} returned: {}", func.__name__, result_str)
+                    func_logger.debug(
+                        "Function {} returned: {}", func.__name__, result_str
+                    )
 
                 return result
 
@@ -247,18 +261,24 @@ def print_df_head(
     index_labels = [str(i) for i in head_df.index]
 
     if transpose:
+
         def _build_transposed_table(col_chunk: list[str], page_info: str) -> Table:
             t = Table(title=f"{title}{page_info}")
             t.add_column("Column", style="cyan")
             for lbl in index_labels:
                 t.add_column(lbl, justify="right")
             for col in col_chunk:
-                t.add_row(str(col), *[_fmt_cell(head_df.at[idx, col]) for idx in head_df.index])
+                t.add_row(
+                    str(col),
+                    *[_fmt_cell(head_df.at[idx, col]) for idx in head_df.index],
+                )
             return t
 
         if paginate:
             n_pages = max(1, -(-len(all_columns) // columns_per_page))
-            for page, start in enumerate(range(0, len(all_columns), columns_per_page), 1):
+            for page, start in enumerate(
+                range(0, len(all_columns), columns_per_page), 1
+            ):
                 chunk = all_columns[start : start + columns_per_page]
                 info = f" — rows {start + 1}–{start + len(chunk)} of {len(all_columns)} (page {page}/{n_pages})"
                 console.print(_build_transposed_table(chunk, info))
@@ -273,6 +293,7 @@ def print_df_head(
                 )
 
     else:
+
         def _build_table(col_chunk: list[str], page_info: str) -> Table:
             t = Table(title=f"{title}{page_info}")
             t.add_column("index", style="cyan")
@@ -284,7 +305,9 @@ def print_df_head(
 
         if paginate:
             n_pages = max(1, -(-len(all_columns) // columns_per_page))
-            for page, start in enumerate(range(0, len(all_columns), columns_per_page), 1):
+            for page, start in enumerate(
+                range(0, len(all_columns), columns_per_page), 1
+            ):
                 chunk = all_columns[start : start + columns_per_page]
                 info = f" — columns {start + 1}–{start + len(chunk)} of {len(all_columns)} (page {page}/{n_pages})"
                 console.print(_build_table(chunk, info))

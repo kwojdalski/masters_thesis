@@ -301,9 +301,9 @@ class TestLearningHealth:
             "No actor loss was logged after an optimization step. "
             "Check that _optimization_step correctly populates trainer.logs."
         )
-        assert trainer.logs.get(
-            "loss_value"
-        ), "No critic loss was logged after an optimization step."
+        assert trainer.logs.get("loss_value"), (
+            "No critic loss was logged after an optimization step."
+        )
 
         for loss_name in ("loss_actor", "loss_value"):
             for v in trainer.logs[loss_name]:

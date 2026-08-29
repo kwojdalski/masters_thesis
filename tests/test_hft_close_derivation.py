@@ -47,7 +47,9 @@ def test_hft_derives_close_from_top_of_book_with_price_fallback():
     )
 
     expected_close = pd.Series([100.0, 100.2, 103.1], index=train_df.index)
-    pd.testing.assert_series_equal(train_out["close"], expected_close, check_names=False)
+    pd.testing.assert_series_equal(
+        train_out["close"], expected_close, check_names=False
+    )
     pd.testing.assert_series_equal(val_out["close"], expected_close, check_names=False)
     pd.testing.assert_series_equal(test_out["close"], expected_close, check_names=False)
 
@@ -69,7 +71,9 @@ def test_non_hft_mode_leaves_data_untouched():
     logger = logging.getLogger("test_hft")
 
     df = _lob_df()
-    train_out, val_out, test_out = _ensure_close_column_for_hft(df, df, df, config, logger)
+    train_out, val_out, test_out = _ensure_close_column_for_hft(
+        df, df, df, config, logger
+    )
 
     assert "close" not in train_out.columns
     assert "close" not in val_out.columns
@@ -100,7 +104,9 @@ def test_hft_tradingenv_makes_duplicate_timestamps_unique():
         assert out.index.is_monotonic_increasing
         assert out.index.is_unique
         assert len(out) == len(df)
-        assert out.index.to_series().diff().dropna().min() >= pd.Timedelta(microseconds=1)
+        assert out.index.to_series().diff().dropna().min() >= pd.Timedelta(
+            microseconds=1
+        )
 
 
 def test_non_tradingenv_mode_does_not_touch_duplicate_index():
@@ -143,7 +149,9 @@ def test_hft_tradingenv_enforces_min_1us_gap_even_when_index_is_unique():
     )
     df = pd.DataFrame({"price": [1.0, 2.0, 3.0]}, index=idx)
 
-    train_out, _, _ = _ensure_unique_index_for_hft_tradingenv(df, df, df, config, logger)
+    train_out, _, _ = _ensure_unique_index_for_hft_tradingenv(
+        df, df, df, config, logger
+    )
 
     min_gap = train_out.index.to_series().diff().dropna().min()
     assert min_gap >= pd.Timedelta(microseconds=1)

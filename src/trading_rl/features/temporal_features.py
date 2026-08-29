@@ -39,9 +39,7 @@ class HourSinFeature(Feature):
 
         # Apply sine transformation
         return pd.Series(
-            np.sin(2 * np.pi * hour_fraction),
-            index=df.index,
-            name="hour_sin"
+            np.sin(2 * np.pi * hour_fraction), index=df.index, name="hour_sin"
         )
 
 
@@ -75,9 +73,7 @@ class HourCosFeature(Feature):
 
         # Apply cosine transformation
         return pd.Series(
-            np.cos(2 * np.pi * hour_fraction),
-            index=df.index,
-            name="hour_cos"
+            np.cos(2 * np.pi * hour_fraction), index=df.index, name="hour_cos"
         )
 
 
@@ -113,9 +109,7 @@ class DayOfWeekSinFeature(Feature):
 
         # Apply sine transformation
         return pd.Series(
-            np.sin(2 * np.pi * day_fraction),
-            index=df.index,
-            name="day_of_week_sin"
+            np.sin(2 * np.pi * day_fraction), index=df.index, name="day_of_week_sin"
         )
 
 
@@ -149,9 +143,7 @@ class DayOfWeekCosFeature(Feature):
 
         # Apply cosine transformation
         return pd.Series(
-            np.cos(2 * np.pi * day_fraction),
-            index=df.index,
-            name="day_of_week_cos"
+            np.cos(2 * np.pi * day_fraction), index=df.index, name="day_of_week_cos"
         )
 
 
@@ -187,7 +179,7 @@ class MinuteOfHourSinFeature(Feature):
         return pd.Series(
             np.sin(2 * np.pi * minute_fraction),
             index=df.index,
-            name="minute_of_hour_sin"
+            name="minute_of_hour_sin",
         )
 
 
@@ -223,5 +215,5 @@ class MinuteOfHourCosFeature(Feature):
         return pd.Series(
             np.cos(2 * np.pi * minute_fraction),
             index=df.index,
-            name="minute_of_hour_cos"
+            name="minute_of_hour_cos",
         )

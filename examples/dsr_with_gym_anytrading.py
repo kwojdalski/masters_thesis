@@ -40,7 +40,12 @@ def create_dsr_forex_env(df: pd.DataFrame, eta: float = 0.01) -> TransformedEnv:
     )
 
     # 3. Create base gym_anytrading environment
-    base_env = gym.make("forex-v0", df=df_capitalized, window_size=10, frame_bound=(10, len(df_capitalized)))
+    base_env = gym.make(
+        "forex-v0",
+        df=df_capitalized,
+        window_size=10,
+        frame_bound=(10, len(df_capitalized)),
+    )
 
     # 4. Wrap with StatefulRewardWrapper (automatically resets DSR on env.reset())
     base_env = StatefulRewardWrapper(base_env, reward_fn=dsr_reward)
@@ -75,7 +80,12 @@ def create_dsr_stocks_env(df: pd.DataFrame, eta: float = 0.01) -> TransformedEnv
         }
     )
 
-    base_env = gym.make("stocks-v0", df=df_capitalized, window_size=10, frame_bound=(10, len(df_capitalized)))
+    base_env = gym.make(
+        "stocks-v0",
+        df=df_capitalized,
+        window_size=10,
+        frame_bound=(10, len(df_capitalized)),
+    )
     base_env = StatefulRewardWrapper(base_env, reward_fn=dsr_reward)
 
     env = GymWrapper(base_env)
@@ -114,7 +124,7 @@ if __name__ == "__main__":
         action = env.action_spec.sample()  # Random action
         obs = env.step(action)
         reward = obs["next", "reward"].item()
-        print(f"Step {i+1}: DSR reward = {reward:.6f}")
+        print(f"Step {i + 1}: DSR reward = {reward:.6f}")
 
     # Reset should automatically reset DSR state
     print("\nResetting environment (DSR state should reset automatically)...")
@@ -126,7 +136,7 @@ if __name__ == "__main__":
         action = env.action_spec.sample()
         obs = env.step(action)
         reward = obs["next", "reward"].item()
-        print(f"Step {i+1}: DSR reward = {reward:.6f}")
+        print(f"Step {i + 1}: DSR reward = {reward:.6f}")
 
     print("\nDSR successfully integrated with gym_anytrading!")
     print("The StatefulRewardWrapper automatically resets DSR state on env.reset()")

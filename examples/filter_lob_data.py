@@ -80,7 +80,7 @@ def main():
 
     logger.info(f"\nOriginal data: {len(df):,} rows")
     logger.info(f"After filtering: {len(df_changed):,} rows")
-    logger.info(f"Reduction: {100 * (1 - len(df_changed)/len(df)):.1f}%")
+    logger.info(f"Reduction: {100 * (1 - len(df_changed) / len(df)):.1f}%")
 
     # ==========================================================================
     # Example 3: Validate LOB data
@@ -115,7 +115,7 @@ def main():
 
     logger.info(f"\nOriginal data: {len(df):,} rows")
     logger.info(f"After combined filtering: {len(df_active):,} rows")
-    logger.info(f"Data retention: {100 * len(df_active)/len(df):.1f}%")
+    logger.info(f"Data retention: {100 * len(df_active) / len(df):.1f}%")
 
     # ==========================================================================
     # Example 5: Save filtered data
@@ -142,13 +142,13 @@ def main():
 
     logger.info(f"\nOriginal dataset: {len(df):,} rows")
     logger.info(
-        f"Unchanged filter: {len(df_changed):,} rows ({100*len(df_changed)/len(df):.1f}%)"
+        f"Unchanged filter: {len(df_changed):,} rows ({100 * len(df_changed) / len(df):.1f}%)"
     )
     logger.info(
-        f"Validation filter: {len(df_valid):,} rows ({100*len(df_valid)/len(df):.1f}%)"
+        f"Validation filter: {len(df_valid):,} rows ({100 * len(df_valid) / len(df):.1f}%)"
     )
     logger.info(
-        f"Combined filter: {len(df_active):,} rows ({100*len(df_active)/len(df):.1f}%)"
+        f"Combined filter: {len(df_active):,} rows ({100 * len(df_active) / len(df):.1f}%)"
     )
 
     logger.info("\nRecommendation: Use 'filter_active_lob()' for most use cases")

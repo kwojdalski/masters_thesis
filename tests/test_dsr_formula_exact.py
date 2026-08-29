@@ -48,7 +48,7 @@ class TestEMAStateAfterFirstReturn:
         R1 = np.log(110.0 / 100.0)
         _, dsr = _run_dsr([100.0, 110.0], eta=eta)
         assert dsr.A_t == pytest.approx(eta * R1, rel=1e-10)
-        assert dsr.B_t == pytest.approx(eta * R1 ** 2, rel=1e-10)
+        assert dsr.B_t == pytest.approx(eta * R1**2, rel=1e-10)
 
 
 class TestDSRExactValue:
@@ -60,10 +60,10 @@ class TestDSRExactValue:
 
         # After step 2: A_old = eta*R, B_old = eta*R^2
         A_old = eta * R
-        B_old = eta * R ** 2
+        B_old = eta * R**2
         delta_A = R - A_old
-        delta_B = R ** 2 - B_old
-        variance = B_old - A_old ** 2
+        delta_B = R**2 - B_old
+        variance = B_old - A_old**2
         denominator = max(variance, 0.0) ** 1.5 + epsilon
         expected = (B_old * delta_A - A_old * delta_B / 2) / denominator
 
@@ -78,10 +78,10 @@ class TestDSRExactValue:
         R2 = np.log(1045.0 / 1100.0)
 
         A_old = eta * R1
-        B_old = eta * R1 ** 2
+        B_old = eta * R1**2
         delta_A = R2 - A_old
-        delta_B = R2 ** 2 - B_old
-        variance = B_old - A_old ** 2
+        delta_B = R2**2 - B_old
+        variance = B_old - A_old**2
         denominator = max(variance, 0.0) ** 1.5 + epsilon
         expected = (B_old * delta_A - A_old * delta_B / 2) / denominator
 
@@ -98,21 +98,21 @@ class TestOldEMAsUsed:
         R2 = np.log(105.0 / 110.0)  # negative return
 
         A_old = eta * R1
-        B_old = eta * R1 ** 2
+        B_old = eta * R1**2
 
         # Correct formula: OLD EMAs in numerator
         delta_A = R2 - A_old
-        delta_B = R2 ** 2 - B_old
-        variance = B_old - A_old ** 2
+        delta_B = R2**2 - B_old
+        variance = B_old - A_old**2
         denom = max(variance, 0.0) ** 1.5 + epsilon
         correct = (B_old * delta_A - A_old * delta_B / 2) / denom
 
         # Wrong formula: updated EMAs in numerator
         A_new = (1 - eta) * A_old + eta * R2
-        B_new = (1 - eta) * B_old + eta * R2 ** 2
+        B_new = (1 - eta) * B_old + eta * R2**2
         delta_A_w = R2 - A_new
-        delta_B_w = R2 ** 2 - B_new
-        variance_w = B_new - A_new ** 2
+        delta_B_w = R2**2 - B_new
+        variance_w = B_new - A_new**2
         denom_w = max(variance_w, 0.0) ** 1.5 + epsilon
         wrong = (B_new * delta_A_w - A_new * delta_B_w / 2) / denom_w
 

@@ -39,7 +39,9 @@ def _log_overview_impl(
         param_prefix = artifact_dir.replace("/", "_")
         mlflow.log_param(f"{param_prefix}_shape", f"{df.shape[0]}x{df.shape[1]}")
         mlflow.log_param(f"{param_prefix}_columns", list(df.columns))
-        mlflow.log_param(f"{param_prefix}_date_range", f"{df.index.min()} to {df.index.max()}")
+        mlflow.log_param(
+            f"{param_prefix}_date_range", f"{df.index.min()} to {df.index.max()}"
+        )
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             df.head(50).to_csv(f.name)
@@ -81,15 +83,27 @@ def _log_overview_impl(
                 if obs_clip is not None:
                     p = (
                         p
-                        + geom_hline(yintercept=obs_clip, linetype="dashed", color="red", size=0.6)
-                        + geom_hline(yintercept=-obs_clip, linetype="dashed", color="red", size=0.6)
+                        + geom_hline(
+                            yintercept=obs_clip,
+                            linetype="dashed",
+                            color="red",
+                            size=0.6,
+                        )
+                        + geom_hline(
+                            yintercept=-obs_clip,
+                            linetype="dashed",
+                            color="red",
+                            size=0.6,
+                        )
                     )
                 temp_path = os.path.join(tempfile.gettempdir(), f"{column}.png")
                 p.save(temp_path, width=16, height=10, dpi=225)
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as plot_error:  # pragma: no cover
-                logger.warning("create plot failed column={} err={}", column, plot_error)
+                logger.warning(
+                    "create plot failed column={} err={}", column, plot_error
+                )
 
         ohlc_cols = ["open", "high", "low", "close"]
         if all(col in plot_df.columns for col in ohlc_cols):
@@ -102,7 +116,9 @@ def _log_overview_impl(
                     value_name="price",
                 )
                 p_combined = (
-                    ggplot(ohlc_melted, aes(x="time_index", y="price", color="price_type"))
+                    ggplot(
+                        ohlc_melted, aes(x="time_index", y="price", color="price_type")
+                    )
                     + geom_step(size=0.8)
                     + labs(
                         title="OHLC Prices Over Time",
@@ -117,7 +133,9 @@ def _log_overview_impl(
                 mlflow.log_artifact(temp_path, f"{artifact_dir}/{plots_subdir}")
                 os.unlink(temp_path)
             except Exception as combined_error:  # pragma: no cover
-                logger.warning("create combined ohlc plot failed err={}", combined_error)
+                logger.warning(
+                    "create combined ohlc plot failed err={}", combined_error
+                )
 
     except Exception as e:  # pragma: no cover
         logger.warning("log {} failed err={}", artifact_dir, e)
@@ -153,7 +171,9 @@ def log_transformed_data_overview(df: pd.DataFrame, config: Any) -> None:
 
     # Only the features actually selected for the observation space
     selected_cols = getattr(getattr(config, "env", None), "feature_columns", None) or []
-    selected_feat_cols = [c for c in selected_cols if c in df.columns and c != "feature_position"]
+    selected_feat_cols = [
+        c for c in selected_cols if c in df.columns and c != "feature_position"
+    ]
     logger.debug(
         "log_transformed_data_overview: selected_cols={} in_df={}",
         len(selected_cols),
@@ -199,7 +219,9 @@ def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
 
     feat_cols = [c for c in df.columns if str(c).startswith("feature_")]
     if not feat_cols:
-        logger.warning("log_feature_descriptive_stats: no feature_ columns found, skipping")
+        logger.warning(
+            "log_feature_descriptive_stats: no feature_ columns found, skipping"
+        )
         return
 
     feat_df = df[feat_cols]
@@ -222,8 +244,24 @@ def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
         }
 
         if non_null == 0:
-            for stat in ("mean", "std", "min", "p01", "p05", "p25", "p50", "p75", "p95", "p99", "max",
-                         "skewness", "kurtosis", "range", "iqr", "cv"):
+            for stat in (
+                "mean",
+                "std",
+                "min",
+                "p01",
+                "p05",
+                "p25",
+                "p50",
+                "p75",
+                "p95",
+                "p99",
+                "max",
+                "skewness",
+                "kurtosis",
+                "range",
+                "iqr",
+                "cv",
+            ):
                 row[stat] = None
         else:
             q = s.quantile(percentiles).to_dict()
@@ -234,24 +272,28 @@ def log_feature_descriptive_stats(df: pd.DataFrame, config: Any) -> None:
             p25 = float(q[0.25])
             p75 = float(q[0.75])
 
-            row.update({
-                "mean": round(mean_val, 8),
-                "std": round(std_val, 8),
-                "min": round(min_val, 8),
-                "p01": round(float(q[0.01]), 8),
-                "p05": round(float(q[0.05]), 8),
-                "p25": round(p25, 8),
-                "p50": round(float(q[0.50]), 8),
-                "p75": round(p75, 8),
-                "p95": round(float(q[0.95]), 8),
-                "p99": round(float(q[0.99]), 8),
-                "max": round(max_val, 8),
-                "skewness": round(float(s.skew()), 6) if non_null > 2 else None,
-                "kurtosis": round(float(s.kurt()), 6) if non_null > 3 else None,
-                "range": round(max_val - min_val, 8),
-                "iqr": round(p75 - p25, 8),
-                "cv": round(std_val / abs(mean_val), 6) if abs(mean_val) > 1e-12 else None,
-            })
+            row.update(
+                {
+                    "mean": round(mean_val, 8),
+                    "std": round(std_val, 8),
+                    "min": round(min_val, 8),
+                    "p01": round(float(q[0.01]), 8),
+                    "p05": round(float(q[0.05]), 8),
+                    "p25": round(p25, 8),
+                    "p50": round(float(q[0.50]), 8),
+                    "p75": round(p75, 8),
+                    "p95": round(float(q[0.95]), 8),
+                    "p99": round(float(q[0.99]), 8),
+                    "max": round(max_val, 8),
+                    "skewness": round(float(s.skew()), 6) if non_null > 2 else None,
+                    "kurtosis": round(float(s.kurt()), 6) if non_null > 3 else None,
+                    "range": round(max_val - min_val, 8),
+                    "iqr": round(p75 - p25, 8),
+                    "cv": round(std_val / abs(mean_val), 6)
+                    if abs(mean_val) > 1e-12
+                    else None,
+                }
+            )
 
         rows.append(row)
 
@@ -300,7 +342,9 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
         return
 
     price_col = getattr(getattr(config, "env", None), "price_column", "close")
-    target_features = [f for f in ("feature_bid_px_00", "feature_ask_px_00") if f in df.columns]
+    target_features = [
+        f for f in ("feature_bid_px_00", "feature_ask_px_00") if f in df.columns
+    ]
 
     if not target_features or price_col not in df.columns:
         return
@@ -331,7 +375,9 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
 
         for feat in target_features:
             try:
-                plot_data = scatter_df[[feat, "log_return"]].rename(columns={feat: "feature_value"})
+                plot_data = scatter_df[[feat, "log_return"]].rename(
+                    columns={feat: "feature_value"}
+                )
                 p = (
                     ggplot(plot_data, aes(x="feature_value", y="log_return"))
                     + geom_point(alpha=0.2, size=0.8, color="steelblue")
@@ -343,12 +389,16 @@ def _log_feature_vs_return_scatter(df: pd.DataFrame, config: Any) -> None:
                     )
                     + thesis_theme()
                 )
-                temp_path = os.path.join(tempfile.gettempdir(), f"{feat}_vs_log_return.png")
+                temp_path = os.path.join(
+                    tempfile.gettempdir(), f"{feat}_vs_log_return.png"
+                )
                 p.save(temp_path, width=12, height=8, dpi=225)
                 mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
                 os.unlink(temp_path)
             except Exception as e:  # pragma: no cover
-                logger.warning("feature vs return scatter failed feat={} err={}", feat, e)
+                logger.warning(
+                    "feature vs return scatter failed feat={} err={}", feat, e
+                )
 
     except Exception as e:  # pragma: no cover
         logger.warning("_log_feature_vs_return_scatter failed err={}", e)
@@ -376,7 +426,9 @@ def _log_oracle_vs_reward_alignment(
 
     price_col = getattr(getattr(config, "env", None), "price_column", "close")
     if price_col not in df.columns:
-        logger.debug("oracle alignment plot skipped: price column {} not in df", price_col)
+        logger.debug(
+            "oracle alignment plot skipped: price column {} not in df", price_col
+        )
         return
 
     try:
@@ -398,23 +450,32 @@ def _log_oracle_vs_reward_alignment(
         log_return_next = np.roll(log_ret, -1)
 
         def _make_plot_df(oracle_values: np.ndarray) -> pd.DataFrame:
-            d = pd.DataFrame({"oracle": oracle_values, "log_return_next": log_return_next})
+            d = pd.DataFrame(
+                {"oracle": oracle_values, "log_return_next": log_return_next}
+            )
             d.iloc[-1, d.columns.get_loc("log_return_next")] = np.nan
             d = d.dropna()
             if len(d) > n_points:
                 d = d.sample(n_points, random_state=42)
             return d
 
-        def _scatter(plot_df: pd.DataFrame, x_label: str, filename: str, metric_key: str) -> None:
+        def _scatter(
+            plot_df: pd.DataFrame, x_label: str, filename: str, metric_key: str
+        ) -> None:
             corr = float(plot_df["oracle"].corr(plot_df["log_return_next"]))
             mlflow.log_metric(metric_key, corr)
             p = (
                 ggplot(plot_df, aes(x="oracle", y="log_return_next"))
                 + geom_point(alpha=0.15, size=0.6, color="steelblue")
                 + geom_smooth(method="lm", color="red", size=1.0)
-                + annotate("text", x=plot_df["oracle"].quantile(0.05),
-                           y=plot_df["log_return_next"].max() * 0.9,
-                           label=f"r = {corr:.4f}", size=11, color="darkred")
+                + annotate(
+                    "text",
+                    x=plot_df["oracle"].quantile(0.05),
+                    y=plot_df["log_return_next"].max() * 0.9,
+                    label=f"r = {corr:.4f}",
+                    size=11,
+                    color="darkred",
+                )
                 + labs(
                     title="Oracle Feature vs Next-Step Log Return (alignment check)",
                     x=x_label,
@@ -426,24 +487,37 @@ def _log_oracle_vs_reward_alignment(
             p.save(temp_path, width=12, height=8, dpi=225)
             mlflow.log_artifact(temp_path, "transformed_data_overview/plots")
             os.unlink(temp_path)
-            logger.info("log oracle alignment plot filename={} corr={:.4f} n={}", filename, corr, len(plot_df))
+            logger.info(
+                "log oracle alignment plot filename={} corr={:.4f} n={}",
+                filename,
+                corr,
+                len(plot_df),
+            )
 
         # Normalised feature column
         plot_df_norm = _make_plot_df(df[oracle_col].to_numpy(dtype=float))
-        _scatter(plot_df_norm, "feature_future_close_vel (normalised)",
-                 "oracle_vs_reward_alignment_normalised.png",
-                 "oracle_reward_alignment_corr")
+        _scatter(
+            plot_df_norm,
+            "feature_future_close_vel (normalised)",
+            "oracle_vs_reward_alignment_normalised.png",
+            "oracle_reward_alignment_corr",
+        )
 
         # Raw (unnormalised) mid-price velocity, computed directly from bid/ask
         if {"bid_px_00", "ask_px_00"}.issubset(df.columns):
             mid = (df["bid_px_00"] + df["ask_px_00"]) / 2.0
             raw_oracle = mid.diff().shift(-1).fillna(0.0).to_numpy(dtype=float)
             plot_df_raw = _make_plot_df(raw_oracle)
-            _scatter(plot_df_raw, "mid-price velocity raw (bid+ask)/2 diff [t+1]",
-                     "oracle_vs_reward_alignment_raw.png",
-                     "oracle_reward_alignment_corr_raw")
+            _scatter(
+                plot_df_raw,
+                "mid-price velocity raw (bid+ask)/2 diff [t+1]",
+                "oracle_vs_reward_alignment_raw.png",
+                "oracle_reward_alignment_corr_raw",
+            )
         else:
-            logger.debug("oracle alignment raw plot skipped: bid_px_00/ask_px_00 not in df")
+            logger.debug(
+                "oracle alignment raw plot skipped: bid_px_00/ask_px_00 not in df"
+            )
 
     except Exception as e:  # pragma: no cover
         logger.warning("oracle alignment plot failed err={}", e)

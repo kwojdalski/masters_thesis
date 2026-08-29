@@ -48,23 +48,32 @@ def run_guardrail_check(config: ExperimentConfig, progress_bar: Any = None) -> N
 
     skip_prompts = getattr(config.training, "skip_guardrail_prompts", False)
     scenario_name = getattr(config, "experiment_name", None) or ""
-    scenario_tag = f"  [dim]{escape(f'[{scenario_name}]')}[/dim]" if scenario_name else ""
+    scenario_tag = (
+        f"  [dim]{escape(f'[{scenario_name}]')}[/dim]" if scenario_name else ""
+    )
 
     fatals = [f for f in findings if f.severity == Severity.FATAL]
-    warns  = [f for f in findings if f.severity == Severity.WARN]
+    warns = [f for f in findings if f.severity == Severity.WARN]
 
     # Always surface every finding in the log regardless of skip_prompts.
     for f in findings:
         logger.warning(
             "guardrail {} [{}] {} | suggestion: {}",
-            f.severity.value, f.parameter, f.message, f.suggestion,
+            f.severity.value,
+            f.parameter,
+            f.message,
+            f.suggestion,
         )
 
     if fatals:
-        _err_console.print(f"\n[bold red]CONFIG GUARDRAIL — FATAL ERRORS[/bold red]{scenario_tag}")
+        _err_console.print(
+            f"\n[bold red]CONFIG GUARDRAIL — FATAL ERRORS[/bold red]{scenario_tag}"
+        )
         _err_console.print("=" * 50)
         for i, f in enumerate(fatals, 1):
-            _err_console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{escape(f.parameter)}[/yellow]")
+            _err_console.print(
+                f"\n[bold cyan][{i}][/bold cyan] [yellow]{escape(f.parameter)}[/yellow]"
+            )
             _err_console.print(f"    Problem:    {escape(f.message)}")
             _err_console.print(f"    Fix:        [cyan]{escape(f.suggestion)}[/cyan]")
         _err_console.print("\nTraining cannot start with these settings.")
@@ -74,10 +83,14 @@ def run_guardrail_check(config: ExperimentConfig, progress_bar: Any = None) -> N
         )
 
     if warns:
-        _console.print(f"\n[bold yellow]CONFIG GUARDRAIL — WARNINGS[/bold yellow]{scenario_tag}")
+        _console.print(
+            f"\n[bold yellow]CONFIG GUARDRAIL — WARNINGS[/bold yellow]{scenario_tag}"
+        )
         _console.print("=" * 50)
         for i, f in enumerate(warns, 1):
-            _console.print(f"\n[bold cyan][{i}][/bold cyan] [yellow]{escape(f.parameter)}[/yellow]")
+            _console.print(
+                f"\n[bold cyan][{i}][/bold cyan] [yellow]{escape(f.parameter)}[/yellow]"
+            )
             _console.print(f"    Problem:    {escape(f.message)}")
             _console.print(f"    Suggestion: [cyan]{escape(f.suggestion)}[/cyan]")
 

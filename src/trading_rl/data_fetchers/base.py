@@ -112,7 +112,11 @@ class BaseDataSource(ABC):
             Generated or fetched data
         """
         config = self.load_config(config_path)
-        self.logger.info("generate data from config path={} cls={}", config_path, self.__class__.__name__)
+        self.logger.info(
+            "generate data from config path={} cls={}",
+            config_path,
+            self.__class__.__name__,
+        )
         # Subclasses should implement their own config parsing
         return self.generate_data(**{**config, **kwargs})
 
@@ -176,9 +180,15 @@ class BaseDataSource(ABC):
         self.logger.trace("save dataset n_rows={} n_cols={}", *df.shape)
 
         if not df.empty:
-            self.logger.trace("save dataset index_min={} index_max={}", df.index.min(), df.index.max())
+            self.logger.trace(
+                "save dataset index_min={} index_max={}", df.index.min(), df.index.max()
+            )
             if "close" in df.columns:
-                self.logger.trace("save dataset close_min={:.2f} close_max={:.2f}", df["close"].min(), df["close"].max())
+                self.logger.trace(
+                    "save dataset close_min={:.2f} close_max={:.2f}",
+                    df["close"].min(),
+                    df["close"].max(),
+                )
 
     def validate_ohlcv(self, df: pd.DataFrame) -> bool:
         """

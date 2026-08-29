@@ -29,7 +29,9 @@ def generate_trending_pattern(
     """Generate synthetic OHLCV data with sustained trend and consolidation segments."""
     logger.info(
         "Generating trending pattern -> samples={}, base_price={}, n_trends={}",
-        n_samples, base_price, n_trends,
+        n_samples,
+        base_price,
+        n_trends,
     )
 
     rng = np.random.default_rng(seed)
@@ -43,15 +45,19 @@ def generate_trending_pattern(
         if i == n_trends - 1:
             length = remaining
         else:
-            max_len = min(max_trend_length, remaining - (n_trends - i - 1) * min_trend_length)
+            max_len = min(
+                max_trend_length, remaining - (n_trends - i - 1) * min_trend_length
+            )
             length = int(rng.integers(min_trend_length, max_len + 1))
         direction = rng.choice([-1, 1])
         strength = float(rng.uniform(*trend_strength_range)) * direction
-        segments.append({
-            "length": length,
-            "strength": strength,
-            "is_consolidation": rng.random() < consolidation_prob and i > 0,
-        })
+        segments.append(
+            {
+                "length": length,
+                "strength": strength,
+                "is_consolidation": rng.random() < consolidation_prob and i > 0,
+            }
+        )
         remaining -= length
         if remaining <= 0:
             break
@@ -76,8 +82,12 @@ def generate_trending_pattern(
                 if current_idx + j >= n_samples:
                     break
                 current_price = prices[current_idx + j - 1]
-                noise = rng.normal(0, volatility * max(abs(current_price), base_price * 0.1))
-                prices[current_idx + j] = max(current_price + trend_per_step + noise, base_price * 0.05)
+                noise = rng.normal(
+                    0, volatility * max(abs(current_price), base_price * 0.1)
+                )
+                prices[current_idx + j] = max(
+                    current_price + trend_per_step + noise, base_price * 0.05
+                )
         current_idx = end_idx
         if current_idx >= n_samples:
             break
@@ -85,8 +95,16 @@ def generate_trending_pattern(
     prices = np.maximum(prices, base_price * 0.1)
 
     price_changes = np.abs(np.diff(prices, prepend=prices[0]))
-    highs = prices + 0.3 * price_changes + np.abs(rng.normal(0, volatility * prices * 0.2, n_samples))
-    lows = prices - 0.3 * price_changes - np.abs(rng.normal(0, volatility * prices * 0.2, n_samples))
+    highs = (
+        prices
+        + 0.3 * price_changes
+        + np.abs(rng.normal(0, volatility * prices * 0.2, n_samples))
+    )
+    lows = (
+        prices
+        - 0.3 * price_changes
+        - np.abs(rng.normal(0, volatility * prices * 0.2, n_samples))
+    )
 
     opens = np.roll(prices, 1)
     opens[0] = prices[0]
@@ -96,10 +114,9 @@ def generate_trending_pattern(
 
     base_volume = 1_000_000
     momentum = np.abs(np.diff(prices, prepend=prices[0]))
-    volumes = (
-        base_volume * (1 + 3 * momentum / (np.mean(momentum) or 1.0))
-        + rng.normal(0, base_volume * 0.15, n_samples)
-    )
+    volumes = base_volume * (
+        1 + 3 * momentum / (np.mean(momentum) or 1.0)
+    ) + rng.normal(0, base_volume * 0.15, n_samples)
     volumes = np.maximum(volumes, base_volume * 0.1)
 
     df = pd.DataFrame(
@@ -112,6 +129,13 @@ def generate_trending_pattern(
     log_dataset_summary(df, output_path, context="Trending pattern", logger=logger)
     total_return = (prices[-1] / prices[0] - 1) * 100
     max_drawdown = np.min(prices / np.maximum.accumulate(prices) - 1) * 100
-    logger.info("Momentum stats -> total return {:.2f}%, max drawdown {:.2f}%", total_return, max_drawdown)
-    logger.info("Trends identified: {} | Strategy hint -> ride momentum, manage reversals", len(segments))
+    logger.info(
+        "Momentum stats -> total return {:.2f}%, max drawdown {:.2f}%",
+        total_return,
+        max_drawdown,
+    )
+    logger.info(
+        "Trends identified: {} | Strategy hint -> ride momentum, manage reversals",
+        len(segments),
+    )
     return df

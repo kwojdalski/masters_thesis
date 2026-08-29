@@ -59,4 +59,3 @@ class ColumnValueFeature(Feature):
     def compute(self, df: pd.DataFrame) -> pd.Series:
         column = self._column_name()
         return df[column].copy()
-

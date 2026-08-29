@@ -217,33 +217,33 @@ def _assert_split_result_sane(split: str, split_result: dict) -> None:
 
     # final_reward must be a finite number
     final_reward = split_result["final_reward"]
-    assert math.isfinite(
-        float(final_reward)
-    ), f"split '{split}' final_reward is not finite: {final_reward}"
+    assert math.isfinite(float(final_reward)), (
+        f"split '{split}' final_reward is not finite: {final_reward}"
+    )
 
     # Core evaluation metrics must be present and finite (some optional metrics like
     # alpha/recovery_time may legitimately be NaN when data is insufficient)
     report = split_result["evaluation_report"]
     for key in _CORE_REPORT_KEYS:
         assert key in report, f"split '{split}' evaluation_report missing '{key}'"
-        assert math.isfinite(
-            float(report[key])
-        ), f"split '{split}' {key} is not finite: {report[key]}"
+        assert math.isfinite(float(report[key])), (
+            f"split '{split}' {key} is not finite: {report[key]}"
+        )
 
     # max_drawdown is bounded below by -100% — a worse value indicates a
     # portfolio accounting bug (e.g. short positions losing more than 1x capital)
-    assert (
-        report["max_drawdown"] >= -1.0
-    ), f"split '{split}' max_drawdown {report['max_drawdown']:.4f} < -1.0"
+    assert report["max_drawdown"] >= -1.0, (
+        f"split '{split}' max_drawdown {report['max_drawdown']:.4f} < -1.0"
+    )
 
     # last_positions must be non-empty and contain only finite values.
     # NaN or inf here means the policy network produced garbage outputs.
     positions = split_result["last_positions"]
     assert len(positions) > 0, f"split '{split}' last_positions is empty"
     bad = [p for p in positions if not math.isfinite(float(p))]
-    assert (
-        not bad
-    ), f"split '{split}' last_positions contains non-finite values: {bad[:5]}"
+    assert not bad, (
+        f"split '{split}' last_positions contains non-finite values: {bad[:5]}"
+    )
 
 
 def _assert_split_result_extended(split: str, split_result: dict) -> None:
@@ -254,14 +254,14 @@ def _assert_split_result_extended(split: str, split_result: dict) -> None:
         assert key in report, f"split '{split}' evaluation_report missing '{key}'"
 
     for key in _EXTENDED_FINITE_REPORT_KEYS:
-        assert math.isfinite(
-            float(report[key])
-        ), f"split '{split}' {key} is not finite: {report[key]}"
+        assert math.isfinite(float(report[key])), (
+            f"split '{split}' {key} is not finite: {report[key]}"
+        )
 
     for key in ("win_rate",):
-        assert (
-            0.0 <= report[key] <= 1.0
-        ), f"split '{split}' {key} must be in [0, 1]: {report[key]}"
+        assert 0.0 <= report[key] <= 1.0, (
+            f"split '{split}' {key} must be in [0, 1]: {report[key]}"
+        )
 
     assert report["annualized_volatility"] >= 0.0, (
         f"split '{split}' annualized_volatility is negative: "
@@ -271,9 +271,9 @@ def _assert_split_result_extended(split: str, split_result: dict) -> None:
         f"split '{split}' downside_deviation is negative: "
         f"{report['downside_deviation']}"
     )
-    assert (
-        report["turnover"] >= 0.0
-    ), f"split '{split}' turnover is negative: {report['turnover']}"
+    assert report["turnover"] >= 0.0, (
+        f"split '{split}' turnover is negative: {report['turnover']}"
+    )
     assert report["average_holding_period"] > 0.0, (
         f"split '{split}' average_holding_period must be positive: "
         f"{report['average_holding_period']}"
@@ -297,9 +297,9 @@ def _assert_reward_trend(logs: dict, case: GeneratedDataScenarioCase) -> None:
     )
 
     non_finite = rewards[~np.isfinite(rewards)]
-    assert (
-        non_finite.size == 0
-    ), f"eval_reward_mean contains non-finite values: {non_finite.tolist()}"
+    assert non_finite.size == 0, (
+        f"eval_reward_mean contains non-finite values: {non_finite.tolist()}"
+    )
 
     # When the first reward is in the DSR noise floor (|r| < 1e-5), relative
     # fluctuations can be large without indicating a real training failure.

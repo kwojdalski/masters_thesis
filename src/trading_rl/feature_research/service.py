@@ -98,8 +98,7 @@ def _align_feature_frames(
 
     if train_features.empty or val_features.empty:
         raise ValueError(
-            "Feature pipeline produced empty frames. "
-            "Check the feature config and data."
+            "Feature pipeline produced empty frames. Check the feature config and data."
         )
 
     return (

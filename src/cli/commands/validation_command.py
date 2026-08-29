@@ -41,15 +41,22 @@ class ValidationCommand(BaseCommand):
             raise typer.BadParameter("Cannot specify both --config and --scenario.")
 
         if params.config_file:
-            return self._load_experiment_config(params.config_file, overrides=params.config_overrides)
+            return self._load_experiment_config(
+                params.config_file, overrides=params.config_overrides
+            )
 
         if params.scenario:
-            return self._load_experiment_config(params.scenario, overrides=params.config_overrides)
+            return self._load_experiment_config(
+                params.scenario, overrides=params.config_overrides
+            )
 
         if params.config_overrides:
-            raise typer.BadParameter("--config-override requires --config or --scenario.")
+            raise typer.BadParameter(
+                "--config-override requires --config or --scenario."
+            )
 
         from trading_rl import ExperimentConfig
+
         return ExperimentConfig()
 
     def _render_report(self, report) -> None:

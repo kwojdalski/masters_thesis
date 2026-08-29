@@ -34,15 +34,21 @@ def visualize_training(logs: dict, save_path: str | None = None):
     max_steps = max(len(value_loss), len(actor_loss))
     if max_steps == 0:
         # Return empty plot if no training occurred
-        logger.warning("No training loss data available for plotting - all optimization steps may have been skipped due to tensor shape issues")
+        logger.warning(
+            "No training loss data available for plotting - all optimization steps may have been skipped due to tensor shape issues"
+        )
         return None
 
     # Pad shorter lists with None values and warn about mismatched lengths
     if len(value_loss) < max_steps:
-        logger.warning(f"Value loss data incomplete ({len(value_loss)} vs {max_steps} steps) - some optimization steps may have been skipped")
+        logger.warning(
+            f"Value loss data incomplete ({len(value_loss)} vs {max_steps} steps) - some optimization steps may have been skipped"
+        )
         value_loss = value_loss + [None] * (max_steps - len(value_loss))
     if len(actor_loss) < max_steps:
-        logger.warning(f"Actor loss data incomplete ({len(actor_loss)} vs {max_steps} steps) - some optimization steps may have been skipped")
+        logger.warning(
+            f"Actor loss data incomplete ({len(actor_loss)} vs {max_steps} steps) - some optimization steps may have been skipped"
+        )
         actor_loss = actor_loss + [None] * (max_steps - len(actor_loss))
 
     loss_df = pd.DataFrame(
@@ -67,7 +73,10 @@ def visualize_training(logs: dict, save_path: str | None = None):
 
         @contextlib.contextmanager
         def suppress_plotnine_output():
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with (
+                contextlib.redirect_stdout(io.StringIO()),
+                contextlib.redirect_stderr(io.StringIO()),
+            ):
                 yield
 
         with suppress_plotnine_output():

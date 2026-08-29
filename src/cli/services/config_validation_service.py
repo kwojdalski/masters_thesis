@@ -306,8 +306,7 @@ def _validate_feature_domains(
                 severity=Severity.ERROR,
                 check="feature_mode",
                 message=(
-                    "env.mode='hft' requires at least one feature tagged "
-                    "domain='hft'."
+                    "env.mode='hft' requires at least one feature tagged domain='hft'."
                 ),
             )
         if mft_features:

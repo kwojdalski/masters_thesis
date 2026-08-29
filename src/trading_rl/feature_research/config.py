@@ -48,7 +48,7 @@ class FeatureResearchRunConfig:
 
     target_type: TargetType = TargetType.SHARPE
     horizons: list[int] = field(default_factory=lambda: [10, 50, 200])
-    vol_window: int = 50          # rolling vol window (only used when target_type="sharpe")
+    vol_window: int = 50  # rolling vol window (only used when target_type="sharpe")
     top_k: int = 10
     icir_threshold: float = 0.02
     window_size: int = 1000
@@ -110,7 +110,9 @@ class FeatureResearchConfig:
         """Load feature research configuration from YAML via OmegaConf."""
         yaml_path = Path(yaml_path)
         if not yaml_path.exists():
-            raise FileNotFoundError(f"Feature research config file not found: {yaml_path}")
+            raise FileNotFoundError(
+                f"Feature research config file not found: {yaml_path}"
+            )
 
         overrides = overrides or []
         if OmegaConf is not None:
@@ -205,7 +207,11 @@ class FeatureResearchConfig:
                 "train_size": effective_train_size,
                 "validation_size": experiment_config.data.validation_size,
                 "feature_config": experiment_config.data.feature_config,
-                "feature_cache_dir": getattr(experiment_config.data, "feature_cache_dir", ".cache/feature_transformation"),
+                "feature_cache_dir": getattr(
+                    experiment_config.data,
+                    "feature_cache_dir",
+                    ".cache/feature_transformation",
+                ),
             },
             "research": {
                 "output_dir": default_output_dir,

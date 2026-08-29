@@ -39,17 +39,23 @@ def _cfg(**kwargs) -> PrepareDataConfig:
 class TestExplicitSizes:
     def test_train_size_respected(self, tmp_path):
         path = _write_ohlcv_parquet(tmp_path, n_rows=200)
-        train_df, _, _ = prepare_data(path, _cfg(train_size=100, validation_size=50, test_size=50))
+        train_df, _, _ = prepare_data(
+            path, _cfg(train_size=100, validation_size=50, test_size=50)
+        )
         assert len(train_df) == 100
 
     def test_val_size_respected(self, tmp_path):
         path = _write_ohlcv_parquet(tmp_path, n_rows=200)
-        _, val_df, _ = prepare_data(path, _cfg(train_size=100, validation_size=50, test_size=50))
+        _, val_df, _ = prepare_data(
+            path, _cfg(train_size=100, validation_size=50, test_size=50)
+        )
         assert len(val_df) == 50
 
     def test_test_size_respected(self, tmp_path):
         path = _write_ohlcv_parquet(tmp_path, n_rows=200)
-        _, _, test_df = prepare_data(path, _cfg(train_size=100, validation_size=50, test_size=50))
+        _, _, test_df = prepare_data(
+            path, _cfg(train_size=100, validation_size=50, test_size=50)
+        )
         assert len(test_df) == 50
 
 

@@ -35,7 +35,9 @@ def test_hft_cli_metric_lists_exclude_cagr_and_calmar() -> None:
 
 
 def test_h3_report_metrics_exclude_cagr() -> None:
-    h3 = _load_script_module("scripts/h3_sensitivity_report.py", "h3_sensitivity_report")
+    h3 = _load_script_module(
+        "scripts/h3_sensitivity_report.py", "h3_sensitivity_report"
+    )
 
     metric_keys = {key for key, _, _ in h3._METRICS}
 

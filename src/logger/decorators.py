@@ -78,6 +78,7 @@ def trace_calls(show_return: bool = False) -> Callable:
                 arg_str = _format_arg_value(arg)
                 try:
                     import inspect
+
                     sig = inspect.signature(func)
                     param_names = list(sig.parameters.keys())
                     if i < len(param_names):
@@ -92,7 +93,14 @@ def trace_calls(show_return: bool = False) -> Callable:
 
             args_str = ", ".join(args_repr)
 
-            logger.debug("{}{} [TRACE] {}.{}({})", indent, arrow_in, module_name, func_name, args_str)
+            logger.debug(
+                "{}{} [TRACE] {}.{}({})",
+                indent,
+                arrow_in,
+                module_name,
+                func_name,
+                args_str,
+            )
 
             _set_call_depth(depth + 1)
             start_time = time.time()
@@ -103,13 +111,21 @@ def trace_calls(show_return: bool = False) -> Callable:
                 if show_return:
                     logger.debug(
                         "{}{} [TRACE] {}.{} returned {} ({:.3f}s)",
-                        indent, arrow_out, module_name, func_name,
-                        _format_arg_value(result), execution_time,
+                        indent,
+                        arrow_out,
+                        module_name,
+                        func_name,
+                        _format_arg_value(result),
+                        execution_time,
                     )
                 else:
                     logger.debug(
                         "{}{} [TRACE] {}.{} completed ({:.3f}s)",
-                        indent, arrow_out, module_name, func_name, execution_time,
+                        indent,
+                        arrow_out,
+                        module_name,
+                        func_name,
+                        execution_time,
                     )
 
                 return result
@@ -118,8 +134,13 @@ def trace_calls(show_return: bool = False) -> Callable:
                 execution_time = time.time() - start_time
                 logger.debug(
                     "{}{} [TRACE] {}.{} raised {}: {} ({:.3f}s)",
-                    indent, arrow_out, module_name, func_name,
-                    type(e).__name__, e, execution_time,
+                    indent,
+                    arrow_out,
+                    module_name,
+                    func_name,
+                    type(e).__name__,
+                    e,
+                    execution_time,
                 )
                 raise
 

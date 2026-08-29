@@ -27,8 +27,10 @@ def detect_session_breaks(
 
     Examples:
         >>> import pandas as pd
-        >>> dates = pd.date_range('2024-01-01 09:00', periods=100, freq='1min')
-        >>> dates = dates.append(pd.date_range('2024-01-02 09:00', periods=50, freq='1min'))
+        >>> dates = pd.date_range("2024-01-01 09:00", periods=100, freq="1min")
+        >>> dates = dates.append(
+        ...     pd.date_range("2024-01-02 09:00", periods=50, freq="1min")
+        ... )
         >>> breaks = detect_session_breaks(dates, threshold_hours=1.0)
         >>> breaks  # Session starts at index 0 and 100
         [0, 100]
@@ -76,8 +78,10 @@ def apply_per_session(
     Examples:
         >>> import pandas as pd
         >>> import numpy as np
-        >>> dates = pd.date_range('2024-01-01 09:00', periods=50, freq='1min')
-        >>> dates = dates.append(pd.date_range('2024-01-02 09:00', periods=50, freq='1min'))
+        >>> dates = pd.date_range("2024-01-01 09:00", periods=50, freq="1min")
+        >>> dates = dates.append(
+        ...     pd.date_range("2024-01-02 09:00", periods=50, freq="1min")
+        ... )
         >>> s = pd.Series(np.random.randn(100), index=dates)
         >>> result = apply_per_session(s, lambda x: x.rolling(10).mean())
         >>> # Rolling mean resets at index 50 (session break)
@@ -128,7 +132,10 @@ def apply_per_session_with_params(
 
     Examples:
         >>> import pandas as pd
-        >>> s = pd.Series([1,2,3,4,5,6], index=pd.date_range('2024-01-01', periods=6, freq='H'))
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4, 5, 6],
+        ...     index=pd.date_range("2024-01-01", periods=6, freq="H"),
+        ... )
         >>> # Apply rolling mean with window=2 to each session
         >>> result = apply_per_session_with_params(
         ...     s, lambda x, w: x.rolling(w).mean(), 2, threshold_hours=24

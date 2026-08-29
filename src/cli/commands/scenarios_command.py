@@ -27,7 +27,9 @@ class ScenariosCommand(BaseCommand):
 
         config_dir = Path("src/configs/scenarios")
         if not config_dir.exists():
-            self.console.print("[red]Config directory not found: src/configs/scenarios[/red]")
+            self.console.print(
+                "[red]Config directory not found: src/configs/scenarios[/red]"
+            )
             return
 
         config_files = sorted(config_dir.glob("**/*.yaml"))
@@ -44,7 +46,9 @@ class ScenariosCommand(BaseCommand):
                 if params.delete_all or (pattern and pattern.search(f.stem))
             ]
             if not targets:
-                self.console.print("[yellow]No scenarios matched for deletion.[/yellow]")
+                self.console.print(
+                    "[yellow]No scenarios matched for deletion.[/yellow]"
+                )
                 raise typer.Exit(0)
             if params.dry_run:
                 self.console.print("[yellow]Dry run: scenarios to delete[/yellow]")
@@ -59,7 +63,9 @@ class ScenariosCommand(BaseCommand):
             self.console.print(f"[green]Deleted {len(targets)} scenarios.[/green]")
             raise typer.Exit(0)
 
-        self.console.print("[bold blue]Available Scenario Configurations:[/bold blue]\n")
+        self.console.print(
+            "[bold blue]Available Scenario Configurations:[/bold blue]\n"
+        )
         for config_file in config_files:
             try:
                 with config_file.open("r", encoding="utf-8") as f:
@@ -68,7 +74,9 @@ class ScenariosCommand(BaseCommand):
                 experiment_name = config.get("experiment_name", "N/A")
                 algorithm = config.get("training", {}).get("algorithm", "N/A")
                 data_path = config.get("data", {}).get("data_path", "N/A")
-                pattern_type = config.get("data_generator", {}).get("pattern_type", "N/A")
+                pattern_type = config.get("data_generator", {}).get(
+                    "pattern_type", "N/A"
+                )
 
                 self.console.print(f"[green]{config_file.stem}[/green]:")
                 self.console.print(f"  Experiment: {experiment_name}")
@@ -80,7 +88,9 @@ class ScenariosCommand(BaseCommand):
                 self.console.print()
 
             except Exception as e:
-                self.console.print(f"[red]{config_file.stem}[/red]: Error reading file ({e})")
+                self.console.print(
+                    f"[red]{config_file.stem}[/red]: Error reading file ({e})"
+                )
                 self.console.print()
 
     def _confirm_delete(self, items: list[str], force: bool) -> bool:

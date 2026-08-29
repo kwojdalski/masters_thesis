@@ -23,6 +23,7 @@ Scoring:
       1 = vague verification ("should work", "looks right")
       0 = no verification mentioned
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,8 +49,12 @@ VAGUE_VERIFY = re.compile(
     r"seems?\s+(?:correct|fine)|hopefully|probably\s+works?)\b",
     re.I,
 )
-STEP_PATTERN = re.compile(r"^(?:\d+[\.\)]\s+|[-*]\s+\[.\]\s+|[-*]\s+(?:Step\s+\d+))", re.M)
-VERIFY_LABEL = re.compile(r"(?:verify|check|success\s+criteria|done\s+when|acceptance)\s*:", re.I)
+STEP_PATTERN = re.compile(
+    r"^(?:\d+[\.\)]\s+|[-*]\s+\[.\]\s+|[-*]\s+(?:Step\s+\d+))", re.M
+)
+VERIFY_LABEL = re.compile(
+    r"(?:verify|check|success\s+criteria|done\s+when|acceptance)\s*:", re.I
+)
 
 
 def extract_steps(text):
@@ -112,18 +117,22 @@ def analyze_plan(text, source):
     for step in steps:
         pts, level = score_step(step)
         total_score += pts
-        step_results.append({
-            "title": step["title"][:120],
-            "score": pts,
-            "level": level,
-            "has_verify_label": bool(VERIFY_LABEL.search(step["body"])),
-        })
+        step_results.append(
+            {
+                "title": step["title"][:120],
+                "score": pts,
+                "level": level,
+                "has_verify_label": bool(VERIFY_LABEL.search(step["body"])),
+            }
+        )
 
     # Check for final verification
     has_final = False
     if steps:
         last_full = steps[-1]["title"] + steps[-1]["body"]
-        if re.search(r"\b(?:final|end-to-end|full.*test|regression|all.*pass)\b", last_full, re.I):
+        if re.search(
+            r"\b(?:final|end-to-end|full.*test|regression|all.*pass)\b", last_full, re.I
+        ):
             has_final = True
 
     pct = (total_score / max_score * 100) if max_score > 0 else 0
@@ -154,9 +163,13 @@ def _recommendations(step_results, has_final):
     vague_steps = [s for s in step_results if s["level"] == "vague"]
 
     if none_steps:
-        recs.append(f"{len(none_steps)} step(s) have no verification. Add 'verify: [check]' to each.")
+        recs.append(
+            f"{len(none_steps)} step(s) have no verification. Add 'verify: [check]' to each."
+        )
     if vague_steps:
-        recs.append(f"{len(vague_steps)} step(s) have vague criteria. Replace 'should work' with a concrete check.")
+        recs.append(
+            f"{len(vague_steps)} step(s) have vague criteria. Replace 'should work' with a concrete check."
+        )
     if not has_final:
         recs.append("No final/end-to-end verification step. Add one at the end.")
     if not recs:
@@ -169,7 +182,9 @@ def main():
         description="Check if a plan has verifiable success criteria (Karpathy Principle #4).",
         epilog="Scores each step 0-3 based on verification quality.",
     )
-    p.add_argument("input", nargs="?", default="-", help="Markdown plan file, or - for stdin")
+    p.add_argument(
+        "input", nargs="?", default="-", help="Markdown plan file, or - for stdin"
+    )
     p.add_argument("--json", action="store_true", help="JSON output")
     args = p.parse_args()
 
@@ -191,12 +206,16 @@ def main():
         return
 
     print(f"Goal Verifier — {source}")
-    print(f"Steps: {result['steps_found']}  Score: {result['score']}/{result['max_score']} ({result['percentage']}%)")
+    print(
+        f"Steps: {result['steps_found']}  Score: {result['score']}/{result['max_score']} ({result['percentage']}%)"
+    )
     print(f"Verdict: {result['verdict']}")
     print()
 
     for sr in result["step_results"]:
-        icon = {"concrete": "+", "reasonable": "~", "vague": "?", "none": "!"}[sr["level"]]
+        icon = {"concrete": "+", "reasonable": "~", "vague": "?", "none": "!"}[
+            sr["level"]
+        ]
         print(f"  [{icon}] {sr['title'][:100]}  ({sr['level']}, {sr['score']}/3)")
 
     print()

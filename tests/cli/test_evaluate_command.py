@@ -25,7 +25,9 @@ def _command() -> EvaluateCommand:
 def _df(start: float, n_rows: int = 6) -> pd.DataFrame:
     index = pd.date_range("2024-01-01 09:30:00", periods=n_rows, freq="1s")
     close = start + np.arange(n_rows, dtype=float)
-    return pd.DataFrame({"close": close, "feature_signal": close / close[0]}, index=index)
+    return pd.DataFrame(
+        {"close": close, "feature_signal": close / close[0]}, index=index
+    )
 
 
 def test_resolve_per_symbol_splits_keeps_each_symbol_separate(monkeypatch) -> None:
@@ -76,13 +78,17 @@ def test_resolve_per_symbol_splits_can_select_test_only(monkeypatch) -> None:
     assert set(split_dfs) == {"test_AAPL", "test_MSFT"}
 
 
-def test_save_rollout_data_aligns_lengths_and_drops_initial_cumulative_value(tmp_path) -> None:
+def test_save_rollout_data_aligns_lengths_and_drops_initial_cumulative_value(
+    tmp_path,
+) -> None:
     command = _command()
     split_df = _df(100.0, n_rows=5)
     result = SimpleNamespace(
         last_positions=[1.0, 0.5, -1.0, 1.0],
         simple_returns=np.array([0.0, 0.01, -0.02]),
-        cumulative_returns=np.array([0.0, 0.0, np.log1p(0.01), np.log1p(0.01) + np.log1p(-0.02)]),
+        cumulative_returns=np.array(
+            [0.0, 0.0, np.log1p(0.01), np.log1p(0.01) + np.log1p(-0.02)]
+        ),
     )
 
     command._save_rollout_data(result, "test_AAPL", split_df, tmp_path)

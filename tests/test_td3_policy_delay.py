@@ -137,10 +137,26 @@ def test_td3_optimization_step_normalizes_shapes_and_delays_actor_update() -> No
 
     assert trainer.replay_buffer.sample_sizes == [4, 4, 4]
     assert trainer.td3_loss.sample_shapes == [
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
-        {"reward": torch.Size([4, 1]), "done": torch.Size([4, 1]), "terminated": torch.Size([4, 1])},
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
+        {
+            "reward": torch.Size([4, 1]),
+            "done": torch.Size([4, 1]),
+            "terminated": torch.Size([4, 1]),
+        },
     ]
     assert trainer.successful_batches == 3
     assert trainer.skipped_batches == 0

@@ -67,7 +67,9 @@ class PipelineProfiler:
         wall_total = time.monotonic() - self._wall_start
         total_accounted = sum(r.total_s for r in self._records.values() if r.level == 1)
 
-        table = Table(title="Pipeline Timing", show_header=True, header_style="bold green")
+        table = Table(
+            title="Pipeline Timing", show_header=True, header_style="bold green"
+        )
         table.add_column("L", justify="center", style="dim")
         table.add_column("Stage", style="cyan", no_wrap=True)
         table.add_column("Calls", justify="right")
@@ -90,10 +92,19 @@ class PipelineProfiler:
         unaccounted = wall_total - total_accounted
         if unaccounted > 0:
             pct = 100.0 * unaccounted / wall_total
-            table.add_row("—", "[dim]unaccounted[/dim]", "—", f"{unaccounted:.2f}", "—", f"{pct:.1f}%")
+            table.add_row(
+                "—",
+                "[dim]unaccounted[/dim]",
+                "—",
+                f"{unaccounted:.2f}",
+                "—",
+                f"{pct:.1f}%",
+            )
 
         table.add_section()
-        table.add_row("—", "[bold]wall total[/bold]", "—", f"{wall_total:.2f}", "—", "100.0%")
+        table.add_row(
+            "—", "[bold]wall total[/bold]", "—", f"{wall_total:.2f}", "—", "100.0%"
+        )
 
         console.print(table)
 

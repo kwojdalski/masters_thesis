@@ -43,9 +43,9 @@ class TestStrategyRandom:
 
     def test_does_not_always_return_same_value_over_many_calls(self):
         results = {_resolve_symbol_index("random", n_symbols=100) for _ in range(200)}
-        assert (
-            len(results) > 1
-        ), "expected multiple distinct draws from 100 symbols in 200 calls"
+        assert len(results) > 1, (
+            "expected multiple distinct draws from 100 symbols in 200 calls"
+        )
 
 
 class TestStrategyRotated:

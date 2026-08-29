@@ -33,9 +33,7 @@ def _lob_feature_types() -> list[str]:
         "trading_rl.features.lob_trade_features",
     }
     return sorted(
-        key
-        for key, cls in registry._registry.items()
-        if cls.__module__ in _lob_modules
+        key for key, cls in registry._registry.items() if cls.__module__ in _lob_modules
     )
 
 

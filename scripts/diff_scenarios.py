@@ -83,12 +83,14 @@ def main() -> None:
     )
     parser.add_argument("scenarios", nargs="+", help="Scenario names or paths")
     parser.add_argument(
-        "--all", "-a",
+        "--all",
+        "-a",
         action="store_true",
         help="Show all keys, not just differing ones",
     )
     parser.add_argument(
-        "--file", "-f",
+        "--file",
+        "-f",
         default="train.yaml",
         help="YAML file to compare within each scenario dir (default: train.yaml)",
     )
@@ -109,8 +111,7 @@ def main() -> None:
     # Filter to only differing keys unless --all
     if not args.all:
         all_keys = [
-            k for k in all_keys
-            if len({_str(cfg.get(k)) for cfg in configs}) > 1
+            k for k in all_keys if len({_str(cfg.get(k)) for cfg in configs}) > 1
         ]
 
     if not all_keys:
@@ -133,7 +134,9 @@ def main() -> None:
                 styled.append(f"[yellow]{v}[/yellow]")
         t.add_row(key, *styled)
 
-    title = f"Differing keys ({args.file})" if not args.all else f"All keys ({args.file})"
+    title = (
+        f"Differing keys ({args.file})" if not args.all else f"All keys ({args.file})"
+    )
     console.print()
     console.print(f"[bold]{title}[/bold]  [dim]({len(all_keys)} keys shown)[/dim]")
     console.print(t)

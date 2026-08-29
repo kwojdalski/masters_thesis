@@ -27,7 +27,9 @@ def _warn_config() -> ExperimentConfig:
     return config
 
 
-def test_warn_prompt_stops_and_restarts_progress_bar(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_warn_prompt_stops_and_restarts_progress_bar(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     progress = _FakeProgress()
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr("builtins.input", lambda: "y")
@@ -37,7 +39,9 @@ def test_warn_prompt_stops_and_restarts_progress_bar(monkeypatch: pytest.MonkeyP
     assert progress.calls == ["stop", "start"]
 
 
-def test_warn_prompt_restarts_progress_bar_even_if_declined(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_warn_prompt_restarts_progress_bar_even_if_declined(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     progress = _FakeProgress()
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr("builtins.input", lambda: "n")
@@ -55,7 +59,9 @@ def test_non_interactive_stdin_skips_prompt_without_touching_progress_bar(
     monkeypatch.setattr("sys.stdin.isatty", lambda: False)
 
     def _fail_input() -> str:
-        raise AssertionError("input() should not be called when stdin is non-interactive")
+        raise AssertionError(
+            "input() should not be called when stdin is non-interactive"
+        )
 
     monkeypatch.setattr("builtins.input", _fail_input)
 

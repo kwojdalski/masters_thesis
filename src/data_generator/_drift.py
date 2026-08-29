@@ -58,15 +58,11 @@ def generate_upward_drift_pattern(
     highs = close_prices * (
         1 + spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
     )
-    lows = close_prices * (
-        1 - spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
-    )
+    lows = close_prices * (1 - spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples)))
 
     opens = np.roll(close_prices, 1)
     opens[0] = close_prices[0]
-    opens = opens + rng.normal(
-        0, volatility * np.mean(close_prices) * 0.1, n_samples
-    )
+    opens = opens + rng.normal(0, volatility * np.mean(close_prices) * 0.1, n_samples)
     opens = np.clip(opens, lows, highs)
     close_prices = np.clip(close_prices, lows, highs)
 
@@ -121,7 +117,9 @@ def generate_random_walk_pattern(
     """
     logger.info(
         "Generating random walk pattern -> samples={}, base_price={}, volatility={}",
-        n_samples, base_price, volatility,
+        n_samples,
+        base_price,
+        volatility,
     )
 
     rng = np.random.default_rng(seed)
@@ -134,9 +132,7 @@ def generate_random_walk_pattern(
     highs = close_prices * (
         1 + spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
     )
-    lows = close_prices * (
-        1 - spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples))
-    )
+    lows = close_prices * (1 - spread_scale * (1 + 0.1 * rng.uniform(-1, 1, n_samples)))
 
     opens = np.roll(close_prices, 1)
     opens[0] = close_prices[0]

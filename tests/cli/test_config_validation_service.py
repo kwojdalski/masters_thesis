@@ -18,8 +18,12 @@ def _write_dataset(path: Path, rows: int = 20, include_lob: bool = False) -> Pat
 
     if include_lob:
         for level in range(1, 4):
-            data[f"bid_px_{level}"] = [99.5 + x + (level - 1) * 0.1 for x in range(rows)]
-            data[f"ask_px_{level}"] = [100.5 + x + (level - 1) * 0.1 for x in range(rows)]
+            data[f"bid_px_{level}"] = [
+                99.5 + x + (level - 1) * 0.1 for x in range(rows)
+            ]
+            data[f"ask_px_{level}"] = [
+                100.5 + x + (level - 1) * 0.1 for x in range(rows)
+            ]
             data[f"bid_sz_{level}"] = [200 + x + level for x in range(rows)]
             data[f"ask_sz_{level}"] = [210 + x + level for x in range(rows)]
 
@@ -110,7 +114,9 @@ def test_infeasible_split_is_error(tmp_path: Path):
 
 def test_missing_env_feature_column_is_error(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet")
-    feat_cfg = _write_feature_config(tmp_path / "features.yaml", feature_type="log_return")
+    feat_cfg = _write_feature_config(
+        tmp_path / "features.yaml", feature_type="log_return"
+    )
 
     config = ExperimentConfig()
     config.data.data_path = str(data_path)
