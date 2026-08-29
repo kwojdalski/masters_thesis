@@ -497,6 +497,7 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
             extra.append(f"training.max_train_seconds={args.max_train_seconds}")
         if args.dev:
             extra.append(f"training.max_steps={args.dev_steps}")
+        if skip_guardrails:
             extra.append("training.skip_guardrails=true")
         _train_all(scenarios, args, extra_overrides=extra)
         _con.print()
@@ -542,6 +543,7 @@ def run_h4(
             "evaluation.eval_fraction=0.05",
             "training.temp_eval.max_steps=5000",
             "evaluation.skip_final_eval=true",
+            *(["training.skip_guardrails=true"] if args.skip_guardrails else []),
             *args.overrides,
             *shlex.split(os.environ.get("EXTRA_TRAIN_ARGS", "")),
         ]
