@@ -42,14 +42,8 @@ requirement for the results to be meaningful, not an optional refinement.
 
 **Keep reward optimization and financial evaluation strictly separate.** A
 shaped reward such as the Differential Sharpe Ratio is a training objective,
-not a performance report: optimizing it does not guarantee that the
-cumulative shaped reward rank-correlates with realized financial
-performance. Deep RL trading systems need two distinct pipelines — a
-training diagnostic tracking the optimization objective, and a financial
-evaluation that rolls out the deterministic policy on held-out data and
-computes return, Sharpe ratio, drawdown, and turnover from the realized
-position series. Conflating the two — citing a high training DSR as evidence
-of held-out Sharpe — is a common source of overoptimistic claims in the
+not a performance report (Section 4.3): conflating a high training DSR with
+held-out Sharpe performance is a common source of overoptimistic claims in the
 literature, and the most consistent failure mode to avoid.
 
 **Treat transaction-cost sensitivity as a go/no-go criterion.** The
