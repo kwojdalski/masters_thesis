@@ -69,21 +69,58 @@ def _load_results_json(path: Path) -> dict:
     return json.loads(raw)
 
 
-def _aggregate_test_metrics(results: dict) -> dict:
-    """Average metrics across all test_* splits in results.json.
+# Split preference, most-preferred first.  Anything other than "test" is a
+# fallback that must be reported, never silently published as an out-of-sample
+# result.
+_SPLIT_PREFERENCE: tuple[str, ...] = ("test", "val", "train")
 
-    Falls back to val_* then train_* splits if no test entries exist.
+
+def _split_entries(results: dict, prefix: str) -> tuple[dict, dict]:
+    """Return ``(pooled, per_symbol)`` metric entries for one split prefix.
+
+    A pooled entry is keyed by the bare split name (``"test"``).  Per-symbol
+    entries carry a symbol suffix and appear in two shapes depending on which
+    code path produced them: ``"test_AAPL"`` from
+    ``EvaluateCommand._resolve_per_symbol_splits`` and ``"val__AAPL"`` from
+    ``pipeline.evaluation.evaluate_per_symbol``.  Matching on the ``_``
+    boundary covers both without letting ``"test"`` swallow unrelated keys.
     """
-    for prefix in ("test", "val", "train"):
-        entries = {
-            k: v
-            for k, v in results.items()
-            if k.startswith(prefix) and isinstance(v.get("metrics"), dict)
-        }
+    pooled: dict = {}
+    per_symbol: dict = {}
+    for key, entry in results.items():
+        if not isinstance(entry, dict) or not isinstance(entry.get("metrics"), dict):
+            continue
+        if key == prefix:
+            pooled[key] = entry
+        elif key.startswith(f"{prefix}_"):
+            per_symbol[key] = entry
+    return pooled, per_symbol
+
+
+def _aggregate_split_metrics(results: dict) -> tuple[dict, str | None, list[str]]:
+    """Average metrics for the most preferred split present in results.json.
+
+    Returns ``(metrics, source_split, source_keys)``.  ``source_split`` is
+    None when nothing usable was found; callers must check it rather than
+    assuming the numbers are test-split metrics.
+
+    Per-symbol entries are averaged among themselves and a pooled entry is
+    used on its own -- the two are never mixed, because a pooled figure is
+    already an aggregate over the same symbols and averaging it alongside its
+    own components double-counts them.
+    """
+    entries: dict = {}
+    source_split: str | None = None
+    for prefix in _SPLIT_PREFERENCE:
+        pooled, per_symbol = _split_entries(results, prefix)
+        # Prefer the disaggregated per-symbol entries when both are present.
+        entries = per_symbol or pooled
         if entries:
+            source_split = prefix
             break
-    else:
-        return {}
+
+    if not entries or source_split is None:
+        return {}, None, []
 
     all_keys: set[str] = set()
     for entry in entries.values():
@@ -95,13 +132,13 @@ def _aggregate_test_metrics(results: dict) -> dict:
             entry["metrics"][key]
             for entry in entries.values()
             if key in entry["metrics"]
-            and isinstance(entry["metrics"][key], (int, float))
+            and isinstance(entry["metrics"][key], int | float)
             and entry["metrics"][key] is not None
             and math.isfinite(entry["metrics"][key])
         ]
         aggregated[key] = (sum(vals) / len(vals)) if vals else None
 
-    return aggregated
+    return aggregated, source_split, sorted(entries)
 
 
 def _per_symbol_summary(results: dict) -> dict:
@@ -116,7 +153,7 @@ def _per_symbol_summary(results: dict) -> dict:
     }
 
 
-def _load_benchmark_table(eval_dir: Path) -> dict | None:
+def _load_benchmark_table(eval_dir: Path) -> tuple[dict | None, str | None]:
     """Load benchmark table(s) and convert to the statistical_tests format.
 
     Handles two layouts produced by different versions of the evaluate CLI:
@@ -128,7 +165,11 @@ def _load_benchmark_table(eval_dir: Path) -> dict | None:
     For the per-symbol layout, numeric metrics are averaged across all symbols.
     format_benchmark_comparison_table() expects a 'strategy' key and a top-level
     'benchmark_comparison_table' list.
+
+    Returns ``(table, source_split)``.  ``source_split`` lets the caller refuse
+    to publish a train-split benchmark comparison as an out-of-sample one.
     """
+
     def _convert_rows(rows: list[dict]) -> list[dict]:
         converted = []
         for row in rows:
@@ -150,18 +191,20 @@ def _load_benchmark_table(eval_dir: Path) -> dict | None:
             return None
 
     # --- Try old aggregated layout first ---
-    for split in ("test", "val", "train"):
+    for split in _SPLIT_PREFERENCE:
         bench_path = eval_dir / "benchmark_tables" / f"{split}_benchmark_table.json"
         if bench_path.exists():
             data = _load_json(bench_path)
             if data:
                 rows = data.get("rows", [])
                 if rows:
-                    return {"benchmark_comparison_table": _convert_rows(rows)}
+                    return {"benchmark_comparison_table": _convert_rows(rows)}, split
 
     # --- Try new per-symbol layout (test_AAPL_benchmark_table.json, …) ---
-    for split_prefix in ("test", "val", "train"):
-        per_symbol_files = sorted(eval_dir.glob(f"{split_prefix}_*_benchmark_table.json"))
+    for split_prefix in _SPLIT_PREFERENCE:
+        per_symbol_files = sorted(
+            eval_dir.glob(f"{split_prefix}_*_benchmark_table.json")
+        )
         if not per_symbol_files:
             continue
 
@@ -181,7 +224,11 @@ def _load_benchmark_table(eval_dir: Path) -> dict | None:
                 for k, v in row.items():
                     if k in ("name", "is_strategy"):
                         continue
-                    if isinstance(v, (int, float)) and v is not None and math.isfinite(v):
+                    if (
+                        isinstance(v, int | float)
+                        and v is not None
+                        and math.isfinite(v)
+                    ):
                         strategy_accum[name].setdefault(k, []).append(float(v))
 
         if not strategy_accum:
@@ -194,9 +241,9 @@ def _load_benchmark_table(eval_dir: Path) -> dict | None:
                 row_out[k] = sum(vals) / len(vals) if vals else None
             converted.append(row_out)
 
-        return {"benchmark_comparison_table": converted}
+        return {"benchmark_comparison_table": converted}, split_prefix
 
-    return None
+    return None, None
 
 
 def _find_plots(search_dirs: list[Path]) -> dict[str, Path]:
@@ -290,7 +337,9 @@ def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | 
     }
 
 
-def _resolve_eval_dir(scenario: str | None, output_dir: Path | None, repo_root: Path) -> tuple[Path, Path]:
+def _resolve_eval_dir(
+    scenario: str | None, output_dir: Path | None, repo_root: Path
+) -> tuple[Path, Path]:
     """Return (primary_eval_dir, fallback_eval_dir) for locating results.json.
 
     Primary:  logs/{last_component_of_scenario}  (evaluate CLI --output-dir)
@@ -352,7 +401,17 @@ def _parse_args() -> argparse.Namespace:
         help="Override the thesis/qmd/results root directory.",
     )
     p.add_argument(
-        "--verbose", "-v",
+        "--allow-split-fallback",
+        action="store_true",
+        help=(
+            "Publish val- or train-split metrics when no test split exists. "
+            "Off by default: the thesis presents these snapshots as "
+            "out-of-sample results, so a substituted split must be deliberate."
+        ),
+    )
+    p.add_argument(
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable DEBUG logging.",
     )
@@ -374,7 +433,9 @@ def main() -> int:
     # --------------------------------------------------------------------------
     # Resolve directories and experiment name
     # --------------------------------------------------------------------------
-    primary_dir, fallback_dir = _resolve_eval_dir(args.scenario, args.output_dir, repo_root)
+    primary_dir, fallback_dir = _resolve_eval_dir(
+        args.scenario, args.output_dir, repo_root
+    )
 
     if args.experiment_name:
         experiment_name = args.experiment_name
@@ -384,7 +445,11 @@ def main() -> int:
         assert args.output_dir is not None
         experiment_name = primary_dir.name
 
-    logger.info("exporting scenario={} experiment={}", args.scenario or args.output_dir, experiment_name)
+    logger.info(
+        "exporting scenario={} experiment={}",
+        args.scenario or args.output_dir,
+        experiment_name,
+    )
 
     # --------------------------------------------------------------------------
     # Locate results.json
@@ -420,12 +485,53 @@ def main() -> int:
     # --------------------------------------------------------------------------
     # Aggregate metrics across test splits
     # --------------------------------------------------------------------------
-    metrics = _aggregate_test_metrics(results)
+    metrics, source_split, source_keys = _aggregate_split_metrics(results)
     if not metrics:
         logger.warning("no metrics found in results.json")
     else:
-        n_test = sum(1 for k in results if k.startswith("test"))
-        logger.info("aggregated {} metrics across {} test split(s)", len(metrics), n_test)
+        logger.info(
+            "aggregated {} metrics from {} {!r} entr{} ({})",
+            len(metrics),
+            len(source_keys),
+            source_split,
+            "y" if len(source_keys) == 1 else "ies",
+            ", ".join(source_keys),
+        )
+
+    if source_split is not None and source_split != "test":
+        if not args.allow_split_fallback:
+            logger.error(
+                "results.json has no 'test' entry; the best available split is {!r} ({}).",
+                source_split,
+                ", ".join(source_keys),
+            )
+            logger.error(
+                "refusing to publish {}-split numbers as the out-of-sample thesis "
+                "snapshot for {!r}.",
+                source_split,
+                experiment_name,
+            )
+            logger.error(
+                "produce a test split first:  uv run python src/cli.py evaluate -c {} "
+                "--output-dir {} --per-symbol",
+                args.scenario or args.output_dir,
+                primary_dir,
+            )
+            logger.error("or pass --allow-split-fallback to publish it deliberately.")
+            return 1
+        logger.warning(
+            "publishing {!r}-split metrics as the thesis snapshot for {!r} "
+            "(--allow-split-fallback). These are NOT out-of-sample results.",
+            source_split,
+            experiment_name,
+        )
+
+    # Provenance travels with the numbers so downstream readers can tell which
+    # split produced them. Consumers address metrics by explicit key, so the
+    # extra entries are inert for the result tables.
+    if metrics:
+        metrics["__source_split__"] = source_split
+        metrics["__source_keys__"] = source_keys
 
     # --------------------------------------------------------------------------
     # Find plots
@@ -475,13 +581,32 @@ def main() -> int:
 
     plot_relpaths = _copy_plots(plots, snapshot_dir) if plots else {}
 
-    benchmark_table = _load_benchmark_table(eval_dir)
+    benchmark_table, benchmark_split = _load_benchmark_table(eval_dir)
     statistical_tests_file: str | None = None
     if benchmark_table is not None:
+        if benchmark_split != "test" and not args.allow_split_fallback:
+            logger.error(
+                "benchmark tables in {} are {!r}-split; refusing to publish them as "
+                "the out-of-sample comparison. Re-run evaluate with --per-symbol, "
+                "or pass --allow-split-fallback.",
+                eval_dir,
+                benchmark_split,
+            )
+            return 1
+        if benchmark_split != source_split:
+            logger.warning(
+                "benchmark table split {!r} does not match the metrics split {!r} — "
+                "the comparison table and the metric row describe different data.",
+                benchmark_split,
+                source_split,
+            )
+        benchmark_table["__source_split__"] = benchmark_split
         _write_json(snapshot_dir / "statistical_tests.json", benchmark_table)
         statistical_tests_file = "statistical_tests.json"
         n_rows = len(benchmark_table.get("benchmark_comparison_table", []))
-        logger.info("benchmark table: {} strategies", n_rows)
+        logger.info(
+            "benchmark table: {} strategies from {!r} split", n_rows, benchmark_split
+        )
 
     run_json: dict = {
         "run_id": None,
@@ -526,7 +651,11 @@ def main() -> int:
     }
     _write_json(experiment_dir / "manifest.json", manifest)
 
-    logger.info("exported thesis snapshot  experiment={}  location={}", experiment_name, snapshot_dir)
+    logger.info(
+        "exported thesis snapshot  experiment={}  location={}",
+        experiment_name,
+        snapshot_dir,
+    )
     return 0
 
 

@@ -958,6 +958,31 @@ def _aggregate_from_results_json(results: dict, split: str = "test") -> dict[str
     return aggregated
 
 
+def _warn_on_split_mismatch(
+    scenario_name: str, report: dict[str, Any], requested_split: str, source: str
+) -> None:
+    """Warn when a snapshot's metrics did not come from the requested split.
+
+    export_eval_to_thesis.py stamps ``__source_split__`` on every snapshot it
+    writes.  A snapshot exported with --allow-split-fallback carries val- or
+    train-split numbers, which the results chapters would otherwise render as
+    out-of-sample performance without any visible signal.  Snapshots written
+    before the stamp existed have no key and cannot be checked here -- they
+    need re-exporting.
+    """
+    source_split = report.get("__source_split__")
+    if source_split is None or source_split == requested_split:
+        return
+    message = (
+        f"{scenario_name}: metrics come from the {source_split!r} split, not "
+        f"{requested_split!r} ({source}). These are NOT out-of-sample results."
+    )
+    if _logger is not None:
+        _logger.warning(message)
+    else:  # pragma: no cover - logger is configured in normal thesis builds
+        print(f"WARNING: {message}")
+
+
 def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[str, Any]:
     """Load aggregated evaluation metrics for a scenario.
 
@@ -978,6 +1003,7 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
         try:
             data = json.loads(snap_path.read_text())
             if isinstance(data, dict) and data:
+                _warn_on_split_mismatch(scenario_name, data, split, str(snap_path))
                 return data
         except Exception as exc:
             _log_fallback(
