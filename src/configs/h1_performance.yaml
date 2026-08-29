@@ -31,7 +31,6 @@ agents:
 benchmarks:
   - name: buy_and_hold
     label: "Buy & Hold"
-    label: "Short & Hold"
   - name: twap
     label: "TWAP"
   - name: vwap
