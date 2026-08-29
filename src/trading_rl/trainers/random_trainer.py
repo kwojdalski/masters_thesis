@@ -29,6 +29,16 @@ class RandomTrainer(BaseTrainer):
     ) -> None:
         pass
 
+    @property
+    def _algo_label(self) -> str:
+        return "random"
+
+    def _get_checkpoint_network_state(self) -> dict:
+        return {}
+
+    def _load_checkpoint_network_state(self, checkpoint: dict) -> None:
+        pass
+
     def _evaluate(self) -> None:
         pass
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import inspect
 
 import pytest
 
@@ -50,6 +51,14 @@ def test_catalog_lists_every_builtin_algorithm() -> None:
         "SAC",
         "TD3",
     ]
+
+
+def test_random_trainer_satisfies_base_trainer_contract() -> None:
+    assert not inspect.isabstract(RandomTrainer)
+    trainer = RandomTrainer.__new__(RandomTrainer)
+    assert trainer._algo_label == "random"
+    assert trainer._get_checkpoint_network_state() == {}
+    assert trainer._load_checkpoint_network_state({}) is None
 
 
 def test_reimporting_trainer_module_does_not_mutate_catalog() -> None:
