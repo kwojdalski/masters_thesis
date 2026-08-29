@@ -123,6 +123,11 @@ class RunArgs:
     dev: bool = False
     dev_steps: int = 2000
     max_train_seconds: int | None = None
+    # Concurrent scenario subprocesses under --parallel. Each one independently
+    # loads its own copy of the val split for the periodic-eval env (~666 MB as
+    # a DataFrame for the pooled data) on top of its replay buffer and torch
+    # runtime, so running all of them at once (7 for H3) exhausts memory (#517).
+    max_parallel: int = 2
 
 
 # ---------------------------------------------------------------------------
@@ -198,13 +203,22 @@ def _run_simple(cmd: list[str]) -> None:
     subprocess.run(cmd, cwd=_REPO_ROOT, check=True)  # noqa: S603 — cmd built internally from _CLI + scenario names, not external input
 
 
-def _run_parallel_jobs(label: str, jobs: list[tuple[list[str], Path]]) -> None:
+def _run_parallel_jobs(
+    label: str, jobs: list[tuple[list[str], Path]], max_workers: int = 2
+) -> None:
     for _, log in jobs:
         _con.print(
             f"  [cyan]{escape(_scenario_name(str(log.stem)))}[/cyan]  [dim]->[/dim]  [dim]{escape(str(log))}[/dim]  [dim](background)[/dim]"
         )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(jobs)) as executor:
+    n_workers = max(1, min(max_workers, len(jobs)))
+    if n_workers < len(jobs):
+        _con.print(
+            f"[dim]running {len(jobs)} {label} job(s) {n_workers} at a time "
+            f"(--max-parallel={max_workers})[/dim]"
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
         futures = {executor.submit(_run_capture, cmd, log): log for cmd, log in jobs}
         _watch_hint(label, [log for _, log in jobs])
         _con.print(f"Waiting for [bold]{len(futures)}[/bold] {label} job(s)...")
@@ -221,7 +235,10 @@ def _run_parallel_jobs(label: str, jobs: list[tuple[list[str], Path]]) -> None:
                 failed.append(log)
 
     if failed:
-        ", ".join(str(f) for f in failed)
+        _err.print(
+            f"\n[red]{len(failed)} {label} job(s) failed:[/red] "
+            f"{escape(', '.join(f.name for f in failed))}"
+        )
         raise typer.Exit(
             code=1,
         )
@@ -292,7 +309,9 @@ def _train_all(
 
     if args.parallel:
         _run_parallel_jobs(
-            "training", [(_cmd(s), _log_file(s, "train")) for s in scenarios]
+            "training",
+            [(_cmd(s), _log_file(s, "train")) for s in scenarios],
+            max_workers=args.max_parallel,
         )
     else:
         for scenario in scenarios:
@@ -323,7 +342,9 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
 
     if args.parallel:
         _run_parallel_jobs(
-            "evaluation", [(_cmd(s), _log_file(s, "eval")) for s in scenarios]
+            "evaluation",
+            [(_cmd(s), _log_file(s, "eval")) for s in scenarios],
+            max_workers=args.max_parallel,
         )
     else:
         for scenario in scenarios:
@@ -502,6 +523,16 @@ _SkipEval = Annotated[
 _Parallel = Annotated[
     bool, typer.Option("--parallel", help="Run scenarios concurrently.")
 ]
+_MaxParallel = Annotated[
+    int,
+    typer.Option(
+        "--max-parallel",
+        min=1,
+        metavar="N",
+        help="Max concurrent scenarios under [bold]--parallel[/bold] (default: 2). "
+        "Each holds its own copy of the val split, so raise with care.",
+    ),
+]
 _Verbose = Annotated[
     bool, typer.Option("--verbose", "-v", help="Enable debug logging in subcommands.")
 ]
@@ -537,6 +568,7 @@ def h1(
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
     parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
@@ -562,6 +594,7 @@ def h1(
             skip_train=skip_train,
             skip_eval=skip_eval,
             parallel=parallel,
+            max_parallel=max_parallel,
             verbose=verbose,
             skip_guardrails=skip_guardrails,
             overrides=overrides or [],
@@ -577,6 +610,7 @@ def h2(
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
     parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
@@ -594,6 +628,7 @@ def h2(
             skip_train=skip_train,
             skip_eval=skip_eval,
             parallel=parallel,
+            max_parallel=max_parallel,
             verbose=verbose,
             skip_guardrails=skip_guardrails,
             overrides=overrides or [],
@@ -608,6 +643,7 @@ def h3(
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
     parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
@@ -625,6 +661,7 @@ def h3(
             skip_train=skip_train,
             skip_eval=skip_eval,
             parallel=parallel,
+            max_parallel=max_parallel,
             verbose=verbose,
             skip_guardrails=skip_guardrails,
             overrides=overrides or [],
@@ -687,6 +724,7 @@ def run_all(
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
     parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
@@ -698,6 +736,7 @@ def run_all(
         skip_train=skip_train,
         skip_eval=skip_eval,
         parallel=parallel,
+        max_parallel=max_parallel,
         verbose=verbose,
         skip_guardrails=skip_guardrails,
         overrides=overrides or [],
