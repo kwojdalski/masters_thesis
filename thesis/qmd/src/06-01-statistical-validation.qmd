@@ -1,70 +1,10 @@
 ## Statistical Validation
-<!-- [PLACEHOLDER] -->
 
-This section focuses on uncertainty arising from the training process itself.
-For the present high-frequency TD3 setup, repeated runs can diverge
-because of random initialization, replay sampling, and exploration noise even
-when the dataset and experimental setup are fixed. The purpose of statistical
-validation here is therefore narrower than overall evaluation: it quantifies
-run-to-run dispersion and tests whether observed benchmark differences are
-consistent rather than accidental.
-
-
-```{python}
-#| label: stat_validation_setup
-#| echo: false
-#| warning: false
-
-import numpy as np
-import pandas as pd
-
-from thesis_mlflow_results import (
-    load_experiment_snapshot,
-    format_statistical_significance_summary,
-    runs_overview_table,
-)
-
-EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
-runs_df = runs_overview_table(EXPERIMENT_NAME)
-finished_runs = runs_df[runs_df["status"] == "FINISHED"].copy() if not runs_df.empty else pd.DataFrame()
-```
-
-
-
-### Comparative Validation Strategy for Thesis-Grade Results
-<!-- [PLACEHOLDER] -->
-
-When comparative experiments are reported, they should be interpreted under a
-matched design: the data split, cost assumptions, and evaluation procedure must
-remain fixed while only the feature set, reward specification, or other target
-variation is changed. Within that design, the preferred interpretation
-hierarchy is:
-
-1. effect size (difference in mean or median performance),
-2. dispersion (stability across runs),
-3. confidence interval overlap or formal hypothesis testing,
-4. economic plausibility (e.g., turnover, drawdown, net performance after
-   costs).
-
-This ordering matters because statistically detectable differences can still be
-economically unimportant if they coincide with unstable turnover, weak net
-returns after costs, or poor drawdown behavior.
-
-### Statistical Risks and Interpretation Caveats
-<!-- [PLACEHOLDER] -->
-
-Several risks remain when interpreting these summaries. Repeated runs on the
-same historical period are not independent samples from a stable
-data-generating process; they quantify training stochasticity more than market
-uncertainty. In addition, repeated tuning on the same validation period can
-bias later comparisons, and reward-based metrics can diverge from financial
-objectives when the reward is a shaped training signal rather than realized
-return.
-
-Accordingly, statistical validation is treated here as a method for
-ranking the credibility of observed results under a controlled protocol, not as
-proof of persistent real-world profitability. Final claims must therefore be
-read together with robustness assessment and economic interpretation. A stronger
-future version of the empirical design would repeat each configuration across at
-least five seeds and report confidence intervals for the same held-out financial
-metrics used in the main comparison.
+Repeated TD3 training runs can diverge due to random initialization, replay
+sampling, and exploration noise, even under an identical dataset and
+configuration — the same single-run limitation already noted for the H1
+comparison above applies throughout this chapter. Repeated tuning on the
+same validation period can also bias later comparisons, and reward-based
+metrics can diverge from financial objectives when the reward is a shaped
+training signal rather than realized return. Final claims are read together
+with the robustness assessment and economic interpretation that follow.

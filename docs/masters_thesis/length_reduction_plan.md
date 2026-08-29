@@ -11,12 +11,12 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **144 pages** (measured 2026-08-29, fresh render after item 25)
-Body word count (chapters 01-07): **31,257 words**
-Body page range: printed pages 8-109 (physical PDF pages 9-110), **102 body
-pages**; Bibliography begins on printed page 110
-words_per_page: ~306 (31,257 / 102 measured body pages)
-Cumulative body reduction from the complete pre-condensation draft: **7,344
+Current: **144 pages** (measured 2026-08-29, fresh render after item 28)
+Body word count (chapters 01-07): **30,878 words**
+Body page range: printed pages 8-108 (physical PDF pages 9-109), **101 body
+pages**; Bibliography begins on printed page 109
+words_per_page: ~306 (30,878 / 101 measured body pages)
+Cumulative body reduction from the complete pre-condensation draft: **7,723
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
 body table moved into the appendix. Session 6 moved a second body table into
@@ -28,6 +28,9 @@ four-way-copy-pasted MBP-10 format definition, and condensed the state-space
 chapter's fragmented scope-justification prose, taking total pages 148 -> 146
 and body 105 -> 103. Session 8 cut two within-chapter restated conclusions in
 the Results chapter, taking total pages 146 -> 144 and body 103 -> 102.
+Session 9 closed the last queued cross-chapter duplicate (item 19) and gutted
+a generic-filler section the user flagged directly, taking body 102 -> 101 at
+unchanged total (144).
 
 Session 1 scope note: started with chapter 7 (closing material) rather than
 chapter-number order, because initial reconnaissance (word counts across all
@@ -127,14 +130,16 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 16 | 1/3 | 03-02 | Consolidated the repeated algorithm-selection material. The final 549-word PPO/DDPG/TD3 comparison is now a short bridge to Chapter 4's implementation table, and the selection rationale now states each constraint once. Retained all core equations, TD3's three mechanisms, the SAC scope rationale, the contextual-not-general-superiority caveat, and the market-design limitations. | -672 body (measured) | applied (`95ac3f99`) |
 | 17 | 1 | 03-02, 04-01, 04-05 | Gaussian exploration was explained generally in `04-01`, then re-derived separately for DDPG and TD3 in `04-05`; evaluation-time noise removal and TD3 target smoothing were each stated multiple times. Kept `eq-exploration-noise` as the authoritative equation, replaced the two policy subsections with one compact DDPG/TD3 comparison, retained the distinct target-smoothing parameters and purpose, and repaired Chapter 3's PPO cross-reference. | -400 body (measured) | applied |
 | 18 | 1/3 | 01-00, 01-01 | The introduction already states the TD3/HFT/LOB/continuous-control contribution, then "Novelty" states it again. The objectives list also restates the hypotheses, while the introduction's final three paragraphs preview execution and evaluation limitations treated fully in Chapters 5 and 7. Keep the hypotheses and one concise boundary paragraph; compress novelty and objectives around them. | ~220-300 est. | reviewed — awaiting go-ahead |
-| 19 | 1 | 04-01, 05-01 | The blue-chip short-borrow justification appears twice with different benchmark rates. Keep the quantitative modelling justification in the action-space section, where the cost-symmetry assumption is defined; reduce Chapter 5's asset-selection treatment to a cross-reference. | ~80-100 est. | reviewed — awaiting go-ahead |
+| 19 | 1 | 04-01, 05-01 | The blue-chip short-borrow justification appeared twice with slightly different benchmark rates (04-01: 25-75 bps range with a 50 bps worked example tied to the reward function's cost-symmetry term; 05-01: "below 0.5% per annum" ceiling in the asset-selection context). Kept 04-01's quantitative version as authoritative; condensed 05-01 to its own distinct content (why blue-chip liquidity was the selection criterion, the illiquid-instrument contrast) with a cross-reference to Section 4.1. | -80 | applied (`a34ca641`) |
 | 20 | 2 | 05-01, 99-appendix | User-directed re-review of tables specifically. `tbl-transformed-features` (12-row x 9-col AAPL example) forced its own dedicated landscape page purely for illustration; the row-selection window is hardcoded in `thesis_tables.py::lob_events_table()`, so shrinking it in place would have required a Python edit with uncertain page payoff (landscape is driven by column width, not row count). Moved the full table and its intro paragraph to a new listed appendix section (`#sec-appendix-transformed-features`); the body keeps the three interpretive claims (bid-refresh sign flip at event 12, microprice-deviation intuition, OFI spike) in one condensed paragraph pointing to the appendix table. | -2 body pages (107 -> 105); words -198 (32,392 -> 32,194); total PDF unchanged (148) since the appendix absorbed the page | applied (`75ad10de`) |
 | 21 | 1 | 04-03, 05-02, 07-03 | First full read of `04-03` (reward function), `04-04`, `04-06`, `04-07`, and `05-02` (all previously untouched by any session). Found a genuine methodological point restated in full 4 times: "training reward (DSR) is not the evaluation financial metric; conflating them (e.g. citing a high training DSR as evidence of held-out Sharpe) is invalid" appears in `04-03` (fullest, kept as authoritative), `05-02`'s "two output streams" implementation note, `07-03`'s practitioner-recommendation bullet, and a fourth copy at the end of `04-03` itself restating `07-02`'s "Algorithm and reward ablation" future-work item down to the same Sortino/drawdown-penalized alternatives. Kept 04-03's version, compressed 05-02 and 07-03 to their own distinct framing with a pointer to Section 4.3, and replaced 04-03's closing sentence with a plain forward pointer to Chapter 7. `04-04`, `04-06`, `04-07`, and the pseudocode in `05-02` were checked and found tightly scoped — no further findings. | -70 (05-02+07-03) | applied (`997e1e0e`) |
 | 22 | 3 | 04-03 | User asked directly whether "4.3.2 Differential Sharpe Ratio" was too long. Confirmed: not cross-chapter duplication (checked `07-02` for overlap — none), but internal disproportion — four full-paragraph limitations, a footnote deriving a complete numeric order-of-magnitude chain ($\sigma\approx4.5\times10^{-5}$ -> variance $2\times10^{-9}$ -> its $3/2$ power $10^{-13}$) just to justify not rescaling the reward, and a "why chosen anyway" reason that restated the training-vs-evaluation separation point made two paragraphs earlier in the same subsection. Condensed the four limitations to their substance, collapsed the footnote to its conclusion, and cut the redundant third reason. | -372 (1808 -> 1436); total PDF -2 pages (148 -> 146, crossed a page boundary), body -1 page (105 -> 104) | applied (`1927073a`) |
 | 23 | 1 | 04-02, 04-03, 05-00 | User asked whether 4.2 State Space was too long. Found: (a) the full MBP-10 format definition copy-pasted verbatim as a footnote in `04-02`, `04-03`, and `05-00`, on top of the proper main-text explanation already in `05-01` — kept `05-01` as authoritative, replaced the other three with a short cross-reference; (b) within `04-02`, the position feature's normalization rationale stated in full twice ~40 lines apart; (c) `04-02`'s "augment with VIX futures/sector-ETF/options-skew" future-work aside duplicated `07-02`'s "Cross-asset and multi-asset extensions" item almost verbatim — cut to a plain forward pointer; (d) a closing paragraph in `04-02` that only recapped facts (d=11, normalization, Appendix A) already established earlier in the same file; (e) the "Scope and timescale consistency" criterion was fragmented into six 1-2 sentence paragraphs — consolidated into two denser paragraphs, no content lost. | -279 net across 3 files (04-02: 2125->1960; 04-03: 1436->1380; 05-00: shrunk) | applied (`1e7afecf`) |
 | 24 | 1 | 06-00 | User asked for more items; first full duplication/breadth pass on Chapter 6 prose (tables already cleared in an earlier session). "Key Empirical Questions" (3 questions, ~230 words) set up theoretical framing — TD3 overestimation correction vs. DDPG, PPO stability-vs-efficiency — that "Discussion of Algorithmic Trade-offs" immediately below restates almost verbatim while actually doing the analysis (e.g. the DDPG paragraph explicitly repeats "the theoretical concern that DDPG's single-critic Q-learning is susceptible to overestimation bias"). The third question was too generic to ever be specifically answered. Compressed the three-question setup to one transitional sentence into Discussion. | -176 (1693 -> 1517) | applied (`267e2519`) |
 | 25 | 1 | 06-03 | Found in the same Chapter 6 pass. Two consecutive closing paragraphs — "Taken together..." and "The performance verdict for H1..." — both concluded that the agent's better-than-passive return is risk-avoidance (near-neutral positioning) rather than genuine trading skill, with no deployability claim, just reworded. Merged into one paragraph retaining every distinct point (structural outperformance, weak trade-level quality, the "weak feasibility test" framing, and the forward pointer to H2/H3). | -25 (1218 -> 1193) | applied (`267e2519`) |
-| 26 | - | 06-00, 06-01, 06-03 | Two data/consistency issues noticed while reading Chapter 6 closely, out of this skill's scope (not duplication, breadth, or a movable table). (a) `06-00` reports the DSR-reward TD3 run's exposure as "49.8% long, 50.2% short, turnover 0.054%" while `06-03` reports the *same* experiment (`pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr`) as "54.9% long, 45.1% short, turnover 0.058%" — should be identical numbers from the same run. (b) `06-01` lists repeating "each configuration across at least five seeds" as unaddressed future work, while `06-02`'s H4 section (`_h4_n5`, `n=5` trials) explicitly claims to close exactly that gap — apparent contradiction, unclear whether H4's short-trial multi-seed design actually substitutes for what `06-01` meant. Refer to `thesis-data-auditor` or a manual check; not fixed here since it requires determining which claim is correct, not an editorial call. | 0 | logged |
+| 27 | 3 | 06-01 | User flagged `06-01`'s "Comparative Validation Strategy" 4-point interpretation hierarchy and "Statistical Risks and Interpretation Caveats" as generic filler never explicitly invoked by name in the H2/H3/H4 discussions that follow. Confirmed and asked the user to choose between delete, move to appendix, or gut to load-bearing content; user chose gut. Cut the 4-point hierarchy, the extended caveats list, and a dead code chunk that computed run statistics but never displayed them. Kept only: repeated-run divergence quantifies training stochasticity not market uncertainty, tuning-bias risk, and reward-vs-financial-objective divergence. | -287 (374 -> 87) | applied (`4395919c`) |
+| 28 | 1 | 06-00 | Self-inflicted duplicate caught immediately by the user: item 27's gutted `06-01` text used nearly the same phrase as `06-00`'s "Comparison Methodology" ("matched experimental evidence... not a multi-seed estimate of the population distribution of outcomes"). Also separately, `06-00`'s version's first sentence restated its own section's opening paragraph ("identical data, features, and evaluation protocols"). Cut the redundant first sentence from `06-00`, kept its specific single-run-per-algorithm caveat as authoritative, and pointed `06-01` back to it instead of repeating the phrase. | -32 (1517 -> 1485) | applied (`4395919c`) |
+| 26 | - | 06-00, 06-01, 06-03 | Two data/consistency issues noticed while reading Chapter 6 closely, out of this skill's scope (not duplication, breadth, or a movable table). (a) `06-00` reports the DSR-reward TD3 run's exposure as "49.8% long, 50.2% short, turnover 0.054%" while `06-03` reports the *same* experiment (`pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr`) as "54.9% long, 45.1% short, turnover 0.058%" — should be identical numbers from the same run. Still open; refer to `thesis-data-auditor` or a manual check. (b) `06-01` listed repeating "each configuration across at least five seeds" as unaddressed future work, while `06-02`'s H4 section (`_h4_n5`, `n=5` trials) explicitly claims to close exactly that gap — apparent contradiction. Incidentally resolved as a side effect of item 28: the gutted `06-01` no longer makes the 5-seed future-work claim, so the contradiction no longer exists in the rendered text (not verified against which claim was actually correct, just no longer stated twice). | 0 | (a) open — logged; (b) resolved incidentally by item 28 |
 
 ## Session log
 
@@ -278,16 +283,33 @@ length one. Out of this skill's scope (`thesis-data-auditor`'s territory); the
 underlying fix is re-running `evaluate` to generate the parquet artifacts the
 plots read from, not an editorial change.
 
+**2026-08-29, session 9 (item 19 + user-flagged 06-01):** Applied item 19
+(the last queued cross-chapter duplicate). User then pasted the rendered
+"6.2. Statistical Validation" section directly and asked to cut it as
+"generic... bullshit for now." Rather than delete outright, offered a choice
+(delete / move to appendix / gut to load-bearing content); user chose gut
+(item 27). While gutting, introduced a fresh duplicate against `06-00`'s
+"Comparison Methodology" — caught immediately when the user pasted that
+section and asked the same "too generic?" question — fixed both together
+(item 28). Incidentally resolved half of item 26's logged inconsistency (the
+06-01/06-02 5-seed contradiction) as a side effect. Fresh Quarto render
+succeeded: total PDF unchanged at 144 pages, body 102 -> 101 pages, body
+words 31,257 -> 30,878.
+
 **Where this leaves the 80-page target:** every chapter has now had at least
 one full duplication/breadth pass, and every table-bearing file has had a
-dedicated tables pass. Items 11, 18, and 19 are still awaiting go-ahead
-(~530-700 words, ~2 pages combined). Applying them would bring the body to
-roughly 100 pages — still ~20 pages above the 80-page target. Session 8's
-closing assessment: the remaining gap is unlikely to close through more
-duplication/breadth findings of this kind, since a genuinely thorough sweep
-has now been run across the whole document. Closing it further would need one
-of: sentence-level tightening across the board (`hemingway`, out of this
-skill's scope), a harder category-3 judgment call on already-reviewed
-material (re-opening chapters like 07 for a second, more aggressive pass —
-risky, given session 1's over-aggressive-cut lesson), or reconsidering
-whether 80 pages is the right target for this thesis's actual content.
+dedicated tables pass. Items 11 and 18 are still awaiting go-ahead
+(~450-600 words, ~1.5 pages combined). Applying them would bring the body to
+roughly 99-100 pages — still ~19-20 pages above the 80-page target. The
+remaining gap is unlikely to close through more duplication/breadth findings
+of this kind on unreviewed material, since a genuinely thorough sweep has now
+been run across the whole document — session 9's finds (27, 28) came from the
+user directly questioning specific already-reviewed passages, not from fresh
+chapter reconnaissance, suggesting this mode (user points, Claude verifies
+and elaborates before cutting) may still have more to find in already-cleared
+chapters. Closing the full gap would need one of: sentence-level tightening
+across the board (`hemingway`, out of this skill's scope), a harder
+category-3 judgment call on already-reviewed material (re-opening chapters
+like 07 for a second, more aggressive pass — risky, given session 1's
+over-aggressive-cut lesson), or reconsidering whether 80 pages is the right
+target for this thesis's actual content.
