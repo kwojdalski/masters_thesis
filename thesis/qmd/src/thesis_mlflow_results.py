@@ -927,17 +927,56 @@ def _load_results_json_tolerant(path: Path) -> dict:
     return json.loads(raw)
 
 
+def _results_split_entries(results: dict, prefix: str) -> tuple[dict, dict]:
+    """Return ``(pooled, per_symbol)`` metric entries for one split prefix.
+
+    A pooled entry is keyed by the bare split name (``"test"``). Per-symbol
+    entries carry a symbol suffix in one of two shapes depending on which code
+    path wrote them: ``"test_AAPL"`` from ``EvaluateCommand`` and
+    ``"val__AAPL"`` from ``pipeline.evaluation.evaluate_per_symbol``. Matching
+    on the ``_`` boundary covers both without letting ``"test"`` also swallow
+    its own per-symbol components.
+
+    Mirrors ``_split_entries`` in scripts/export_eval_to_thesis.py.
+    """
+    pooled: dict = {}
+    per_symbol: dict = {}
+    for key, entry in results.items():
+        if not isinstance(entry, dict) or not isinstance(entry.get("metrics"), dict):
+            continue
+        if key == prefix:
+            pooled[key] = entry
+        elif key.startswith(f"{prefix}_"):
+            per_symbol[key] = entry
+    return pooled, per_symbol
+
+
 def _aggregate_from_results_json(results: dict, split: str = "test") -> dict[str, Any]:
-    """Average metrics across all {split}_* entries in a results.json dict."""
-    for prefix in (split, "val", "train"):
-        entries = {
-            k: v
-            for k, v in results.items()
-            if k.startswith(prefix) and isinstance(v.get("metrics"), dict)
-        }
+    """Average metrics for the requested split in a results.json dict.
+
+    Falls back to val then train when the requested split is absent, but stamps
+    ``__source_split__`` on the result so callers can tell that a substitution
+    happened -- these numbers are rendered by the results chapters as
+    out-of-sample performance, and a silent train-for-test swap presents
+    in-sample figures as held-out ones.
+
+    Pooled and per-symbol entries are never averaged together: a pooled figure
+    is already an aggregate over the same symbols, so mixing it with its own
+    components double-counts them.
+    """
+    # dict.fromkeys keeps order while dropping the duplicate that appears when
+    # split is itself "val" or "train".
+    entries: dict = {}
+    source_split: str | None = None
+    for prefix in dict.fromkeys((split, "test", "val", "train")):
+        pooled, per_symbol = _results_split_entries(results, prefix)
+        # Prefer the disaggregated per-symbol entries when both are present.
+        entries = per_symbol or pooled
         if entries:
+            source_split = prefix
             break
-    else:
+
+    if not entries or source_split is None:
         return {}
 
     all_keys: set[str] = set()
@@ -955,6 +994,12 @@ def _aggregate_from_results_json(results: dict, split: str = "test") -> dict[str
             and math.isfinite(entry["metrics"][key])
         ]
         aggregated[key] = (sum(vals) / len(vals)) if vals else None
+
+    # Provenance travels with the numbers; load_scenario_metrics warns on a
+    # mismatch. Consumers address metrics by explicit key, so this is inert
+    # for the result tables.
+    aggregated["__source_split__"] = source_split
+    aggregated["__source_keys__"] = sorted(entries)
     return aggregated
 
 
@@ -1033,6 +1078,9 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
                 results = _load_results_json_tolerant(results_path)
                 aggregated = _aggregate_from_results_json(results, split)
                 if aggregated:
+                    _warn_on_split_mismatch(
+                        scenario_name, aggregated, split, str(results_path)
+                    )
                     return aggregated
             except Exception as exc:
                 _log_fallback(f"reading logs results.json at {results_path}", exc)
