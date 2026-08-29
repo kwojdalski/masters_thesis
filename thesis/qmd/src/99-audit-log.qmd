@@ -1,0 +1,10 @@
+```{python}
+#| label: cell-asset-provenance-audit-log
+#| output: asis
+#| echo: false
+#| warning: false
+
+from thesis_asset_debug import show_asset_audit_log
+
+show_asset_audit_log()
+```

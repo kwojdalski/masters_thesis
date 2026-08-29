@@ -1,7 +1,7 @@
 {
   "scenario": "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
   "n_trials": 5,
-  "max_steps": 25000,
+  "max_steps": 200000,
   "statistics": {
     "n_trials": 5,
     "mean_return": 0.0,

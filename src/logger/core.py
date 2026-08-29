@@ -136,6 +136,14 @@ def setup_logging(
     """Configure loguru sinks for the project and return the logger."""
     logger.remove()
 
+    use_color = (
+        colored_output and not structured_logging and "NO_COLOR" not in os.environ
+    )
+    # Spawned workers import Loguru before application initializers run. These
+    # defaults make their initial sink match the parent process from first import.
+    os.environ["LOGURU_LEVEL"] = level.upper()
+    os.environ["LOGURU_COLORIZE"] = "YES" if use_color else "NO"
+
     if log_regex is None:
         log_regex = os.environ.get("LOG_REGEX")
 
@@ -158,7 +166,6 @@ def setup_logging(
         fmt = format_string
 
     if console_output:
-        use_color = colored_output and not structured_logging
         console_fmt = _make_kv_format(fmt) if use_color else fmt
         logger.add(
             sys.stdout,

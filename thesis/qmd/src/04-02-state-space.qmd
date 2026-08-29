@@ -129,7 +129,7 @@ the complete specification including all parameter values is in Appendix A.
 | Order flow imbalance | Order flow | $\Delta V^{bid}_t \cdot \mathbf{1}[P^{bid}_{0,t} \geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t \cdot \mathbf{1}[P^{ask}_{0,t} \leq P^{ask}_{0,t-1}]$ | @Cont2014 |
 | Signed trade flow | Order flow | $\sum_{\tau=t-W+1}^{t} \mathrm{size}_\tau \cdot (\mathbf{1}[\mathrm{side}_\tau = \mathrm{B}] - \mathbf{1}[\mathrm{side}_\tau = \mathrm{A}])$ | @LeeReady1991 |
 
-: Key feature definitions. Full specification in Appendix A. {#tbl-features}
+: Key feature definitions. {#tbl-features}
 
 ::: {.table-note}
 **Source:** Author's own compilation; each formula is attributed to its originating study in the Citation column.

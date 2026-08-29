@@ -5,7 +5,7 @@
   "std_return": 0.0,
   "p_value_return": NaN,
   "n_trials": 5,
-  "max_steps": 25000,
+  "max_steps": 200000,
   "criteria_met": "0/4",
   "overall_learning": false
 }
