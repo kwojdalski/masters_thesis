@@ -1,0 +1,97 @@
+name: Daily Thesis Build
+
+# publish.yml only fires on pushes touching thesis/**, but the thesis is built
+# by a Quarto pre-render hook (scripts/export_all_to_thesis.py) that reads the
+# evaluation pipeline under src/ and scripts/. A change there can break the
+# render without any workflow noticing until someone next edits the thesis.
+# This job builds it once a day so that breakage surfaces on its own.
+#
+# It verifies only: no auto-commit, no Pages deploy. publish.yml remains the
+# single writer of the rendered PDF and the site.
+
+on:
+  schedule:
+    # 03:17 UTC daily. Off the hour because scheduled jobs queue behind the
+    # spike of on-the-hour workflows across GitHub.
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Deliberately not the "pages" group used by publish.yml -- a daily
+  # verification run must never cancel a real publish.
+  group: daily-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      AUDIT_PLOTS: "1"
+      THESIS_DEBUG_ASSETS: "1"
+      PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
+      MPLBACKEND: Agg
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+        with:
+          tinytex: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --extra dev
+
+      - name: Export experiment results to thesis snapshots
+        # Run the pre-render hook explicitly so a failure here is attributed to
+        # the export step rather than surfacing as an opaque Quarto error.
+        run: uv run python scripts/export_all_to_thesis.py
+
+      - name: Render thesis to PDF
+        run: uv run quarto render thesis/qmd/src/masters-thesis.qmd --to pdf
+
+      - name: Render thesis to HTML
+        run: uv run quarto render thesis/qmd/src/masters-thesis.qmd --to html
+
+      - name: Check the PDF is non-trivial
+        # Quarto can exit 0 having produced a near-empty document if content
+        # silently failed to render, so assert a plausible floor on size.
+        run: |
+          pdf="thesis/qmd/src/masters_thesis.pdf"
+          if [ ! -f "$pdf" ]; then
+            echo "::error::No PDF produced at $pdf"
+            exit 1
+          fi
+          bytes=$(wc -c < "$pdf")
+          echo "PDF size: ${bytes} bytes"
+          if [ "$bytes" -lt 100000 ]; then
+            echo "::error::PDF is only ${bytes} bytes; expected >= 100000. Render likely lost content."
+            exit 1
+          fi
+
+      - name: Upload rendered thesis
+        # Kept on failure too: the partial output is usually what you need to
+        # see when diagnosing why the build broke.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: thesis-${{ github.run_id }}
+          path: |
+            thesis/qmd/src/masters_thesis.pdf
+            thesis/qmd/src/masters-thesis.html
+          retention-days: 14
+          if-no-files-found: warn
