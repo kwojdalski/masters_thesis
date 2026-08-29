@@ -11,18 +11,20 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **148 pages** (measured 2026-08-29, fresh render after item 20)
-Body word count (chapters 01-07): **32,194 words**
-Body page range: printed pages 8-112 (physical PDF pages 9-113), **105 body
-pages**; Bibliography begins on printed page 113
-words_per_page: ~307 (32,194 / 105 measured body pages)
-Cumulative body reduction from the complete pre-condensation draft: **6,407
+Current: **146 pages** (measured 2026-08-29, fresh render after item 22)
+Body word count (chapters 01-07): **31,737 words**
+Body page range: printed pages 8-111 (physical PDF pages 9-112), **104 body
+pages**; Bibliography begins on printed page 112
+words_per_page: ~305 (31,737 / 104 measured body pages)
+Cumulative body reduction from the complete pre-condensation draft: **6,864
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
 body table moved into the appendix. Session 6 moved a second body table into
 the appendix, reducing the body by 2 further pages (107 -> 105) at unchanged
 total PDF length (148 pages before and after), since the appendix absorbed the
-page the body gave up.
+page the body gave up. Session 7 cut a 4-way restated methodological warning
+and tightened an over-derived reward-function subsection, taking total pages
+148 -> 146 and body 105 -> 104.
 
 Session 1 scope note: started with chapter 7 (closing material) rather than
 chapter-number order, because initial reconnaissance (word counts across all
@@ -48,17 +50,28 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
       and now reviewed for both tables and category-3 breadth. Its redundant
       table was removed (item 12), and its repeated algorithm-selection material
       was consolidated (item 16). Other Chapter 3 files still need review.
-- [ ] 04 Design of the Trading Agent — `04-01`, `04-02`, and `04-05` fully
-      read. The duplicated feature-formula and actor-architecture tables were
-      removed (items 14-15); the controlled policy-comparison table was kept
-      because it is the single implementation-level comparison used to frame
-      Chapter 6. Repeated exploration derivations were consolidated (item 17).
-- [ ] 05 Implementation — `05-01-data-preparation.qmd` fully read and reviewed
-      for tables, twice. Four table reductions/moves applied across sessions
-      (items 4, 13, and 20); the raw-sample, feature-correlation, and
+- [x] 04 Design of the Trading Agent — all seven files fully read
+      (`04-01` through `04-07`). The duplicated feature-formula and
+      actor-architecture tables were removed (items 14-15); the controlled
+      policy-comparison table was kept because it is the single
+      implementation-level comparison used to frame Chapter 6. Repeated
+      exploration derivations were consolidated (item 17). `04-03`'s DSR
+      training-vs-evaluation warning was deduplicated against `05-02`/`07-03`
+      and its limitations discussion tightened (items 21-22). `04-04`, `04-06`,
+      and `04-07` are tightly scoped, thesis-specific instantiations of
+      Chapter 3 theory — checked, no findings.
+- [x] 05 Implementation — both files fully read. `05-01-data-preparation.qmd`
+      reviewed for tables twice; four table reductions/moves applied across
+      sessions (items 4, 13, and 20); the raw-sample, feature-correlation, and
       three-row split tables were kept because surrounding prose uses their
       specific values. The twelve-row transformed-feature illustration was
-      moved to the appendix in session 6 (item 20).
+      moved to the appendix in session 6 (item 20). `05-02-code.qmd` (pipeline,
+      training-loop pseudocode, sanity checks) read for the first time in
+      session 7: the pseudocode is legitimate operationalization of Chapter 3/4
+      equations, not a restatement, and does not overlap with `05-01`'s content
+      or `06-*`'s sanity-check mention (different purpose: implementation
+      pre-flight check vs. a formal benchmark strategy). One duplication found
+      and cut (item 21).
 - [ ] 06 Results — all result tables in `06-00`, `06-02`, and `06-03` fully
       read and cleared in the tables-only pass. Kept because the interpretation
       cites specific cells and removing them would remove empirical evidence.
@@ -101,6 +114,8 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 18 | 1/3 | 01-00, 01-01 | The introduction already states the TD3/HFT/LOB/continuous-control contribution, then "Novelty" states it again. The objectives list also restates the hypotheses, while the introduction's final three paragraphs preview execution and evaluation limitations treated fully in Chapters 5 and 7. Keep the hypotheses and one concise boundary paragraph; compress novelty and objectives around them. | ~220-300 est. | reviewed — awaiting go-ahead |
 | 19 | 1 | 04-01, 05-01 | The blue-chip short-borrow justification appears twice with different benchmark rates. Keep the quantitative modelling justification in the action-space section, where the cost-symmetry assumption is defined; reduce Chapter 5's asset-selection treatment to a cross-reference. | ~80-100 est. | reviewed — awaiting go-ahead |
 | 20 | 2 | 05-01, 99-appendix | User-directed re-review of tables specifically. `tbl-transformed-features` (12-row x 9-col AAPL example) forced its own dedicated landscape page purely for illustration; the row-selection window is hardcoded in `thesis_tables.py::lob_events_table()`, so shrinking it in place would have required a Python edit with uncertain page payoff (landscape is driven by column width, not row count). Moved the full table and its intro paragraph to a new listed appendix section (`#sec-appendix-transformed-features`); the body keeps the three interpretive claims (bid-refresh sign flip at event 12, microprice-deviation intuition, OFI spike) in one condensed paragraph pointing to the appendix table. | -2 body pages (107 -> 105); words -198 (32,392 -> 32,194); total PDF unchanged (148) since the appendix absorbed the page | applied (`75ad10de`) |
+| 21 | 1 | 04-03, 05-02, 07-03 | First full read of `04-03` (reward function), `04-04`, `04-06`, `04-07`, and `05-02` (all previously untouched by any session). Found a genuine methodological point restated in full 4 times: "training reward (DSR) is not the evaluation financial metric; conflating them (e.g. citing a high training DSR as evidence of held-out Sharpe) is invalid" appears in `04-03` (fullest, kept as authoritative), `05-02`'s "two output streams" implementation note, `07-03`'s practitioner-recommendation bullet, and a fourth copy at the end of `04-03` itself restating `07-02`'s "Algorithm and reward ablation" future-work item down to the same Sortino/drawdown-penalized alternatives. Kept 04-03's version, compressed 05-02 and 07-03 to their own distinct framing with a pointer to Section 4.3, and replaced 04-03's closing sentence with a plain forward pointer to Chapter 7. `04-04`, `04-06`, `04-07`, and the pseudocode in `05-02` were checked and found tightly scoped — no further findings. | -70 (05-02+07-03) | applied (`997e1e0e`) |
+| 22 | 3 | 04-03 | User asked directly whether "4.3.2 Differential Sharpe Ratio" was too long. Confirmed: not cross-chapter duplication (checked `07-02` for overlap — none), but internal disproportion — four full-paragraph limitations, a footnote deriving a complete numeric order-of-magnitude chain ($\sigma\approx4.5\times10^{-5}$ -> variance $2\times10^{-9}$ -> its $3/2$ power $10^{-13}$) just to justify not rescaling the reward, and a "why chosen anyway" reason that restated the training-vs-evaluation separation point made two paragraphs earlier in the same subsection. Condensed the four limitations to their substance, collapsed the footnote to its conclusion, and cut the redundant third reason. | -372 (1808 -> 1436); total PDF -2 pages (148 -> 146, crossed a page boundary), body -1 page (105 -> 104) | applied (`1927073a`) |
 
 ## Session log
 
@@ -192,3 +207,31 @@ committed immediately (`75ad10de`) to minimize the exposure window. Lesson:
 when multiple sessions may share a working directory, commit early and often
 rather than batching edits, since uncommitted state is exactly what a
 concurrent session's git operations can destroy without warning.
+
+**2026-08-29, session 7 (user-directed hunt for more items, prose):** User
+asked for more condensation candidates, specifically in chapters not yet
+reviewed. Read every remaining unread file: `04-03` through `04-07`
+(reward function, value function, discount factor, optimization
+hyperparameters) and `05-02` (implementation/code) — none of these had been
+opened in any prior session. Found one genuine 4-way restatement of a
+methodological point spanning three chapters (item 21) and, on direct
+follow-up from the user questioning the length of the DSR subsection,
+confirmed and fixed a disproportionate internal-to-one-subsection bloat
+(item 22) rather than cross-chapter duplication. This is the first session to
+find a real finding outside Chapters 3, 5 (tables), and 7 — Chapters 4 and 5
+are now fully read end to end. Working in a dedicated branch
+(`kwojdalski/dedup-dsr-training-eval-separation`) from the start, given the
+concurrent-session incident in session 6, and committing after every edit.
+Fresh Quarto render succeeded: total PDF 148 -> 146 pages (crossed a page
+boundary), body 105 -> 104 pages, body words 32,194 -> 31,737.
+
+**Remaining unreviewed material:** Chapter 2's six files other than `02-04`
+and `02-07` were read fresh in the previous session's reconnaissance and found
+tightly scoped (no findings); `03-00` and `03-01` were also read fresh and
+found tightly scoped. Chapters 1-5 are therefore now fully read at least once.
+Chapter 6's tables are cleared but its prose has not had a dedicated
+category-1/3 pass beyond the spot checks in this and the previous session. With
+items 11, 18, and 19 still awaiting go-ahead (~530-700 words, ~2 pages) and the
+target 25+ pages below current, closing the remaining gap will likely require
+either a Chapter 6 prose pass, sentence-level tightening (`hemingway`, out of
+this skill's scope), or reconsidering the target.
