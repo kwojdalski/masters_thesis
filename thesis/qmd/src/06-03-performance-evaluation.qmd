@@ -243,19 +243,17 @@ This arises from the same source: near-zero net exposure limits the
 cumulative loss that any single directional move can inflict, regardless of
 whether that positioning reflects skill or passivity.
 
-Taken together, the benchmark comparison establishes that the agent has learned
-to maintain near-neutral positioning in this test window, which incidentally
-reduces exposure during a period when all passive long strategies lost money.
-The agent does not demonstrate profitable active trading: its trade-level
+Taken together, the benchmark comparison establishes that the agent's
+outperformance is structural — near-neutral positioning that incidentally
+reduces exposure during a period when all passive long strategies lost money
+— rather than a sign of correctly timed directional bets. Its trade-level
 quality metrics (win rate, profit factor) are substantially worse than even a
-passive strategy, and the positive relative total return is entirely attributable
-to the neutral position stance. Whether a longer training horizon, richer feature
-set, or more targeted reward design can yield active trading profitability is the
-question addressed in the H2 and H3 comparisons.
-
-The performance verdict for H1 is therefore qualified. On the realized test
-window, the agent produces a better total return than all passive benchmarks
-($-0.014\%$ versus $-0.057\%$ to $-0.070\%$), but through risk avoidance rather
-than directional skill. It passes a weak feasibility test — it does not commit
-capital to a sustained wrong-direction bet — but it does not establish a basis
-for claiming a deployable or benchmark-dominating trading strategy.
+passive strategy, so the positive relative total return
+($-0.014\%$ versus $-0.057\%$ to $-0.070\%$) is entirely attributable to the
+neutral position stance, not profitable active trading. The H1 verdict is
+therefore qualified: the agent passes a weak feasibility test — it does not
+commit capital to a sustained wrong-direction bet — but does not establish a
+basis for claiming a deployable or benchmark-dominating strategy. Whether a
+longer training horizon, richer feature set, or more targeted reward design
+can yield active trading profitability is the question addressed in the H2
+and H3 comparisons.
