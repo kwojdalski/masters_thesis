@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Filter stock data to US market trading hours (9:30 AM - 4:00 PM EST).
+Filter stock data to the regular US equity session (9:30 AM - 4:00 PM ET).
 
 Usage:
     python scripts/filter_us_hours.py <input_file> [output_file]
@@ -14,34 +14,52 @@ Examples:
 
 import sys
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
+
+# The session is defined in exchange-local wall-clock time. Its UTC offset
+# moves with US daylight saving (UTC-5 in winter, UTC-4 in summer), so the
+# window must be evaluated after converting, never as fixed UTC hours.
+_EXCHANGE_TZ = ZoneInfo("America/New_York")
+_SESSION_OPEN_HOUR, _SESSION_OPEN_MINUTE = 9, 30
+_SESSION_CLOSE_HOUR = 16  # exclusive
 
 
 def filter_us_trading_hours(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Filter DataFrame to US market trading hours (9:30 AM - 4:00 PM EST).
+    Filter DataFrame to the regular US equity session (09:30-16:00 ET).
 
-    Assumes the DataFrame index is a DatetimeIndex in UTC timezone.
-    US market hours:
-    - Opens: 9:30 AM EST = 14:30 UTC
-    - Closes: 4:00 PM EST = 21:00 UTC
+    The session is converted to America/New_York before masking, so the window
+    stays correct across the daylight-saving boundary: 09:30 ET is 14:30 UTC
+    under EST but 13:30 UTC under EDT. Masking on fixed UTC hours dropped the
+    first hour of every EDT session (09:30-10:30 ET) and kept an hour of
+    post-close data instead. The conversion is per-timestamp, so a dataset
+    spanning a DST transition is handled correctly as well.
 
     Args:
-        df: DataFrame with DatetimeIndex in UTC
+        df: DataFrame with a tz-aware DatetimeIndex
 
     Returns:
-        Filtered DataFrame with only trading hours
+        Filtered DataFrame containing only regular-session rows
+
+    Raises:
+        ValueError: if the index is timezone-naive, which cannot be converted
+            to exchange-local time without guessing an offset.
     """
-    # Extract hour and minute from UTC timestamps
-    hours = df.index.hour
-    minutes = df.index.minute
+    if df.index.tz is None:
+        raise ValueError(
+            "filter_us_trading_hours requires a tz-aware DatetimeIndex; "
+            "localize it (e.g. df.index.tz_localize('UTC')) before calling."
+        )
 
-    # Keep data from 14:30:00 to 20:59:59 (market closes at 21:00:00)
-    mask = (((hours == 14) & (minutes >= 30)) |  # 14:30-14:59
-            ((hours >= 15) & (hours <= 20)))  # 15:00-20:59
+    local = df.index.tz_convert(_EXCHANGE_TZ)
+    after_open = (local.hour > _SESSION_OPEN_HOUR) | (
+        (local.hour == _SESSION_OPEN_HOUR) & (local.minute >= _SESSION_OPEN_MINUTE)
+    )
+    before_close = local.hour < _SESSION_CLOSE_HOUR
 
-    return df[mask]
+    return df[after_open & before_close]
 
 
 def main():
@@ -61,7 +79,9 @@ def main():
         output_file = Path(sys.argv[2])
     else:
         # Append '_us_hours' before the extension
-        output_file = input_file.parent / f"{input_file.stem}_us_hours{input_file.suffix}"
+        output_file = (
+            input_file.parent / f"{input_file.stem}_us_hours{input_file.suffix}"
+        )
 
     print(f"Loading data from: {input_file}")
     df = pd.read_parquet(input_file)
@@ -72,6 +92,7 @@ def main():
     # Check timezone
     if df.index.tz is None:
         print("Warning: Index has no timezone, assuming UTC")
+        df.index = df.index.tz_localize("UTC")
     elif str(df.index.tz) != "UTC":
         print(f"Warning: Index timezone is {df.index.tz}, expected UTC")
 
