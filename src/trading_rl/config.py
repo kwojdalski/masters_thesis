@@ -414,6 +414,12 @@ class EvaluationConfig:
     eval_fraction: float | None = (
         None  # Fraction of val data; overrides eval_steps when set
     )
+    # Budget for the periodic in-training _evaluate() rollout. Deliberately a
+    # fixed step count, never scaled by eval_fraction: eval_fraction sizes the
+    # final evaluation (1.0 = "score the whole split"), and feeding that to the
+    # mid-training pulse-check made it roll out the entire val split on every
+    # firing -- 21x more env stepping on eval than on training (#515).
+    periodic_eval_steps: int = 2000
     log_data: bool = (
         True  # Log per-step rollout parquet (action, returns) as an MLflow artifact
     )
@@ -590,6 +596,11 @@ def _validate_experiment_config(cfg: "ExperimentConfig") -> None:
     if cfg.evaluation.eval_steps <= 0:
         errors.append(
             f"evaluation.eval_steps must be > 0, got {cfg.evaluation.eval_steps}"
+        )
+    if cfg.evaluation.periodic_eval_steps <= 0:
+        errors.append(
+            "evaluation.periodic_eval_steps must be > 0, got "
+            f"{cfg.evaluation.periodic_eval_steps}"
         )
     if cfg.evaluation.eval_fraction is not None and not (
         0.0 < cfg.evaluation.eval_fraction <= 1.0

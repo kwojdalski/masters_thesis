@@ -110,7 +110,9 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             self.ppo_loss.value_estimator(
                 ppo_batch,
                 params=self.ppo_loss._cached_critic_network_params_detached,
-                target_params=getattr(self.ppo_loss, "target_critic_network_params", None),
+                target_params=getattr(
+                    self.ppo_loss, "target_critic_network_params", None
+                ),
             )
 
         self.optimizer.zero_grad()
@@ -130,7 +132,11 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             total_loss.backward()
             if self.config.max_grad_norm > 0:
                 torch.nn.utils.clip_grad_norm_(
-                    [p for group in self.optimizer.param_groups for p in group["params"]],
+                    [
+                        p
+                        for group in self.optimizer.param_groups
+                        for p in group["params"]
+                    ],
                     self.config.max_grad_norm,
                 )
             self.optimizer.step()
@@ -167,7 +173,11 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
         logger.info(
             "recurrent_ppo step max_steps={} buffer_size={} loss_value={:.4f} "
             "loss_actor={} loss_entropy={}",
-            max_length, buffer_len, curr_loss_value, curr_loss_actor, curr_loss_entropy,
+            max_length,
+            buffer_len,
+            curr_loss_value,
+            curr_loss_actor,
+            curr_loss_entropy,
         )
 
         if is_level_enabled("DEBUG"):
@@ -176,11 +186,9 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
     def _evaluate(self) -> None:
         """Evaluate current recurrent PPO policy."""
         with torch.no_grad():
-            n_eval = (
-                self.eval_config.resolve_eval_steps(self._eval_data_len)
-                if self._eval_data_len is not None
-                else self.eval_config.eval_steps
-            )
+            # Fixed budget, not resolve_eval_steps(): eval_fraction belongs to
+            # the final evaluation only (see EvaluationConfig.periodic_eval_steps).
+            n_eval = self.eval_config.periodic_eval_steps
             eval_env = self._eval_env or self.env
             if self._eval_env is None:
                 logger.warning(
@@ -191,7 +199,9 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
                 with set_exploration_type(InteractionType.MODE):
                     eval_rollout = eval_env.rollout(n_eval, self.actor)
             except RuntimeError:
-                logger.debug("Mode not available for distribution, falling back to Mean")
+                logger.debug(
+                    "Mode not available for distribution, falling back to Mean"
+                )
                 with set_exploration_type(InteractionType.DETERMINISTIC):
                     eval_rollout = eval_env.rollout(n_eval, self.actor)
 
@@ -203,10 +213,15 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             self.logs["eval_reward_sum"].append(sum_reward)
             self.logs["eval_step_count"].append(max_steps)
 
-            eval_data_len = self._eval_data_len if self._eval_data_len is not None else "?"
+            eval_data_len = (
+                self._eval_data_len if self._eval_data_len is not None else "?"
+            )
             logger.info(
                 "recurrent_ppo eval mean_reward={:.4f} sum_reward={:.4f} eval_steps={} eval_data_len={}",
-                mean_reward, sum_reward, max_steps, eval_data_len,
+                mean_reward,
+                sum_reward,
+                max_steps,
+                eval_data_len,
             )
 
             del eval_rollout

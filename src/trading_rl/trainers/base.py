@@ -540,11 +540,9 @@ class BaseTrainer(ABC):
         TRACE logging (e.g. TD3 action-distribution stats).
         """
         with set_exploration_type(InteractionType.DETERMINISTIC), torch.no_grad():
-            n_eval = (
-                self.eval_config.resolve_eval_steps(self._eval_data_len)
-                if self._eval_data_len is not None
-                else self.eval_config.eval_steps
-            )
+            # Fixed budget, not resolve_eval_steps(): eval_fraction belongs to
+            # the final evaluation only (see EvaluationConfig.periodic_eval_steps).
+            n_eval = self.eval_config.periodic_eval_steps
             if self._eval_env is None:
                 logger.warning(
                     "{} _evaluate: no dedicated eval env set; skipping periodic eval "
