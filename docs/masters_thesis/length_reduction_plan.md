@@ -11,15 +11,18 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **148 pages** (measured 2026-08-29, fresh render after item 16)
-Body word count (chapters 01-07): **32,392 words**
-Body page range: printed pages 8-114 (physical PDF pages 9-115), **107 body
-pages**; Bibliography begins on printed page 115
-words_per_page: ~303 (32,392 / 107 measured body pages)
-Cumulative body reduction from the complete pre-condensation draft: **6,209
+Current: **148 pages** (measured 2026-08-29, fresh render after item 20)
+Body word count (chapters 01-07): **32,194 words**
+Body page range: printed pages 8-112 (physical PDF pages 9-113), **105 body
+pages**; Bibliography begins on printed page 113
+words_per_page: ~307 (32,194 / 105 measured body pages)
+Cumulative body reduction from the complete pre-condensation draft: **6,407
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
-body table moved into the appendix.
+body table moved into the appendix. Session 6 moved a second body table into
+the appendix, reducing the body by 2 further pages (107 -> 105) at unchanged
+total PDF length (148 pages before and after), since the appendix absorbed the
+page the body gave up.
 
 Session 1 scope note: started with chapter 7 (closing material) rather than
 chapter-number order, because initial reconnaissance (word counts across all
@@ -51,9 +54,11 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
       because it is the single implementation-level comparison used to frame
       Chapter 6. Repeated exploration derivations were consolidated (item 17).
 - [ ] 05 Implementation — `05-01-data-preparation.qmd` fully read and reviewed
-      for tables. Three table reductions/moves applied across sessions (items 4
-      and 13); the transformed-event, feature-correlation, and three-row split
-      tables were kept because surrounding prose uses their specific values.
+      for tables, twice. Four table reductions/moves applied across sessions
+      (items 4, 13, and 20); the raw-sample, feature-correlation, and
+      three-row split tables were kept because surrounding prose uses their
+      specific values. The twelve-row transformed-feature illustration was
+      moved to the appendix in session 6 (item 20).
 - [ ] 06 Results — all result tables in `06-00`, `06-02`, and `06-03` fully
       read and cleared in the tables-only pass. Kept because the interpretation
       cites specific cells and removing them would remove empirical evidence.
@@ -95,6 +100,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 17 | 1 | 03-02, 04-01, 04-05 | Gaussian exploration was explained generally in `04-01`, then re-derived separately for DDPG and TD3 in `04-05`; evaluation-time noise removal and TD3 target smoothing were each stated multiple times. Kept `eq-exploration-noise` as the authoritative equation, replaced the two policy subsections with one compact DDPG/TD3 comparison, retained the distinct target-smoothing parameters and purpose, and repaired Chapter 3's PPO cross-reference. | -400 body (measured) | applied |
 | 18 | 1/3 | 01-00, 01-01 | The introduction already states the TD3/HFT/LOB/continuous-control contribution, then "Novelty" states it again. The objectives list also restates the hypotheses, while the introduction's final three paragraphs preview execution and evaluation limitations treated fully in Chapters 5 and 7. Keep the hypotheses and one concise boundary paragraph; compress novelty and objectives around them. | ~220-300 est. | reviewed — awaiting go-ahead |
 | 19 | 1 | 04-01, 05-01 | The blue-chip short-borrow justification appears twice with different benchmark rates. Keep the quantitative modelling justification in the action-space section, where the cost-symmetry assumption is defined; reduce Chapter 5's asset-selection treatment to a cross-reference. | ~80-100 est. | reviewed — awaiting go-ahead |
+| 20 | 2 | 05-01, 99-appendix | User-directed re-review of tables specifically. `tbl-transformed-features` (12-row x 9-col AAPL example) forced its own dedicated landscape page purely for illustration; the row-selection window is hardcoded in `thesis_tables.py::lob_events_table()`, so shrinking it in place would have required a Python edit with uncertain page payoff (landscape is driven by column width, not row count). Moved the full table and its intro paragraph to a new listed appendix section (`#sec-appendix-transformed-features`); the body keeps the three interpretive claims (bid-refresh sign flip at event 12, microprice-deviation intuition, OFI spike) in one condensed paragraph pointing to the appendix table. | -2 body pages (107 -> 105); words -198 (32,392 -> 32,194); total PDF unchanged (148) since the appendix absorbed the page | applied (`75ad10de`) |
 
 ## Session log
 
@@ -154,3 +160,35 @@ words rather than the 750-850 estimate. Commit `95ac3f99` contains the Chapter 3
 change. A fresh Quarto render succeeded: total PDF 150 -> 148 pages and measured
 body 109 -> 107 pages. The build again reported existing missing-evaluation-data
 warnings for seven scenarios, but they did not prevent rendering.
+
+**2026-08-29, session 6 (user-directed tables re-review, item 20):** User asked
+for a fresh, skeptical pass over every remaining table specifically (not the
+general category-3 queue), after the earlier tables-only session had already
+cleared most of them. Re-read every table-bearing file end to end
+(`05-01`, `06-00`, `06-02`, `06-03`, `04-05`, `99-appendix`) rather than
+trusting prior notes, and confirmed nearly everything is legitimately
+load-bearing (specific cell values cited in the surrounding prose) or already
+referenced from the body via plain "Appendix A" text (`tbl-lob-features` —
+zero `@tbl-` cross-refs but genuinely used, confirmed via grep for
+"Appendix A" mentions across the body). One real finding survived: the
+12-row/9-column `tbl-transformed-features` example forced its own dedicated
+landscape page purely for illustration. Applied item 20 (see above); a minor
+second candidate (H4's per-trial table in `06-02`, ~5 rows, not cited by
+value) was flagged but left as-is — too small to be worth the appendix-move
+churn. Fresh Quarto render succeeded: total PDF unchanged at 148 pages,
+measured body 107 -> 105 pages, body words 32,392 -> 32,194.
+
+**Incident during this session:** a separate Claude Code session was
+concurrently committing to this same working directory and branch. While
+this session's edits were in progress, an operation in that other session
+reverted every uncommitted change in the tree back to the last shared commit,
+which silently discarded both this session's first attempt at item 20 and
+pre-existing uncommitted work from before this session started (item 17's
+qmd edits, a `masters-thesis.qmd` `\newpage` fix, and this plan file's
+session 3-5 documentation). The pre-existing work was recovered intact from a
+dangling git-stash object left over from an earlier rebase in this same
+session (commit `0748942f`); item 20 was then redone from scratch and
+committed immediately (`75ad10de`) to minimize the exposure window. Lesson:
+when multiple sessions may share a working directory, commit early and often
+rather than batching edits, since uncommitted state is exactly what a
+concurrent session's git operations can destroy without warning.
