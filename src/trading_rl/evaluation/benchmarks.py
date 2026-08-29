@@ -22,6 +22,14 @@ from trading_rl.evaluation.statistical_benchmarks import (
 
 logger = get_logger(__name__)
 
+# VWAP's execution schedule is normalised by the total volume realised over the
+# evaluation window, so it uses volume that has not traded yet at each step. It
+# is a retrospective transaction-cost-analysis reference, not a rule that could
+# have been traded -- unlike every other benchmark here. This label is attached
+# to the spec's metadata and propagated to the statistical-test results and
+# MLflow so the distinction survives into the reported tables (#526).
+VWAP_SCHEDULE_LABEL = "ex_post (realised-window volume; not implementable)"
+
 
 def benchmarks_from_config(benchmarks_config: Any) -> frozenset[BenchmarkName]:
     """Build a frozenset of plot-relevant BenchmarkName values from a BenchmarksConfig.
@@ -113,7 +121,11 @@ class BenchmarkEngine:
         *,
         volume_source: str | None = None,
     ) -> BenchmarkSpec:
-        meta: dict[str, Any] = {}
+        # VWAP's schedule is normalised by the window's total realised volume,
+        # so it is a retrospective TCA reference rather than a rule anyone
+        # could have traded. Recorded here so the property travels with the
+        # results instead of living only in a docstring (#526).
+        meta: dict[str, Any] = {"schedule": VWAP_SCHEDULE_LABEL}
         if volume_source:
             meta["volume_source"] = volume_source
         return BenchmarkSpec(
@@ -150,7 +162,10 @@ class BenchmarkEngine:
 
         Returns:
             A ``(specs, metadata)`` tuple where ``metadata`` may contain
-            ``"vwap_volume_source"`` if VWAP is enabled.
+            ``"vwap_volume_source"`` and ``"vwap_schedule"`` if VWAP is
+            enabled. ``vwap_schedule`` records that VWAP is an ex-post
+            reference rather than an implementable rule; see
+            :func:`~trading_rl.evaluation.statistical_benchmarks.compute_vwap_returns`.
         """
         if price_column not in market_data.columns:
             if "close" in market_data.columns:
@@ -208,9 +223,16 @@ class BenchmarkEngine:
                         "VWAP is using {}. This is quote-size-weighted, not true traded volume.",
                         volume_source,
                     )
+                logger.info(
+                    "VWAP benchmark is an ex-post reference: its schedule is "
+                    "normalised by the window's total realised volume, so it is "
+                    "not implementable in real time. TWAP is the causal "
+                    "execution baseline."
+                )
                 specs.append(
                     BenchmarkEngine.vwap(prices, volumes, volume_source=volume_source)
                 )
+                result_meta["vwap_schedule"] = VWAP_SCHEDULE_LABEL
                 if volume_source:
                     result_meta["vwap_volume_source"] = volume_source
 

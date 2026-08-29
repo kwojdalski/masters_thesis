@@ -37,7 +37,14 @@ def compute_short_and_hold_returns(prices: pd.Series, max_steps: int) -> np.ndar
 
 
 def _normalize_execution_weights(weights: np.ndarray) -> np.ndarray:
-    """Normalize execution weights to sum to 1 with robust fallbacks."""
+    """Normalize execution weights to sum to 1 with robust fallbacks.
+
+    The divisor is the total weight over the *whole* window.  For TWAP the
+    weights are constant, so this is just the window length -- known in
+    advance.  For VWAP they are realised traded volume, so the divisor is the
+    window's total volume, which is not observable until the window ends.  See
+    :func:`compute_vwap_returns` for why that is deliberate.
+    """
     w = np.asarray(weights, dtype=float)
     w = np.nan_to_num(w, nan=0.0, posinf=0.0, neginf=0.0)
     w = np.clip(w, a_min=0.0, a_max=None)
@@ -89,7 +96,28 @@ def compute_vwap_returns(
     volumes: pd.Series,
     max_steps: int,
 ) -> np.ndarray:
-    """Compute VWAP benchmark returns via volume-weighted execution schedule."""
+    """Compute VWAP benchmark returns via volume-weighted execution schedule.
+
+    EX-POST REFERENCE, NOT AN IMPLEMENTABLE STRATEGY.  Exposure at step ``t``
+    is ``cumsum(volume[:t]) / sum(volume[:n])``, and the divisor is the total
+    volume realised over the whole window -- volume that has not traded yet at
+    step ``t``.  The schedule therefore front- or back-loads according to how
+    volume happens to fall later in the window, which no participant could
+    reproduce in real time.
+
+    This matches the transaction-cost-analysis convention, where VWAP is a
+    retrospective reference price ("did the execution beat the day's VWAP?")
+    rather than a tradable rule.  It is kept deliberately: a causal volume
+    weighting is not constructible from the evaluation window alone, because
+    any estimate of "fraction of window volume completed by ``t``" built from
+    data up to ``t`` reduces to ``t/n`` -- i.e. to TWAP.  Weighting by volume
+    requires a volume profile estimated ex ante from other data.
+
+    Consequence for comparisons: rows computed here are not comparable to
+    agent or buy-and-hold rows on an implementability basis.  Use
+    :func:`compute_twap_returns` for the causal execution baseline.  Callers
+    surface this via the ``schedule`` benchmark metadata; see #526.
+    """
     if len(volumes) < 1:
         raise ValueError("Volume series must have at least 1 value")
     if max_steps <= 0:

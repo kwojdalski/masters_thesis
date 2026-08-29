@@ -47,7 +47,7 @@ expand the section beyond its practical purpose.
 | **Spread ratio** | The current bid-ask spread divided by its recent rolling mean; a regime signal separating absolute spread level from elevated adverse selection conditions. |
 | **TWAP** | Time-Weighted Average Price. An execution benchmark computed as the mean transaction price over a fixed time window, weighting each trade equally in time. Reported alongside VWAP in the performance comparison tables. |
 | **VIX** | CBOE Volatility Index. A measure of expected 30-day S&P 500 volatility derived from options prices; a common proxy for broad market fear or uncertainty. |
-| **VWAP** | Volume-Weighted Average Price. The average price of an asset weighted by traded volume over a period; a common execution benchmark. |
+| **VWAP** | Volume-Weighted Average Price. The average price of an asset weighted by traded volume over a period; a common execution benchmark. Computed retrospectively over the evaluation window, so the reported VWAP rows are reference values rather than attainable returns (see @sec-benchmark-strategies). |
 
 ### Reinforcement Learning and Machine Learning
 
