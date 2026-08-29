@@ -171,9 +171,8 @@ where:
 - $\mathcal{H}(\pi_\theta) = -\mathbb{E}[\log \pi_\theta(a \mid s)]$ — policy entropy
 - $c_1 > 0$ — coefficient controlling the strength of the exploration bonus
 
-This entropy-based exploration contrasts with TD3's additive noise approach
-described in @eq-td3-exploration, where exploration is injected directly into
-deterministic actions.
+This entropy-based exploration contrasts with the additive action noise used by
+DDPG and TD3 in @eq-exploration-noise.
 
 For trading applications, PPO's stochastic policy provides built-in exploration
 without requiring explicit noise injection during training, and its clipped
@@ -246,134 +245,59 @@ improves computational use of the simulated experience, but only under this
 execution assumption; it should not be interpreted as evidence that the agent has
 observed all counterfactual market reactions to alternative trades.
 
-TD3 is selected as the main algorithm on the basis of two prior constraints
-imposed by the thesis design and one design preference that interacts with those
-constraints.
+TD3 is selected on the basis of two constraints imposed by the thesis design
+and one preference that follows from them.
 
-The first constraint is that the action space is continuous: the agent outputs
-a target portfolio exposure in $[-1,1]$, so discretized value-based methods
-such as DQN would require an arbitrary action grid and would make position
-sizing a modelling artifact rather than a learned decision. This eliminates the
-DQN family entirely and restricts the viable candidates to policy-gradient and
-actor-critic algorithms.
+The action space is continuous — the agent outputs a target portfolio exposure
+in $[-1,1]$ — which eliminates the DQN family entirely, since a discretized
+action grid would make position sizing a modelling artifact rather than a
+learned decision, restricting the viable candidates to policy-gradient and
+actor-critic algorithms. The training window is also bounded by a fixed
+historical period, with live data collection outside the thesis's scope;
+off-policy algorithms that reuse transitions through a replay buffer extract
+more signal from each simulated step than on-policy methods, which
+disadvantages PPO relative to DDPG and TD3.
 
-The second constraint is that the training window is bounded by a fixed
-historical period and live data collection is outside the scope of the thesis.
-Off-policy algorithms that reuse transitions through a replay buffer extract more
-signal from each simulated step than on-policy methods that discard transitions
-after a single gradient update. This constraint disadvantages PPO relative to
-DDPG and TD3, though it does not determine the choice between them.
+Given these constraints, the viable candidates are DDPG, TD3, and SAC
+[@Haarnoja2018]. DDPG and TD3 are preferred over SAC because they use natively
+deterministic policies, matching the evaluation objective of a single exposure
+decision per state and avoiding the choice between sampling from or taking the
+mode of a stochastic distribution at deployment.
 
-Given these two constraints, the viable candidates are DDPG, TD3, and SAC
-[@Haarnoja2018]. Among these, DDPG and TD3 are preferred because they use
-natively deterministic policies, which aligns with the evaluation objective of
-a single exposure decision per state and avoids the need to choose between
-sampling from or taking the mode of a stochastic action distribution at
-deployment.
+SAC is excluded on methodological scope grounds rather than irrelevance. Its
+entropy-temperature coefficient introduces an additional objective
+dimension — trading off return against policy entropy — that is absent from
+the return-only formulation used here; this entropy-augmented framework has
+been applied to trading problems in the literature [@FinRL2020]. Comparing SAC
+to TD3 would require disentangling whether any improvement comes from the
+maximum-entropy objective or from the off-policy replay both algorithms share,
+an ablation outside this thesis's focus on value-estimation corrections for
+deterministic policies. SAC remains a promising direction for future work,
+particularly its online variants for regime shifts in non-stationary markets.
 
-SAC represents a distinct approach to continuous-control RL that warrants
-explicit discussion. Unlike TD3, which addresses instability through
-value-estimation corrections (twin critics and delayed updates), SAC
-formulates the problem as maximum entropy reinforcement learning: it optimizes
-both expected return and policy entropy simultaneously, treating exploration as
-an objective rather than a mechanism. This entropy-augmented framework has been
-applied to trading problems in the literature [@FinRL2020] and addresses the
-non-stationarity concern in a fundamentally different way—by encouraging policy
-diversity continuously rather than relying on off-policy replay from a fixed
-historical dataset.
+Between DDPG and TD3, TD3 is preferred because it was introduced precisely to
+correct DDPG's two failure modes — critic overestimation and policy-update
+instability from premature actor updates — both of which are expected to be
+acute when rewards are noisy and the critic must separate genuine market
+signal from approximation artifacts. TD3 is therefore not chosen as a
+generally superior trading method, but as the algorithm whose structural
+properties — off-policy replay, deterministic actor, explicit overestimation
+corrections — most directly match this thesis's simulation design.
 
-SAC is excluded from the present study on methodological scope grounds, not
-because it lacks relevance. The entropy-temperature coefficient that balances
-return maximization against exploration introduces an additional objective
-dimension that is not present in the return-only formulation used here.
-Comparing SAC to TD3 would therefore require answering two questions: (1) does
-the entropy-augmented objective improve trading performance, and (2) is any
-improvement attributable to the maximum-entropy formulation or to the
-off-policy replay that both algorithms share? Disentangling these effects
-would require a controlled ablation that is outside the thesis's methodological
-focus, which is on value-estimation corrections for deterministic policies in
-historical simulators. SAC remains a promising direction for future work,
-particularly its online variants that adapt the entropy coefficient during
-training to address regime shifts in non-stationary markets.
-
-Among the two remaining candidates, TD3 is preferred over DDPG because it was
-introduced precisely to correct DDPG's two main failure modes: critic
-overestimation and policy-update instability from premature actor updates. Both
-failure modes are expected to be acute when rewards are noisy and the critic
-must separate genuine market signal from approximation artifacts.
-
-TD3 is therefore not chosen as a generally superior trading method; it is chosen
-as the algorithm whose structural properties — off-policy replay, deterministic
-actor, and explicit corrections for overestimation — most directly match the
-constraints and preferences of the simulation design used here.
-
-The choice of TD3 should be read together with the trading constraints discussed
-in Chapter 2. Those sections motivate continuous exposure control, off-policy
-learning from historical data, and caution about transaction costs,
-non-stationarity, and partial observability. TD3 matches the first two
-requirements through deterministic continuous actions and replay-based learning.
-It does not solve the remaining market-design problems. For that reason, the
-empirical chapters must still evaluate performance under explicit transaction
-costs, chronological validation, and the simulation assumptions stated in later
-sections.
+This choice should be read together with the trading constraints discussed in
+Chapter 2, which motivate continuous exposure control, off-policy learning
+from historical data, and caution about transaction costs, non-stationarity,
+and partial observability. TD3 satisfies the first two through deterministic
+continuous actions and replay-based learning; it does not solve the remaining
+market-design problems, which the empirical chapters address separately.
 
 ### Algorithm Comparison: PPO, DDPG, and TD3 for Trading
 <!-- [VERIFIED] -->
 
-The three algorithms considered here differ along three dimensions that are
-particularly relevant to the continuous-action trading problem: learning paradigm,
-policy type, and stability mechanisms. These differences determine how to
-interpret empirical comparisons and why TD3 is selected over the alternatives.
-
-**On-policy vs. off-policy learning.** DDPG and TD3 are off-policy algorithms
-that use experience replay, allowing each transition to be reused many times
-across multiple gradient updates. This is valuable when the simulation budget is bounded,
-as it is in this thesis by the fixed historical training window. Replay buffers
-also decorrelate consecutive transitions, reducing the variance of gradient
-estimates. PPO is on-policy and uses each transition only once before discarding
-it, requiring more training iterations for comparable sample efficiency. However,
-on-policy learning can be more stable when the environment distribution shifts
-rapidly, as financial markets do.
-
-**Deterministic vs. stochastic policies.** DDPG and TD3 output deterministic
-actions $a = \mu_\phi(s)$, matching the evaluation objective of a single
-exposure decision per state. During training, exploration is handled by adding
-noise to the deterministic action: $a = \mu_\phi(s) + \epsilon$, with
-$\epsilon \sim \mathcal{N}(0, \sigma^2)$. At evaluation time, the noise is removed,
-yielding a consistent, interpretable policy. PPO maintains a stochastic policy
-that outputs a distribution over actions (typically Gaussian), with actions
-sampled from this distribution. Exploration is handled naturally through the
-entropy of the action distribution rather than explicit noise injection.
-Deterministic policies are preferable when the final deployed system must be
-consistent and interpretable, while stochastic policies can provide more
-flexible exploration during training.
-
-**Stability mechanisms.** Each algorithm addresses stability challenges
-through different mechanisms. DDPG suffers from Q-value overestimation because
-the actor can exploit positive approximation errors in the critic, and these
-overestimates propagate through bootstrapped Bellman updates. TD3 addresses this
-through clipped double Q-learning (taking the minimum of two critic estimates)
-and delayed policy updates (updating the actor less frequently than the critics).
-PPO prevents large policy changes through its clipped surrogate objective, which
-limits how much the policy can change in a single update. Both TD3 and PPO are
-more stable than vanilla DDPG, but through different mechanisms:
-TD3 targets value estimation errors, while PPO constrains policy changes directly.
-
-**Sample efficiency vs. stability trade-off.** The practical implication of
-these differences is a trade-off between sample efficiency and training stability.
-DDPG and TD3 can make efficient use of limited training data through replay, but
-DDPG's instability can make it difficult to train reliably. PPO is typically more
-stable but requires more data to achieve comparable performance due to its
-on-policy nature. In the present simulation setup, where the training window is bounded by the
-historical period used, TD3's replay-based learning extracts more signal from
-each transition, making its combination of off-policy efficiency and stability
-mechanisms a strong fit for the thesis design.
-
-This comparison framework, together with the implementation-level controls
-summarized in @tbl-policy-comparison, guides the experimental design in Chapter
-6, where PPO, DDPG, and TD3 are evaluated on identical trading tasks to
-empirically assess how these algorithmic differences translate to trading performance.
-The results help determine whether TD3's theoretical advantages (reduced
-overestimation, deterministic policy) translate to practical benefits in the
-noisy, non-stationary trading environment, and whether PPO's on-policy stability
-can compensate for its lower sample efficiency.
+The preceding sections establish how PPO, DDPG, and TD3 differ in learning
+paradigm, policy type, and stability mechanism, and why TD3 is selected under
+this thesis's constraints. @tbl-policy-comparison in Chapter 4 summarizes
+these differences at the implementation level — actor output, exploration
+noise, target smoothing, and update frequency — as configured for the
+controlled comparison in Chapter 6, where all three algorithms are evaluated
+on identical trading tasks.
