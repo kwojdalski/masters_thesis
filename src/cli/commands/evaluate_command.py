@@ -211,18 +211,16 @@ class EvaluateCommand(BaseCommand):
                 config, params, [str(p) for p in val_data_paths], checkpoint_path
             )
         elif val_data_paths and wants_val_or_test and not params.per_symbol:
-            self.console.print(
-                "[yellow]Multi-symbol scenario: val/test eval skipped. "
-                "Re-run with --per-symbol to evaluate each symbol separately.[/yellow]"
+            # Multi-symbol scenarios can only produce val/test through the
+            # per-symbol path. Silently substituting the train split here made
+            # in-sample metrics, benchmark tables and bootstrap significance
+            # tests flow into the thesis snapshots as out-of-sample results.
+            raise ValueError(
+                f"Scenario '{config.experiment_name}' defines data.val_data_paths, so the "
+                f"{params.split!r} split can only be evaluated per symbol. "
+                "Re-run with --per-symbol, or pass --split train to evaluate the "
+                "training split deliberately."
             )
-            # Fall back to train-only if "all" was requested; skip entirely otherwise.
-            if params.split == "all":
-                dataset = build_prepared_dataset(config, self.logger)
-                splits_to_eval = [SplitName.TRAIN]
-                split_dfs = {SplitName.TRAIN: dataset.train_df}
-            else:
-                splits_to_eval = []
-                split_dfs = {}
         else:
             dataset = build_prepared_dataset(config, self.logger)
             splits_to_eval = (

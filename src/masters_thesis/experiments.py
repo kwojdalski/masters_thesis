@@ -333,6 +333,11 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
             scenario,
             "--output-dir",
             output_dir,
+            # Every pooled scenario sets data.val_data_paths, and without this
+            # flag `evaluate` skips val/test entirely and reports the TRAIN
+            # split instead -- silently turning in-sample numbers into the
+            # thesis's out-of-sample results.
+            "--per-symbol",
             *[flag for only in eval_only for flag in ("--only", only)],
             *_override_flags(overrides),
         ]
@@ -479,6 +484,9 @@ def run_h4(
         "evaluate",
         "-c",
         scenario,
+        # See _evaluate_all: without --per-symbol this scenario's val/test
+        # splits are skipped and the train split is reported in their place.
+        "--per-symbol",
         *_override_flags(eval_overrides),
     ]
     if args.verbose:
