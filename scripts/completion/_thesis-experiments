@@ -1,0 +1,23 @@
+#compdef thesis-experiments
+
+# Zsh completion for the `thesis-experiments` Typer CLI (src/masters_thesis/experiments.py).
+#
+# Generated with:
+#   _THESIS_EXPERIMENTS_COMPLETE=source_zsh uv run thesis-experiments
+# then adapted to invoke the console script through `uv run` so it works
+# without activating this project's virtualenv, and without needing
+# `thesis-experiments` on PATH.
+#
+# To load: add this directory to fpath before compinit runs, e.g. in
+# ~/.zshrc:
+#   fpath=("$HOME/github_projects/masters_thesis/scripts/completion" $fpath)
+#
+# Once loaded, both of these complete:
+#   thesis-experiments <TAB>
+#   uv run thesis-experiments <TAB>   (see the generic `uv run` delegator
+#                                      set up in ~/dotfiles/zshrc)
+_thesis_experiments_completion() {
+  eval $(env _TYPER_COMPLETE_ARGS="${words[1,$CURRENT]}" _THESIS_EXPERIMENTS_COMPLETE=complete_zsh uv run thesis-experiments)
+}
+
+compdef _thesis_experiments_completion thesis-experiments

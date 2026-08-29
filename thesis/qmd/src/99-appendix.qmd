@@ -200,6 +200,56 @@ else:
 
 ---
 
+# Transformed Feature Example {#sec-appendix-transformed-features}
+
+```{=latex}
+\addcontentsline{loa}{section}{Transformed Feature Example}
+```
+
+@tbl-transformed-features shows twelve consecutive events from the AAPL feed,
+illustrating how the raw order-book state is transformed into the input
+features used by the RL agent. Each row is one order-book event; the left
+columns display the raw state (best bid/ask prices and sizes), the right
+columns show the corresponding normalized microstructure features computed
+from that state via the causal running normalization in
+@eq-running-normalize. The table is wide (nine columns), so in the PDF it is
+placed on its own landscape-oriented page; the HTML version scrolls
+horizontally instead.
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\clearpage
+\begin{landscape}
+```
+:::
+
+```{python}
+#| label: tbl-transformed-features
+#| tbl-cap: "Twelve consecutive AAPL LOB events and their transformed microstructure features."
+#| echo: false
+#| warning: false
+
+from thesis_mlflow_results import find_observation_sample
+from thesis_tables import lob_events_table, missing_data_notice
+
+df = find_observation_sample(split="test", symbol="AAPL")
+if df is not None:
+    lob_events_table(df)
+else:
+    missing_data_notice(
+        "Observation sample not found: run evaluate for AAPL to generate evaluation_data artifacts."
+    )
+```
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\end{landscape}
+\clearpage
+```
+:::
+
+---
+
 # Feature Distribution Statistics {#sec-appendix-feature-statistics}
 
 ```{=latex}
