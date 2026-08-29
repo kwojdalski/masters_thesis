@@ -65,7 +65,8 @@ def test_h4_builds_train_eval_report_and_export_commands(
     assert tee_commands[1][4:7] == ["evaluate", "-c", "scenario/name"]
     assert "training.max_steps=1000" in tee_commands[1]
     assert tee_commands[1][-1] == "--verbose"
-    assert simple_commands[0][-6:] == [
+    report_command = simple_commands[0]
+    assert report_command[report_command.index("--scenario") :][:6] == [
         "--scenario",
         "scenario/name",
         "--n-trials",
@@ -73,6 +74,9 @@ def test_h4_builds_train_eval_report_and_export_commands(
         "--max-steps",
         "1000",
     ]
+    assert report_command[report_command.index("--output-dir") + 1].endswith(
+        "logs/name"
+    )
     assert exported == [["scenario/name"]]
 
 
@@ -100,3 +104,27 @@ def test_h4_skip_eval_stops_after_training(
 
     assert len(tee_commands) == 1
     assert tee_commands[0][4] == "train"
+
+
+def test_debug_set_supplies_small_h4_defaults(
+    runner: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    captured: list[tuple[str, int, int, runner.RunArgs]] = []
+    monkeypatch.setattr(
+        runner,
+        "run_h4",
+        lambda scenario, trials, steps, args: captured.append(
+            (scenario, trials, steps, args)
+        ),
+    )
+
+    result = CliRunner().invoke(
+        runner.app, ["h4", "--debug", "--skip-train", "--skip-eval"]
+    )
+
+    assert result.exit_code == 0, result.stdout
+    _, trials, steps, args = captured[0]
+    assert (trials, steps) == (2, 1000)
+    assert args.experiment_set.name == "debug"
+    assert "data.max_rows_per_file=20000" in args.overrides
+    assert not args.experiment_set.export_to_thesis

@@ -141,6 +141,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="H1 performance vs benchmarks report")
     parser.add_argument("--config", "-c", type=Path, default=_DEFAULT_CONFIG)
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
+    parser.add_argument(
+        "--results-root",
+        type=Path,
+        default=None,
+        help="Read scenario result directories from this root.",
+    )
     args = parser.parse_args()
 
     console = Console()
@@ -168,6 +174,8 @@ def main() -> None:
     for agent in agents:
         label = agent.get("label", "?")
         log_dir = Path(agent.get("log_dir", ""))
+        if args.results_root is not None:
+            log_dir = args.results_root / log_dir.name
         data = load_results(log_dir, split)
         if not data:
             console.print(f"[yellow]  {label}: no results.json — skipping[/yellow]")

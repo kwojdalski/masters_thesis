@@ -113,3 +113,22 @@ class TestErrorCases:
         path = _write_ohlcv_parquet(tmp_path, n_rows=100)
         with pytest.raises(ValueError):
             prepare_data(path, _cfg(train_size=50, validation_size=51))
+
+    def test_max_rows_per_file_bounds_loaded_dataset(self, tmp_path):
+        path = _write_ohlcv_parquet(tmp_path, n_rows=200)
+        train_df, val_df, test_df = prepare_data(
+            path,
+            _cfg(
+                train_size=50,
+                validation_size=25,
+                test_size=25,
+                max_rows_per_file=100,
+            ),
+        )
+
+        assert len(train_df) + len(val_df) + len(test_df) == 100
+
+    def test_non_positive_max_rows_per_file_raises(self, tmp_path):
+        path = _write_ohlcv_parquet(tmp_path, n_rows=100)
+        with pytest.raises(ValueError, match="max_rows_per_file"):
+            prepare_data(path, _cfg(train_size=50, max_rows_per_file=0))

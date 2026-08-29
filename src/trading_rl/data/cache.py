@@ -86,6 +86,7 @@ def _config_cache_signature(config: Any) -> dict[str, Any]:
         # which are selection settings applied at env build time).
         "filter_lob_levels": getattr(config.data, "filter_lob_levels", None),
         "warmup_rows": getattr(config.data, "warmup_rows", None),
+        "max_rows_per_file": getattr(config.data, "max_rows_per_file", None),
         # env.feature_columns and include_position_feature are selection settings
         # applied at env build time — they do not affect how data is prepared, so
         # they must NOT be part of the cache signature.
@@ -391,6 +392,7 @@ def _feature_cache_key(
     feature_pipeline: Any | None,
     filter_lob_levels: int | None = None,
     train_size: int | None = None,
+    max_rows_per_file: int | None = None,
 ) -> str:
     """Compute a cache key that changes whenever feature inputs change.
 
@@ -442,7 +444,10 @@ def _feature_cache_key(
     train_suffix = (
         f"|train{train_size}" if (uses_global and train_size is not None) else ""
     )
-    raw = f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}|{config_sig}{train_suffix}"
+    raw = (
+        f"{Path(data_path).name}|{file_mtime}|lob{filter_lob_levels}"
+        f"|maxrows{max_rows_per_file}|{config_sig}{train_suffix}"
+    )
     key = hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()
     logger.trace("feature cache key raw={} key={}", raw, key)
     return key

@@ -1,0 +1,52 @@
+description: End-to-end smoke experiments on one symbol and bounded row counts.
+output_root: logs/experiment_sets/debug
+export_to_thesis: false
+
+hypotheses:
+  h1:
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+    - pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr
+    - pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr
+    - pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr
+  h2:
+    - pooled/td3_h3_features_minimal
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    - pooled/td3_h3_features_full
+  h3:
+    - pooled/td3_h3_features_minimal
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    - pooled/td3_h3_features_full
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+    - pooled/td3_h3_fees_1e6
+    - pooled/td3_h3_fees_1e5
+    - pooled/td3_h3_fees_1e4
+  h4:
+    scenario: pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+    trials: 2
+    steps: 1000
+
+overrides:
+  - data.data_paths=[./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet]
+  - data.val_data_paths=[./data/raw/stocks/daily/AAPL/AAPL_2026-03-02_raw_mbp-10_us_hours.parquet]
+  - data.max_rows_per_file=20000
+  - data.train_size=5000
+  - data.validation_size=2500
+  - data.test_size=2500
+  - data.n_workers=1
+  - data.prepared_data_dir=.cache/experiment_sets/debug/prepared
+  - data.memmap_dir=.cache/experiment_sets/debug/memmap
+  - data.feature_cache_dir=.cache/experiment_sets/debug/features
+  - env.streaming_episode_length=500
+  - training.max_steps=1000
+  - training.init_rand_steps=100
+  - training.frames_per_batch=64
+  - training.sample_size=64
+  - training.buffer_size=2000
+  - training.temp_eval.interval=500
+  - training.temp_eval.max_steps=200
+  - training.eval_interval=100
+  - evaluation.eval_fraction=null
+  - evaluation.eval_steps=200
+  - evaluation.periodic_eval_steps=100
+  - statistical_testing.n_bootstrap_samples=100
+  - explainability.enabled=false

@@ -349,6 +349,15 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
     _validate_base_config(config, report)
     _validate_paths(config, report)
 
+    max_rows_per_file = getattr(config.data, "max_rows_per_file", None)
+    if max_rows_per_file is not None and max_rows_per_file <= 0:
+        report.add(
+            code="MAX_ROWS_PER_FILE_INVALID",
+            severity=Severity.ERROR,
+            check="base_config",
+            message="data.max_rows_per_file must be greater than zero",
+        )
+
     pipeline = _build_feature_pipeline(config, report)
 
     # For multi-symbol configs use the first path for schema/split validation
@@ -368,6 +377,9 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
         )
         return report
 
+    max_rows_per_file = getattr(config.data, "max_rows_per_file", None)
+    if max_rows_per_file is not None:
+        df = df.iloc[:max_rows_per_file]
     dataset_len = len(df.dropna())
     if dataset_len == 0:
         report.add(

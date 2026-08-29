@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+import yaml
 from rich.console import Console
 from rich.markup import escape
 
@@ -50,6 +51,7 @@ _CLI = ["uv", "run", "python", str(_REPO_ROOT / "src" / "cli.py")]
 # even though both default to "logs".
 _TEXT_LOG_DIR = _REPO_ROOT / Path(_get_global_logging_config().log_dir)
 _EXPERIMENT_OUTPUT_DIR = _REPO_ROOT / EXPERIMENT_OUTPUT_DIR
+_EXPERIMENT_SET_DIR = _REPO_ROOT / "src" / "configs" / "experiment_sets"
 
 _con = Console()
 _err = Console(stderr=True)
@@ -107,6 +109,57 @@ _REPORT_SCRIPTS: dict[str, str] = {
     "h3": "h3_sensitivity_report.py",
 }
 
+
+@dataclass(frozen=True)
+class ExperimentSet:
+    """A named collection of scenarios and shared pipeline settings."""
+
+    name: str
+    output_root: Path
+    export_to_thesis: bool
+    hypotheses: dict[str, object]
+    overrides: list[str]
+
+
+def _load_experiment_set(name: str) -> ExperimentSet:
+    if not name or Path(name).name != name:
+        raise typer.BadParameter(f"Invalid experiment set name: {name!r}")
+    path = _EXPERIMENT_SET_DIR / f"{name}.yaml"
+    if not path.is_file():
+        available = ", ".join(
+            sorted(p.stem for p in _EXPERIMENT_SET_DIR.glob("*.yaml"))
+        )
+        raise typer.BadParameter(
+            f"Unknown experiment set {name!r}. Available sets: {available or 'none'}"
+        )
+    with path.open() as fh:
+        raw = yaml.safe_load(fh) or {}
+    hypotheses = raw.get("hypotheses")
+    if not isinstance(hypotheses, dict):
+        raise typer.BadParameter(f"Experiment set {name!r} has no hypotheses mapping")
+    overrides = raw.get("overrides", [])
+    if not isinstance(overrides, list) or not all(
+        isinstance(v, str) for v in overrides
+    ):
+        raise typer.BadParameter(f"Experiment set {name!r} overrides must be strings")
+    output_root = Path(raw.get("output_root", EXPERIMENT_OUTPUT_DIR))
+    if not output_root.is_absolute():
+        output_root = _REPO_ROOT / output_root
+    return ExperimentSet(
+        name=name,
+        output_root=output_root,
+        export_to_thesis=bool(raw.get("export_to_thesis", True)),
+        hypotheses=hypotheses,
+        overrides=overrides,
+    )
+
+
+def _resolve_set_name(set_name: str, debug: bool) -> str:
+    if debug and set_name != "full":
+        raise typer.BadParameter("Use either --debug or --set, not both")
+    return "debug" if debug else set_name
+
+
 # ---------------------------------------------------------------------------
 # Shared run args
 # ---------------------------------------------------------------------------
@@ -128,6 +181,21 @@ class RunArgs:
     # a DataFrame for the pooled data) on top of its replay buffer and torch
     # runtime, so running all of them at once (7 for H3) exhausts memory (#517).
     max_parallel: int = 2
+    experiment_set: ExperimentSet = field(
+        default_factory=lambda: _load_experiment_set("full")
+    )
+
+
+def _apply_experiment_set(args: RunArgs, set_name: str, debug: bool) -> RunArgs:
+    experiment_set = _load_experiment_set(_resolve_set_name(set_name, debug))
+    args.experiment_set = experiment_set
+    # Set defaults come first so explicit CLI overrides remain authoritative.
+    args.overrides = [*experiment_set.overrides, *args.overrides]
+    _con.print(
+        f"[dim]experiment set:[/dim] [cyan]{experiment_set.name}[/cyan]  "
+        f"[dim]output:[/dim] {escape(str(experiment_set.output_root))}"
+    )
+    return args
 
 
 # ---------------------------------------------------------------------------
@@ -139,8 +207,9 @@ def _scenario_name(scenario: str) -> str:
     return scenario.split("/")[-1]
 
 
-def _log_file(scenario: str, suffix: str) -> Path:
-    return _TEXT_LOG_DIR / f"{_scenario_name(scenario)}_{suffix}.log"
+def _log_file(scenario: str, suffix: str, args: RunArgs | None = None) -> Path:
+    root = args.experiment_set.output_root if args else _TEXT_LOG_DIR
+    return root / f"{_scenario_name(scenario)}_{suffix}.log"
 
 
 def _override_flags(overrides: list[str]) -> list[str]:
@@ -257,7 +326,7 @@ def _check_guardrails(scenarios: list[str], args: RunArgs) -> None:
     failed: list[str] = []
 
     for scenario in scenarios:
-        log = _log_file(scenario, "guardrails")
+        log = _log_file(scenario, "guardrails", args)
         log.parent.mkdir(parents=True, exist_ok=True)
         _con.print(f"  Checking [cyan]{escape(scenario)}[/cyan]...")
         cmd = [*_CLI, "validate", "guardrails", "-c", scenario]
@@ -286,7 +355,7 @@ def _check_guardrails(scenarios: list[str], args: RunArgs) -> None:
         _con.print("\n[red]Failed scenarios:[/red]")
         for s in failed:
             _con.print(
-                f"  [dim]-[/dim] {escape(s)}  [dim](logs: {escape(str(_log_file(s, 'guardrails')))})[/dim]"
+                f"  [dim]-[/dim] {escape(s)}  [dim](logs: {escape(str(_log_file(s, 'guardrails', args)))})[/dim]"
             )
         _err.print(
             "\n[red]Fix the guardrail issues or run with --skip-guardrails to proceed anyway.[/red]"
@@ -302,7 +371,11 @@ def _train_all(
     overrides = list(args.overrides) + (extra_overrides or [])
 
     def _cmd(scenario: str) -> list[str]:
-        cmd = [*_CLI, "train", "-c", scenario, *_override_flags(overrides)]
+        scenario_overrides = [
+            f"logging.log_dir={args.experiment_set.output_root / _scenario_name(scenario)}",
+            *overrides,
+        ]
+        cmd = [*_CLI, "train", "-c", scenario, *_override_flags(scenario_overrides)]
         if args.verbose:
             cmd.append("--verbose")
         return cmd
@@ -310,12 +383,12 @@ def _train_all(
     if args.parallel:
         _run_parallel_jobs(
             "training",
-            [(_cmd(s), _log_file(s, "train")) for s in scenarios],
+            [(_cmd(s), _log_file(s, "train", args)) for s in scenarios],
             max_workers=args.max_parallel,
         )
     else:
         for scenario in scenarios:
-            log = _log_file(scenario, "train")
+            log = _log_file(scenario, "train", args)
             _con.print(f"Training [cyan]{escape(scenario)}[/cyan]")
             _run_tee(_cmd(scenario), log)
             _con.print("  [green]done.[/green]")
@@ -325,7 +398,8 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
     overrides = list(args.overrides)
 
     def _cmd(scenario: str) -> list[str]:
-        output_dir = str(_EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario))
+        output_dir = str(args.experiment_set.output_root / _scenario_name(scenario))
+        scenario_overrides = [f"logging.log_dir={output_dir}", *overrides]
         cmd = [
             *_CLI,
             "evaluate",
@@ -339,7 +413,7 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
             # thesis's out-of-sample results.
             "--per-symbol",
             *[flag for only in eval_only for flag in ("--only", only)],
-            *_override_flags(overrides),
+            *_override_flags(scenario_overrides),
         ]
         if args.verbose:
             cmd.append("--verbose")
@@ -348,13 +422,13 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
     if args.parallel:
         _run_parallel_jobs(
             "evaluation",
-            [(_cmd(s), _log_file(s, "eval")) for s in scenarios],
+            [(_cmd(s), _log_file(s, "eval", args)) for s in scenarios],
             max_workers=args.max_parallel,
         )
     else:
         for scenario in scenarios:
-            log = _log_file(scenario, "eval")
-            output_dir = _EXPERIMENT_OUTPUT_DIR / _scenario_name(scenario)
+            log = _log_file(scenario, "eval", args)
+            output_dir = args.experiment_set.output_root / _scenario_name(scenario)
             _con.print(
                 f"Evaluating [cyan]{escape(scenario)}[/cyan]  [dim]->[/dim]  [dim]{escape(str(output_dir))}[/dim]"
             )
@@ -362,10 +436,19 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
             _con.print("  [green]done.[/green]")
 
 
-def _run_report(hypothesis: str) -> None:
+def _run_report(hypothesis: str, args: RunArgs) -> None:
     script = _REPO_ROOT / "scripts" / _REPORT_SCRIPTS[hypothesis]
     _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Report ===[/bold cyan]")
-    _run_simple(["uv", "run", "python", str(script)])
+    _run_simple(
+        [
+            "uv",
+            "run",
+            "python",
+            str(script),
+            "--results-root",
+            str(args.experiment_set.output_root),
+        ]
+    )
 
 
 def _export_all(scenarios: list[str]) -> None:
@@ -382,12 +465,19 @@ def _export_all(scenarios: list[str]) -> None:
 
 
 def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
-    scenarios = _SCENARIOS[hypothesis]
+    configured = args.experiment_set.hypotheses.get(hypothesis, _SCENARIOS[hypothesis])
+    if not isinstance(configured, list) or not all(
+        isinstance(value, str) for value in configured
+    ):
+        raise typer.BadParameter(
+            f"Experiment set {args.experiment_set.name!r} must define "
+            f"{hypothesis} as a list of scenarios"
+        )
+    scenarios = configured
     eval_only = _EVAL_ONLY[hypothesis]
     skip_guardrails = args.skip_guardrails or args.dev
 
-    _TEXT_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    _EXPERIMENT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    args.experiment_set.output_root.mkdir(parents=True, exist_ok=True)
 
     if args.dev:
         _con.print(
@@ -416,12 +506,13 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
         _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Evaluating ===[/bold cyan]")
         _evaluate_all(scenarios, eval_only, args)
 
-        _run_report(hypothesis)
+        _run_report(hypothesis, args)
 
-        _con.print(
-            f"\n[bold cyan]=== {hypothesis.upper()}: Export to thesis ===[/bold cyan]"
-        )
-        _export_all(scenarios)
+        if args.experiment_set.export_to_thesis:
+            _con.print(
+                f"\n[bold cyan]=== {hypothesis.upper()}: Export to thesis ===[/bold cyan]"
+            )
+            _export_all(scenarios)
     else:
         _con.print(
             f"[dim]=== {hypothesis.upper()}: skipping evaluate, report, and export (--skip-eval) ===[/dim]"
@@ -435,8 +526,7 @@ def run_h4(
     args: RunArgs,
 ) -> None:
     """Run the H4 multi-trial learning-progression workflow."""
-    _TEXT_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    _EXPERIMENT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    args.experiment_set.output_root.mkdir(parents=True, exist_ok=True)
 
     if not args.skip_guardrails:
         _check_guardrails([scenario], args)
@@ -447,6 +537,7 @@ def run_h4(
             f"(max_steps={steps}) ===[/bold cyan]"
         )
         train_overrides = [
+            f"logging.log_dir={args.experiment_set.output_root / _scenario_name(scenario)}",
             f"training.max_steps={steps}",
             "evaluation.eval_fraction=0.05",
             "training.temp_eval.max_steps=5000",
@@ -465,7 +556,7 @@ def run_h4(
         ]
         if args.verbose:
             cmd.append("--verbose")
-        _run_tee(cmd, _log_file(scenario, "train"))
+        _run_tee(cmd, _log_file(scenario, "train", args))
 
     if args.skip_eval:
         _con.print(
@@ -475,6 +566,7 @@ def run_h4(
 
     _con.print(f"\n[bold cyan]=== H4: Evaluating {trials} trials ===[/bold cyan]")
     eval_overrides = [
+        f"logging.log_dir={args.experiment_set.output_root / _scenario_name(scenario)}",
         f"training.max_steps={steps}",
         *args.overrides,
         *shlex.split(os.environ.get("EXTRA_EVAL_ARGS", "")),
@@ -491,7 +583,7 @@ def run_h4(
     ]
     if args.verbose:
         eval_cmd.append("--verbose")
-    _run_tee(eval_cmd, _log_file(scenario, "eval"))
+    _run_tee(eval_cmd, _log_file(scenario, "eval", args))
 
     _con.print("\n[bold cyan]=== H4: Learning progression report ===[/bold cyan]")
     _run_simple(
@@ -506,11 +598,20 @@ def run_h4(
             str(trials),
             "--max-steps",
             str(steps),
+            "--output-dir",
+            str(args.experiment_set.output_root / _scenario_name(scenario)),
+            *(
+                []
+                if args.experiment_set.export_to_thesis
+                else ["--experiment-dir", str(args.experiment_set.output_root)]
+            ),
+            *([] if args.experiment_set.export_to_thesis else ["--no-export"]),
         ]
     )
 
-    _con.print("\n[bold cyan]=== H4: Export to thesis ===[/bold cyan]")
-    _export_all([scenario])
+    if args.experiment_set.export_to_thesis:
+        _con.print("\n[bold cyan]=== H4: Export to thesis ===[/bold cyan]")
+        _export_all([scenario])
 
 
 # ---------------------------------------------------------------------------
@@ -569,6 +670,21 @@ _DevSteps = Annotated[
         help="Training steps per scenario in [bold]--dev[/bold] mode (default: 2000).",
     ),
 ]
+_SetName = Annotated[
+    str,
+    typer.Option(
+        "--set",
+        metavar="NAME",
+        help="Named experiment set from src/configs/experiment_sets (default: full).",
+    ),
+]
+_DebugSet = Annotated[
+    bool,
+    typer.Option(
+        "--debug",
+        help="Shorthand for --set debug (small data, budgets, and isolated outputs).",
+    ),
+]
 
 
 @app.command()
@@ -582,6 +698,8 @@ def h1(
     overrides: _Overrides = None,
     dev: _Dev = False,
     dev_steps: _DevSteps = 2000,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
     max_train_seconds: Annotated[
         int | None,
         typer.Option(
@@ -598,17 +716,21 @@ def h1(
     """
     run_hypothesis(
         "h1",
-        RunArgs(
-            skip_train=skip_train,
-            skip_eval=skip_eval,
-            parallel=parallel,
-            max_parallel=max_parallel,
-            verbose=verbose,
-            skip_guardrails=skip_guardrails,
-            overrides=overrides or [],
-            dev=dev,
-            dev_steps=dev_steps,
-            max_train_seconds=max_train_seconds,
+        _apply_experiment_set(
+            RunArgs(
+                skip_train=skip_train,
+                skip_eval=skip_eval,
+                parallel=parallel,
+                max_parallel=max_parallel,
+                verbose=verbose,
+                skip_guardrails=skip_guardrails,
+                overrides=overrides or [],
+                dev=dev,
+                dev_steps=dev_steps,
+                max_train_seconds=max_train_seconds,
+            ),
+            set_name,
+            debug,
         ),
     )
 
@@ -624,6 +746,8 @@ def h2(
     overrides: _Overrides = None,
     dev: _Dev = False,
     dev_steps: _DevSteps = 2000,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
 ) -> None:
     """Test how the observation feature set affects TD3 performance.
 
@@ -632,16 +756,20 @@ def h2(
     """
     run_hypothesis(
         "h2",
-        RunArgs(
-            skip_train=skip_train,
-            skip_eval=skip_eval,
-            parallel=parallel,
-            max_parallel=max_parallel,
-            verbose=verbose,
-            skip_guardrails=skip_guardrails,
-            overrides=overrides or [],
-            dev=dev,
-            dev_steps=dev_steps,
+        _apply_experiment_set(
+            RunArgs(
+                skip_train=skip_train,
+                skip_eval=skip_eval,
+                parallel=parallel,
+                max_parallel=max_parallel,
+                verbose=verbose,
+                skip_guardrails=skip_guardrails,
+                overrides=overrides or [],
+                dev=dev,
+                dev_steps=dev_steps,
+            ),
+            set_name,
+            debug,
         ),
     )
 
@@ -657,6 +785,8 @@ def h3(
     overrides: _Overrides = None,
     dev: _Dev = False,
     dev_steps: _DevSteps = 2000,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
 ) -> None:
     """Test whether the main result is robust to modelling choices.
 
@@ -665,16 +795,20 @@ def h3(
     """
     run_hypothesis(
         "h3",
-        RunArgs(
-            skip_train=skip_train,
-            skip_eval=skip_eval,
-            parallel=parallel,
-            max_parallel=max_parallel,
-            verbose=verbose,
-            skip_guardrails=skip_guardrails,
-            overrides=overrides or [],
-            dev=dev,
-            dev_steps=dev_steps,
+        _apply_experiment_set(
+            RunArgs(
+                skip_train=skip_train,
+                skip_eval=skip_eval,
+                parallel=parallel,
+                max_parallel=max_parallel,
+                verbose=verbose,
+                skip_guardrails=skip_guardrails,
+                overrides=overrides or [],
+                dev=dev,
+                dev_steps=dev_steps,
+            ),
+            set_name,
+            debug,
         ),
     )
 
@@ -682,47 +816,62 @@ def h3(
 @app.command()
 def h4(
     scenario: Annotated[
-        str,
+        str | None,
         typer.Option(
             "--scenario", envvar="SCENARIO", help="Scenario configuration name."
         ),
-    ] = _H4_SCENARIO,
+    ] = None,
     trials: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--trials", envvar="N_TRIALS", min=1, help="Number of independent trials."
         ),
-    ] = 5,
+    ] = None,
     steps: Annotated[
-        int,
+        int | None,
         typer.Option(
             "--steps",
             envvar="STEPS",
             min=1,
             help="Maximum training steps per trial.",
         ),
-    ] = 200_000,
+    ] = None,
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
 ) -> None:
     """Test whether TD3 learns consistently across independent short trials.
 
     Runs repeated seeds with a bounded training budget, evaluates the resulting
     checkpoints, and compares their learning progression with the baseline.
     """
+    experiment_set = _load_experiment_set(_resolve_set_name(set_name, debug))
+    h4_config = experiment_set.hypotheses.get("h4", {})
+    if not isinstance(h4_config, dict):
+        raise typer.BadParameter(
+            f"Experiment set {experiment_set.name!r} must define h4 as a mapping"
+        )
+    resolved_scenario = scenario or str(h4_config.get("scenario", _H4_SCENARIO))
+    resolved_trials = trials or int(h4_config.get("trials", 5))
+    resolved_steps = steps or int(h4_config.get("steps", 200_000))
     run_h4(
-        scenario,
-        trials,
-        steps,
-        RunArgs(
-            skip_train=skip_train,
-            skip_eval=skip_eval,
-            verbose=verbose,
-            skip_guardrails=skip_guardrails,
-            overrides=overrides or [],
+        resolved_scenario,
+        resolved_trials,
+        resolved_steps,
+        _apply_experiment_set(
+            RunArgs(
+                skip_train=skip_train,
+                skip_eval=skip_eval,
+                verbose=verbose,
+                skip_guardrails=skip_guardrails,
+                overrides=overrides or [],
+            ),
+            set_name,
+            debug,
         ),
     )
 
@@ -738,18 +887,24 @@ def run_all(
     overrides: _Overrides = None,
     dev: _Dev = False,
     dev_steps: _DevSteps = 2000,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
 ) -> None:
     """Run [bold]H1[/bold], [bold]H2[/bold], and [bold]H3[/bold] in sequence."""
-    args = RunArgs(
-        skip_train=skip_train,
-        skip_eval=skip_eval,
-        parallel=parallel,
-        max_parallel=max_parallel,
-        verbose=verbose,
-        skip_guardrails=skip_guardrails,
-        overrides=overrides or [],
-        dev=dev,
-        dev_steps=dev_steps,
+    args = _apply_experiment_set(
+        RunArgs(
+            skip_train=skip_train,
+            skip_eval=skip_eval,
+            parallel=parallel,
+            max_parallel=max_parallel,
+            verbose=verbose,
+            skip_guardrails=skip_guardrails,
+            overrides=overrides or [],
+            dev=dev,
+            dev_steps=dev_steps,
+        ),
+        set_name,
+        debug,
     )
     for hyp in ("h1", "h2", "h3"):
         run_hypothesis(hyp, args)

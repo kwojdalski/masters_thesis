@@ -136,6 +136,7 @@ class PrepareDataConfig:
     feature_config_path: str | None = None
     feature_cache_dir: str | None = ".cache/feature_transformation"
     filter_lob_levels: int | None = None
+    max_rows_per_file: int | None = None
 
     @classmethod
     def from_config(cls, cfg: Any) -> PrepareDataConfig:
@@ -155,6 +156,7 @@ class PrepareDataConfig:
                 cfg, "feature_cache_dir", ".cache/feature_transformation"
             ),
             filter_lob_levels=getattr(cfg, "filter_lob_levels", None),
+            max_rows_per_file=getattr(cfg, "max_rows_per_file", None),
         )
 
 
@@ -306,6 +308,7 @@ class _WorkerArgs:
     mode: str
     backend: str
     filter_lob_levels: int | None
+    max_rows_per_file: int | None
     warmup_rows: int
     memmap_dir_str: str | None
     tmp_dir_str: str
@@ -338,6 +341,7 @@ def _per_symbol_worker(
     mode = args.mode
     backend = args.backend
     filter_lob_levels = args.filter_lob_levels
+    max_rows_per_file = args.max_rows_per_file
     warmup_rows = args.warmup_rows
     memmap_dir_str = args.memmap_dir_str
     tmp_dir_str = args.tmp_dir_str
@@ -374,7 +378,10 @@ def _per_symbol_worker(
     tmp_dir = _Path(tmp_dir_str)
 
     def _load(path: str) -> _pd.DataFrame:
-        df = load_trading_data(path).dropna()
+        df = load_trading_data(path)
+        if max_rows_per_file is not None:
+            df = df.iloc[:max_rows_per_file]
+        df = df.dropna()
         if filter_lob_levels is not None:
             from trading_rl.data.lob_filters import filter_unchanged_lob
 
@@ -392,7 +399,10 @@ def _per_symbol_worker(
             else "default"
         )
         key = _hashlib.md5(
-            f"{_Path(path).name}|{mtime}|lob{filter_lob_levels}|{cfg_sig}".encode(),
+            (
+                f"{_Path(path).name}|{mtime}|lob{filter_lob_levels}"
+                f"|maxrows{max_rows_per_file}|{cfg_sig}"
+            ).encode(),
             usedforsecurity=False,
         ).hexdigest()
         return _Path(feature_cache_dir_str) / key / "full.parquet"
@@ -578,6 +588,7 @@ def _build_per_day_splits(
     mode = getattr(config.env, "mode", EnvMode.MFT)
     backend = str(getattr(config.env, "backend", "")).lower().strip()
     filter_lob_levels = getattr(config.data, "filter_lob_levels", None)
+    max_rows_per_file = getattr(config.data, "max_rows_per_file", None)
     warmup_rows = getattr(config.data, "warmup_rows", 0)
     feature_cache_dir = getattr(config.data, "feature_cache_dir", None)
 
@@ -660,6 +671,7 @@ def _build_per_day_splits(
                 mode=mode,
                 backend=backend,
                 filter_lob_levels=filter_lob_levels,
+                max_rows_per_file=max_rows_per_file,
                 warmup_rows=warmup_rows,
                 memmap_dir_str=str(memmap_dir) if memmap_dir else None,
                 tmp_dir_str=str(tmp_dir),
@@ -1220,6 +1232,9 @@ def prepare_data(
         cfg = PrepareDataConfig(train_size=450, feature_config_path="configs/feature_sets/sine_wave.yaml")
         train_df, val_df, test_df = prepare_data("data.parquet", cfg)
     """
+    if cfg.max_rows_per_file is not None and cfg.max_rows_per_file <= 0:
+        raise ValueError("max_rows_per_file must be greater than zero")
+
     # Feature cache — skip the expensive transform when inputs haven't changed.
     # The full transformed dataset is cached as a single file; train/val/test
     # splits are sliced at load time so the cache is shared across configs that
@@ -1233,6 +1248,7 @@ def prepare_data(
             feature_pipeline,
             cfg.filter_lob_levels,
             train_size=cfg.train_size,
+            max_rows_per_file=cfg.max_rows_per_file,
         )
         _cache_entry = Path(cfg.feature_cache_dir) / _cache_key
         _full_cache = _cache_entry / "full.parquet"
@@ -1324,6 +1340,8 @@ def prepare_data(
 
     # Load raw OHLCV data
     df = load_trading_data(data_path)
+    if cfg.max_rows_per_file is not None:
+        df = df.iloc[: cfg.max_rows_per_file]
     df = df.dropna()
     if cfg.filter_lob_levels is not None:
         from trading_rl.data.lob_filters import filter_unchanged_lob

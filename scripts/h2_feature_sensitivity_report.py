@@ -218,6 +218,12 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="H2 feature sensitivity report")
     parser.add_argument("--config", "-c", type=Path, default=_DEFAULT_CONFIG)
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
+    parser.add_argument(
+        "--results-root",
+        type=Path,
+        default=None,
+        help="Read scenario result directories from this root.",
+    )
     args = parser.parse_args()
 
     console = Console()
@@ -231,6 +237,10 @@ def main() -> None:
         cfg = yaml.safe_load(f)
 
     scenarios = cfg.get("scenarios", [])
+    if args.results_root is not None:
+        for scenario in scenarios:
+            log_dir = Path(scenario.get("log_dir", ""))
+            scenario["log_dir"] = str(args.results_root / log_dir.name)
     split = args.split
 
     console.print()
