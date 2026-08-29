@@ -34,19 +34,21 @@ from rich.table import Table
 _DEFAULT_CONFIG = Path("src/configs/h2_feature_sensitivity.yaml")
 
 _METRICS: list[tuple[str, str, str]] = [
-    ("sharpe_ratio",    "Sharpe",    ".3f"),
-    ("sortino_ratio",   "Sortino",   ".3f"),
-    ("total_return",    "Return",    ".2%"),
-    ("max_drawdown",    "Max DD",    ".2%"),
-    ("win_rate",        "Win Rate",  ".2%"),
-    ("profit_factor",   "PF",        ".3f"),
+    ("sharpe_ratio", "Sharpe", ".3f"),
+    ("sortino_ratio", "Sortino", ".3f"),
+    ("total_return", "Return", ".2%"),
+    ("max_drawdown", "Max DD", ".2%"),
+    ("win_rate", "Win Rate", ".2%"),
+    ("profit_factor", "PF", ".3f"),
 ]
 
 _HIGHER_IS_BETTER = {
     "sharpe_ratio": True,
     "sortino_ratio": True,
     "total_return": True,
-    "max_drawdown": False,
+    # Signed-negative on the stored scale (np.min of equity/running_max - 1),
+    # so a shallower drawdown is the larger value. See #498.
+    "max_drawdown": True,
     "win_rate": True,
     "profit_factor": True,
 }
@@ -67,7 +69,9 @@ def _load_single(results_json: Path, split: str) -> dict[str, float]:
     return {}
 
 
-def load_metrics_with_seeds(log_dir: Path, split: str) -> tuple[dict[str, float], dict[str, float], int]:
+def load_metrics_with_seeds(
+    log_dir: Path, split: str
+) -> tuple[dict[str, float], dict[str, float], int]:
     """Load metrics, aggregating across seed sub-directories when present.
 
     Returns:
@@ -75,7 +79,13 @@ def load_metrics_with_seeds(log_dir: Path, split: str) -> tuple[dict[str, float]
         std_metrics is empty when n_seeds == 1.
     """
     # Gather results.json files: seed subdirs take priority over a flat file
-    seed_dirs = sorted(d for d in log_dir.iterdir() if d.is_dir() and d.name.startswith("seed_")) if log_dir.exists() else []
+    seed_dirs = (
+        sorted(
+            d for d in log_dir.iterdir() if d.is_dir() and d.name.startswith("seed_")
+        )
+        if log_dir.exists()
+        else []
+    )
     if seed_dirs:
         seed_metrics = [_load_single(sd / "results.json", split) for sd in seed_dirs]
         seed_metrics = [m for m in seed_metrics if m]
@@ -94,7 +104,9 @@ def load_metrics_with_seeds(log_dir: Path, split: str) -> tuple[dict[str, float]
     mean_m: dict[str, float] = {}
     std_m: dict[str, float] = {}
     for key in all_keys:
-        vals = [m[key] for m in seed_metrics if key in m and isinstance(m[key], (int, float))]
+        vals = [
+            m[key] for m in seed_metrics if key in m and isinstance(m[key], int | float)
+        ]
         if vals:
             mean_m[key] = float(np.mean(vals))
             std_m[key] = float(np.std(vals, ddof=1)) if len(vals) > 1 else 0.0
@@ -102,7 +114,7 @@ def load_metrics_with_seeds(log_dir: Path, split: str) -> tuple[dict[str, float]
 
 
 def fmt_val(key: str, val: Any, fmt_str: str) -> str:
-    if val is None or not isinstance(val, (int, float)):
+    if val is None or not isinstance(val, int | float):
         return "—"
     try:
         return f"{val:{fmt_str}}"
@@ -112,7 +124,7 @@ def fmt_val(key: str, val: Any, fmt_str: str) -> str:
 
 def fmt_delta(key: str, val: Any, baseline: Any, fmt_str: str) -> str:
     """Format the delta relative to baseline with a direction indicator."""
-    if not isinstance(val, (int, float)) or not isinstance(baseline, (int, float)):
+    if not isinstance(val, int | float) or not isinstance(baseline, int | float):
         return "—"
     delta = val - baseline
     higher_better = _HIGHER_IS_BETTER.get(key, True)
@@ -127,7 +139,9 @@ def fmt_delta(key: str, val: Any, baseline: Any, fmt_str: str) -> str:
     return f"[{color}]{delta_str}[/{color}]"
 
 
-def build_report_table(scenarios: list[dict[str, Any]], split: str, console: Console) -> Table | None:
+def build_report_table(
+    scenarios: list[dict[str, Any]], split: str, console: Console
+) -> Table | None:
     # Collect data for all scenarios
     rows: list[tuple[dict, dict[str, float], dict[str, float], int]] = []
     for sc in scenarios:
@@ -136,7 +150,9 @@ def build_report_table(scenarios: list[dict[str, Any]], split: str, console: Con
         rows.append((sc, mean_m, std_m, n))
 
     if not any(m for _, m, _, _ in rows):
-        console.print("[yellow]  No results.json found for any scenario — skipping.[/yellow]")
+        console.print(
+            "[yellow]  No results.json found for any scenario — skipping.[/yellow]"
+        )
         return None
 
     # Find baseline metrics for delta computation
@@ -146,7 +162,11 @@ def build_report_table(scenarios: list[dict[str, Any]], split: str, console: Con
             baseline_metrics = mean_m
             break
 
-    t = Table(title="H2 Feature Specification Sensitivity", show_header=True, header_style="bold")
+    t = Table(
+        title="H2 Feature Specification Sensitivity",
+        show_header=True,
+        header_style="bold",
+    )
     t.add_column("Feature Set", style="cyan", no_wrap=True)
     t.add_column("N", justify="right", style="dim")
     t.add_column("Seeds", justify="right", style="dim")
@@ -183,7 +203,9 @@ def build_report_table(scenarios: list[dict[str, Any]], split: str, console: Con
                         delta_vals.append("[dim]baseline[/dim]")
                     else:
                         delta_vals.append(
-                            fmt_delta(key, mean_m.get(key), baseline_metrics.get(key), fmt_str)
+                            fmt_delta(
+                                key, mean_m.get(key), baseline_metrics.get(key), fmt_str
+                            )
                         )
 
         style = "bold green" if is_baseline else None
@@ -213,8 +235,7 @@ def main() -> None:
 
     console.print()
     console.print(
-        "[bold]H2 Feature Sensitivity Report[/bold]  "
-        f"[dim](split: {split})[/dim]"
+        f"[bold]H2 Feature Sensitivity Report[/bold]  [dim](split: {split})[/dim]"
     )
     console.print(
         "[dim]H2: More microstructure features → stronger out-of-sample performance.[/dim]"
@@ -227,17 +248,27 @@ def main() -> None:
             "[yellow]No results found. Run `cli.py train` for each H2 scenario first:[/yellow]"
         )
         for sc in scenarios:
-            console.print(f"  [dim]uv run python src/cli.py train --scenario pooled/{Path(sc.get('log_dir','')).name}[/dim]")
+            console.print(
+                f"  [dim]uv run python src/cli.py train --scenario pooled/{Path(sc.get('log_dir', '')).name}[/dim]"
+            )
         sys.exit(0)
 
     console.print(table)
     console.print()
 
     console.print("[dim]Legend[/dim]")
-    console.print("  [dim][bold green]Bold green[/bold green] = baseline (Selected / 10-feature) scenario.[/dim]")
-    console.print("  [dim]Δ columns show deviation from baseline: [green]green[/green] = improvement, [red]red[/red] = regression.[/dim]")
-    console.print("  [dim]Seeds column: number of independent runs aggregated (mean ± std when > 1).[/dim]")
-    console.print("  [dim]Max DD: lower magnitude is better (negative values = drawdown below peak).[/dim]")
+    console.print(
+        "  [dim][bold green]Bold green[/bold green] = baseline (Selected / 10-feature) scenario.[/dim]"
+    )
+    console.print(
+        "  [dim]Δ columns show deviation from baseline: [green]green[/green] = improvement, [red]red[/red] = regression.[/dim]"
+    )
+    console.print(
+        "  [dim]Seeds column: number of independent runs aggregated (mean ± std when > 1).[/dim]"
+    )
+    console.print(
+        "  [dim]Max DD: lower magnitude is better (negative values = drawdown below peak).[/dim]"
+    )
 
 
 if __name__ == "__main__":

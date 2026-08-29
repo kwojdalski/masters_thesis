@@ -28,24 +28,24 @@ from rich.table import Table
 _DEFAULT_CONFIG = Path("src/configs/h1_performance.yaml")
 
 _AGENT_METRICS: list[tuple[str, str, str]] = [
-    ("sharpe_ratio",    "Sharpe",  ".3f"),
-    ("sortino_ratio",   "Sortino", ".3f"),
-    ("total_return",    "Return",  ".2%"),
-    ("max_drawdown",    "Max DD",  ".2%"),
-    ("win_rate",        "Win Rate",".2%"),
-    ("profit_factor",   "PF",      ".3f"),
+    ("sharpe_ratio", "Sharpe", ".3f"),
+    ("sortino_ratio", "Sortino", ".3f"),
+    ("total_return", "Return", ".2%"),
+    ("max_drawdown", "Max DD", ".2%"),
+    ("win_rate", "Win Rate", ".2%"),
+    ("profit_factor", "PF", ".3f"),
 ]
 
 _BENCH_METRICS: list[tuple[str, str, str]] = [
-    ("sharpe_ratio",  "Sharpe", ".3f"),
-    ("total_return",  "Return", ".2%"),
-    ("max_drawdown",  "Max DD", ".2%"),
+    ("sharpe_ratio", "Sharpe", ".3f"),
+    ("total_return", "Return", ".2%"),
+    ("max_drawdown", "Max DD", ".2%"),
 ]
 
 _REL_METRICS: list[tuple[str, str, str]] = [
-    ("alpha",              "Alpha",   ".4f"),
-    ("information_ratio",  "IR",      ".3f"),
-    ("tracking_error",     "Tr. Err", ".4f"),
+    ("alpha", "Alpha", ".4f"),
+    ("information_ratio", "IR", ".3f"),
+    ("tracking_error", "Tr. Err", ".4f"),
 ]
 
 
@@ -66,7 +66,7 @@ def load_results(log_dir: Path, split: str) -> dict[str, Any]:
 
 
 def fmt(key: str, val: Any, fmt_str: str) -> str:
-    if val is None or not isinstance(val, (int, float)):
+    if val is None or not isinstance(val, int | float):
         return "—"
     try:
         return f"{val:{fmt_str}}"
@@ -76,7 +76,7 @@ def fmt(key: str, val: Any, fmt_str: str) -> str:
 
 def beats(agent_val: Any, bench_val: Any, higher_is_better: bool = True) -> str:
     """Return a win/lose indicator."""
-    if not isinstance(agent_val, (int, float)) or not isinstance(bench_val, (int, float)):
+    if not isinstance(agent_val, int | float) or not isinstance(bench_val, int | float):
         return " "
     if higher_is_better:
         return "[green]+[/green]" if agent_val > bench_val else "[red]-[/red]"
@@ -91,7 +91,9 @@ def build_agent_table(
     agent_metrics = agent_data.get("metrics") or {}
     benchmarks = agent_data.get("benchmarks") or {}
 
-    t = Table(title=f"{agent_label} vs Benchmarks", show_header=True, header_style="bold")
+    t = Table(
+        title=f"{agent_label} vs Benchmarks", show_header=True, header_style="bold"
+    )
     t.add_column("", style="cyan", no_wrap=True)
     for _, col, _ in _AGENT_METRICS:
         t.add_column(col, justify="right")
@@ -104,8 +106,13 @@ def build_agent_table(
     t.add_row(agent_label, *agent_vals, *rel_placeholders, style="bold green")
 
     # One row per benchmark
+    # Every reported metric is better when larger on the scale it is stored on.
+    # max_drawdown looks like an exception but is not: metrics.py records it as
+    # np.min(equity / running_max - 1), i.e. signed-negative, so the shallower
+    # drawdown is the greater value (-0.02 beats -0.10). Marking it
+    # lower-is-better while comparing the raw signed values inverted the
+    # win/loss verdict in both directions (#498).
     higher_better = {k: True for k, _, _ in _AGENT_METRICS}
-    higher_better["max_drawdown"] = False
 
     for spec in bench_specs:
         bench_name = spec["name"]
@@ -151,10 +158,7 @@ def main() -> None:
     split = args.split
 
     console.print()
-    console.print(
-        "[bold]H1 Performance Report[/bold]  "
-        f"[dim](split: {split})[/dim]"
-    )
+    console.print(f"[bold]H1 Performance Report[/bold]  [dim](split: {split})[/dim]")
     console.print(
         "[dim]H1: TD3 achieves stronger risk-adjusted performance than benchmarks.[/dim]"
     )
@@ -181,11 +185,15 @@ def main() -> None:
         sys.exit(0)
 
     console.print("[dim]Legend[/dim]")
-    console.print("  [dim]Agent row is [bold green]bold green[/bold green]. "
-                  "Benchmark rows show [green]+[/green] where agent beats benchmark, "
-                  "[red]-[/red] where it does not.[/dim]")
-    console.print("  [dim]Alpha = annualised excess return vs benchmark. "
-                  "IR = information ratio. Tr. Err = tracking error.[/dim]")
+    console.print(
+        "  [dim]Agent row is [bold green]bold green[/bold green]. "
+        "Benchmark rows show [green]+[/green] where agent beats benchmark, "
+        "[red]-[/red] where it does not.[/dim]"
+    )
+    console.print(
+        "  [dim]Alpha = annualised excess return vs benchmark. "
+        "IR = information ratio. Tr. Err = tracking error.[/dim]"
+    )
 
 
 if __name__ == "__main__":
