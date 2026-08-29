@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run H1, H2, H3, or all hypothesis experiments.
+"""Run H1, H2, H3, H4, or all hypothesis experiments.
 
 Steps for each hypothesis
 -------------------------
@@ -11,21 +11,23 @@ Steps for each hypothesis
 
 Examples
 --------
-    uv run python scripts/run_experiments.py h1
-    uv run python scripts/run_experiments.py h2 --skip-train
-    uv run python scripts/run_experiments.py h3 --parallel
-    uv run python scripts/run_experiments.py all
-    uv run python scripts/run_experiments.py h1 --max-train-seconds 300
-    uv run python scripts/run_experiments.py h1 -o training.max_steps=50000
-    uv run python scripts/run_experiments.py h2 -o evaluation.eval_steps=500
-    uv run python scripts/run_experiments.py h1 --dev
-    uv run python scripts/run_experiments.py all --dev --dev-steps 500
+    uv run thesis-experiments h1
+    uv run thesis-experiments h2 --skip-train
+    uv run thesis-experiments h3 --parallel
+    uv run thesis-experiments h4 --trials 5 --steps 200000
+    uv run thesis-experiments all
+    uv run thesis-experiments h1 --max-train-seconds 300
+    uv run thesis-experiments h1 -o training.max_steps=50000
+    uv run thesis-experiments h2 -o evaluation.eval_steps=500
+    uv run thesis-experiments h1 --dev
+    uv run thesis-experiments all --dev --dev-steps 500
 """
 
 from __future__ import annotations
 
 import concurrent.futures
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -40,7 +42,7 @@ from rich.markup import escape
 from logger.config import get_global_config as _get_global_logging_config
 from trading_rl.config import EXPERIMENT_OUTPUT_DIR
 
-_REPO_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[2]
 _CLI = ["uv", "run", "python", str(_REPO_ROOT / "src" / "cli.py")]
 # Plain-text subprocess captures (guardrails/train/eval .log files) vs.
 # structured evaluate output (results.json, benchmark_tables/, plots) --
@@ -84,6 +86,8 @@ _H3_SCENARIOS = list(
         ]
     )
 )
+
+_H4_SCENARIO = "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 
 _SCENARIOS: dict[str, list[str]] = {
     "h1": _H1_SCENARIOS,
@@ -398,12 +402,94 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
         )
 
 
+def run_h4(
+    scenario: str,
+    trials: int,
+    steps: int,
+    args: RunArgs,
+) -> None:
+    """Run the H4 multi-trial learning-progression workflow."""
+    _TEXT_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _EXPERIMENT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    if not args.skip_guardrails:
+        _check_guardrails([scenario], args)
+
+    if not args.skip_train:
+        _con.print(
+            f"\n[bold cyan]=== H4: Training {trials} trials "
+            f"(max_steps={steps}) ===[/bold cyan]"
+        )
+        train_overrides = [
+            f"training.max_steps={steps}",
+            "evaluation.eval_fraction=0.05",
+            "training.temp_eval.max_steps=5000",
+            "evaluation.skip_final_eval=true",
+            *args.overrides,
+            *shlex.split(os.environ.get("EXTRA_TRAIN_ARGS", "")),
+        ]
+        cmd = [
+            *_CLI,
+            "train",
+            "-c",
+            scenario,
+            "--trials",
+            str(trials),
+            *_override_flags(train_overrides),
+        ]
+        if args.verbose:
+            cmd.append("--verbose")
+        _run_tee(cmd, _log_file(scenario, "train"))
+
+    if args.skip_eval:
+        _con.print(
+            "[dim]=== H4: skipping evaluate, report, and export (--skip-eval) ===[/dim]"
+        )
+        return
+
+    _con.print(f"\n[bold cyan]=== H4: Evaluating {trials} trials ===[/bold cyan]")
+    eval_overrides = [
+        f"training.max_steps={steps}",
+        *args.overrides,
+        *shlex.split(os.environ.get("EXTRA_EVAL_ARGS", "")),
+    ]
+    eval_cmd = [
+        *_CLI,
+        "evaluate",
+        "-c",
+        scenario,
+        *_override_flags(eval_overrides),
+    ]
+    if args.verbose:
+        eval_cmd.append("--verbose")
+    _run_tee(eval_cmd, _log_file(scenario, "eval"))
+
+    _con.print("\n[bold cyan]=== H4: Learning progression report ===[/bold cyan]")
+    _run_simple(
+        [
+            "uv",
+            "run",
+            "python",
+            str(_REPO_ROOT / "scripts" / "h4_learning_progression_report.py"),
+            "--scenario",
+            scenario,
+            "--n-trials",
+            str(trials),
+            "--max-steps",
+            str(steps),
+        ]
+    )
+
+    _con.print("\n[bold cyan]=== H4: Export to thesis ===[/bold cyan]")
+    _export_all([scenario])
+
+
 # ---------------------------------------------------------------------------
 # Typer app
 # ---------------------------------------------------------------------------
 
 app = typer.Typer(
-    help="Run H1, H2, H3, or all hypothesis experiments.",
+    help="Run H1, H2, H3, H4, or all hypothesis experiments.",
     rich_markup_mode="rich",
     no_args_is_help=True,
 )
@@ -465,7 +551,11 @@ def h1(
         ),
     ] = None,
 ) -> None:
-    """[bold]H1[/bold]: Compare TD3, DDPG, PPO, Random agents with DSR reward."""
+    """Test whether TD3 outperforms DDPG, PPO, and a random-policy baseline.
+
+    Trains and evaluates the four agents with the selected LOB state space and
+    differential-Sharpe reward, then generates the H1 performance comparison.
+    """
     run_hypothesis(
         "h1",
         RunArgs(
@@ -493,7 +583,11 @@ def h2(
     dev: _Dev = False,
     dev_steps: _DevSteps = 2000,
 ) -> None:
-    """[bold]H2[/bold]: Compare minimal / selected / full feature specifications."""
+    """Test how the observation feature set affects TD3 performance.
+
+    Compares minimal, selected, and full feature specifications while holding
+    the learning algorithm and the remaining experiment design fixed.
+    """
     run_hypothesis(
         "h2",
         RunArgs(
@@ -520,7 +614,11 @@ def h3(
     dev: _Dev = False,
     dev_steps: _DevSteps = 2000,
 ) -> None:
-    """[bold]H3[/bold]: Sensitivity analysis — features, reward, transaction cost."""
+    """Test whether the main result is robust to modelling choices.
+
+    Runs sensitivity analyses across feature specifications, reward variants,
+    and transaction-cost assumptions, then produces the H3 robustness report.
+    """
     run_hypothesis(
         "h3",
         RunArgs(
@@ -532,6 +630,54 @@ def h3(
             overrides=overrides or [],
             dev=dev,
             dev_steps=dev_steps,
+        ),
+    )
+
+
+@app.command()
+def h4(
+    scenario: Annotated[
+        str,
+        typer.Option(
+            "--scenario", envvar="SCENARIO", help="Scenario configuration name."
+        ),
+    ] = _H4_SCENARIO,
+    trials: Annotated[
+        int,
+        typer.Option(
+            "--trials", envvar="N_TRIALS", min=1, help="Number of independent trials."
+        ),
+    ] = 5,
+    steps: Annotated[
+        int,
+        typer.Option(
+            "--steps",
+            envvar="STEPS",
+            min=1,
+            help="Maximum training steps per trial.",
+        ),
+    ] = 200_000,
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    verbose: _Verbose = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides: _Overrides = None,
+) -> None:
+    """Test whether TD3 learns consistently across independent short trials.
+
+    Runs repeated seeds with a bounded training budget, evaluates the resulting
+    checkpoints, and compares their learning progression with the baseline.
+    """
+    run_h4(
+        scenario,
+        trials,
+        steps,
+        RunArgs(
+            skip_train=skip_train,
+            skip_eval=skip_eval,
+            verbose=verbose,
+            skip_guardrails=skip_guardrails,
+            overrides=overrides or [],
         ),
     )
 

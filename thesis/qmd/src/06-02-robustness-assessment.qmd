@@ -76,7 +76,7 @@ scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label,
 rows = build_comparison_rows(scenario_metrics, _H2_COLS, index_col="Feature Set", higher_better=_HIGHER_BETTER)
 
 if all(row.get("Sharpe", "—") == "—" for row in rows):
-    print("No H2 results available. Run: bash scripts/run_h2_experiments.sh")
+    print("No H2 results available. Run: uv run thesis-experiments h2")
 else:
     display(comparison_table_html(rows, _H2_COLS, index_col="Feature Set"))
     show_table_meta(finished, audit=_audit)
@@ -169,7 +169,7 @@ for axis in _H3_AXES:
         rows.append(row)
     df = pd.DataFrame(rows)
     if df.iloc[:, 1:].isin(["—"]).all().all():
-        print(f"{axis['label']}: no results yet. Run: bash scripts/run_h3_experiments.sh")
+        print(f"{axis['label']}: no results yet. Run: uv run thesis-experiments h3")
     else:
         display(Markdown(f"### {axis['label']}"))
         display_df(df)
@@ -293,7 +293,7 @@ if h4_data:
     table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 else:
-    print("No H4 results available. Run: bash scripts/run_h4_experiments.sh")
+    print("No H4 results available. Run: uv run thesis-experiments h4")
 ```
 
 ### Interpretation of H4 Results

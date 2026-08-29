@@ -52,7 +52,12 @@ cli: CLI Entry Points {
     style.fill: "#e0f2fe"
   }
 
-  cli_validate_guardrails: "validate guardrails\nuv run python src/cli.py validate guardrails\n  -c <scenario>  [--verbose]\n  Runs all 50 pure-function config guardrail checks\n  prints FATAL/WARN findings; exits non-zero on any FATAL\n  Used by run_experiments.py as pre-flight step 0" {
+  cli_validate_guardrails: "validate guardrails\nuv run python src/cli.py validate guardrails\n  -c <scenario>  [--verbose]\n  Runs all 50 pure-function config guardrail checks\n  prints FATAL/WARN findings; exits non-zero on any FATAL\n  Used by thesis-experiments as pre-flight step 0" {
+    shape: step
+    style.fill: "#e0f2fe"
+  }
+
+  cli_thesis_experiments: "thesis experiments\nuv run thesis-experiments h1|h2|h3|h4\n  Orchestrates guardrails → train → evaluate → report → export\n  Thesis-specific study protocols in src/masters_thesis/" {
     shape: step
     style.fill: "#e0f2fe"
   }
@@ -797,6 +802,21 @@ cli.cli_validate_data -> prep.dp_prepared: "validates prepared dataset" {
 cli.cli_validate_guardrails -> guardrails: "drives" {
   style.stroke-dash: 4
   style.stroke: "#0369a1"
+}
+
+cli.cli_thesis_experiments -> guardrails: "pre-flight" {
+  style.stroke: "#0369a1"
+  style.stroke-dash: 4
+}
+
+cli.cli_thesis_experiments -> train: "orchestrates" {
+  style.stroke: "#0369a1"
+  style.stroke-dash: 4
+}
+
+cli.cli_thesis_experiments -> eval: "orchestrates" {
+  style.stroke: "#0369a1"
+  style.stroke-dash: 4
 }
 cli.cli_collect_results -> eval.eval_artifacts: "merges per-algo results" {
   style.stroke-dash: 4
