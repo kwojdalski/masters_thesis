@@ -11,6 +11,8 @@ Analyzes:
 """
 
 import json
+import math
+from dataclasses import dataclass
 from datetime import UTC
 from pathlib import Path
 from typing import Any
@@ -82,8 +84,108 @@ def find_trial_results(
     return trial_results
 
 
-def compare_to_baseline(trial_results: list[dict[str, Any]]) -> pd.DataFrame:
-    """Compare trial performance against expected baseline ranges."""
+def _json_safe(obj: object) -> object:
+    """Replace non-finite floats with None so json.dump emits valid JSON.
+
+    The vs-baseline columns are NaN when no usable random baseline exists, and
+    Python's json module would otherwise write a bare ``NaN`` token, which is
+    not valid JSON for strict readers.
+    """
+    if isinstance(obj, float):
+        return obj if math.isfinite(obj) else None
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_json_safe(v) for v in obj]
+    return obj
+
+
+@dataclass(frozen=True)
+class RandomBaseline:
+    """Metrics of the cost-aware random-policy baseline for a scenario."""
+
+    total_return: float
+    win_rate: float
+    scenario: str
+    source: str
+    source_split: str | None
+
+    @property
+    def usable(self) -> bool:
+        """True when the baseline was evaluated on the same split as the trials.
+
+        Trial metrics come from the periodic in-training evaluation, which runs
+        on the validation split. A baseline exported from the train split is
+        not a like-for-like comparison, so it is reported as unavailable rather
+        than silently differenced against.
+        """
+        return self.source_split in {"val", "test"}
+
+
+def _derive_random_scenario(scenario: str) -> str:
+    """Map an agent scenario to its matching random-policy scenario.
+
+    ``pooled/td3_hft_lob_..._dsr`` -> ``pooled/random_hft_lob_..._dsr``.  The
+    random scenario shares the data, features and transaction costs, so its
+    metrics are the cost-aware baseline this report should difference against.
+    """
+    prefix, _, name = scenario.rpartition("/")
+    _algo, sep, rest = name.partition("_")
+    if not sep:
+        return scenario
+    random_name = f"random{sep}{rest}"
+    return f"{prefix}/{random_name}" if prefix else random_name
+
+
+def load_random_baseline(scenario: str) -> RandomBaseline | None:
+    """Load the random-policy baseline metrics for a scenario, or None.
+
+    Reads the thesis snapshot written by export_eval_to_thesis.py for the
+    matching random scenario.  Returns None when it is absent so the caller can
+    show the comparison as unavailable instead of inventing values.
+    """
+    experiment = scenario.replace("/", "_")
+    snapshot = (
+        Path("thesis/qmd/results")
+        / experiment
+        / "latest_finished"
+        / "evaluation_report.json"
+    )
+    if not snapshot.exists():
+        return None
+    try:
+        with snapshot.open() as fh:
+            data = json.load(fh)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    total_return = data.get("total_return")
+    win_rate = data.get("win_rate")
+    if not isinstance(total_return, int | float) or not isinstance(
+        win_rate, int | float
+    ):
+        return None
+
+    return RandomBaseline(
+        total_return=float(total_return),
+        win_rate=float(win_rate),
+        scenario=scenario,
+        source=str(snapshot),
+        source_split=data.get("__source_split__"),
+    )
+
+
+def compare_to_baseline(
+    trial_results: list[dict[str, Any]],
+    baseline: RandomBaseline | None = None,
+) -> pd.DataFrame:
+    """Compare trial performance against the random-policy baseline.
+
+    ``baseline`` is the cost-aware random baseline for the same scenario.  When
+    it is None or was evaluated on a different split, the vs-baseline columns
+    are NaN and the caller renders them as "n/a" -- a missing baseline is made
+    visible rather than replaced with an assumed value.
+    """
     if not trial_results:
         return pd.DataFrame()
 
@@ -104,9 +206,18 @@ def compare_to_baseline(trial_results: list[dict[str, Any]]) -> pd.DataFrame:
 
     df = pd.DataFrame(metrics_data)
 
-    # Add dummy strategy benchmarks (typical for HFT with random/buy-and-hold)
-    df["dummy_total_return"] = 0.0  # Random walk expected return
-    df["dummy_win_rate"] = 0.5  # 50/50 for random
+    # Difference against the measured random baseline, never against assumed
+    # values: a random policy paying transaction costs does not have exactly
+    # zero expected return, and its realised win rate over a finite sample is
+    # not exactly 0.5 (the measured baseline for the H4 scenario is +6.9e-4
+    # and 52%). NaN when no usable baseline exists, so the margin is shown as
+    # "n/a" rather than silently computed against a placeholder.
+    if baseline is not None and baseline.usable:
+        df["dummy_total_return"] = baseline.total_return
+        df["dummy_win_rate"] = baseline.win_rate
+    else:
+        df["dummy_total_return"] = float("nan")
+        df["dummy_win_rate"] = float("nan")
     df["vs_dummy_return"] = df["total_return"] - df["dummy_total_return"]
     df["vs_dummy_win_rate"] = df["win_rate"] - df["dummy_win_rate"]
 
@@ -139,8 +250,17 @@ def compute_learning_significance(df: pd.DataFrame) -> dict[str, Any]:
     return results
 
 
-def check_learning_criteria(significance: dict[str, Any]) -> dict[str, bool]:
-    """Check if algorithm meets learning criteria."""
+def check_learning_criteria(
+    significance: dict[str, Any],
+    baseline: RandomBaseline | None = None,
+) -> dict[str, bool]:
+    """Check if algorithm meets learning criteria.
+
+    The win-rate criterion is judged against the measured random baseline when
+    one is available, falling back to 0.5 otherwise. The two are not
+    interchangeable: the H4 scenario's measured random win rate is 52%, so a
+    0.5 threshold passes agents that do not actually beat a random policy.
+    """
     criteria = {}
 
     # Criteria 1: Positive mean return
@@ -152,8 +272,13 @@ def check_learning_criteria(significance: dict[str, Any]) -> dict[str, bool]:
     # Criteria 3: Statistically significant return (p < 0.05)
     criteria["significant_return"] = significance.get("p_value_return", 1) < 0.05
 
-    # Criteria 4: Win rate above 50% (random baseline)
-    criteria["win_rate_above_baseline"] = significance.get("mean_win_rate", 0) > 0.5
+    # Criteria 4: Win rate above the random baseline
+    baseline_win_rate = (
+        baseline.win_rate if (baseline is not None and baseline.usable) else 0.5
+    )
+    criteria["win_rate_above_baseline"] = (
+        significance.get("mean_win_rate", 0) > baseline_win_rate
+    )
 
     # Overall conclusion
     passed = sum(criteria.values())
@@ -172,6 +297,14 @@ def main() -> None:
         "--scenario",
         default="pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
         help="Scenario configuration name",
+    )
+    parser.add_argument(
+        "--random-scenario",
+        default=None,
+        help=(
+            "Scenario providing the random-policy baseline. "
+            "Defaults to the matching random_* scenario."
+        ),
     )
     parser.add_argument(
         "--n-trials",
@@ -204,8 +337,30 @@ def main() -> None:
 
     console.print(f"[green]Found {len(trial_results)} trial results[/green]\n")
 
-    # Compare to baseline
-    df = compare_to_baseline(trial_results)
+    # Compare to the measured random-policy baseline
+    random_scenario = args.random_scenario or _derive_random_scenario(args.scenario)
+    baseline = load_random_baseline(random_scenario)
+    if baseline is None:
+        console.print(
+            f"[yellow]No random baseline found for {random_scenario!r}; "
+            "'vs Dummy' will show n/a and the win-rate criterion falls back "
+            "to 0.5. Run that scenario's evaluate + export to populate it."
+            "[/yellow]\n"
+        )
+    elif not baseline.usable:
+        console.print(
+            f"[yellow]Random baseline for {random_scenario!r} came from the "
+            f"{baseline.source_split!r} split, not val/test; refusing to use it "
+            "as a comparison. 'vs Dummy' will show n/a.[/yellow]\n"
+        )
+    else:
+        console.print(
+            f"[dim]Random baseline ({random_scenario}, {baseline.source_split} "
+            f"split): return={baseline.total_return:.6f} "
+            f"win_rate={baseline.win_rate:.2%}[/dim]\n"
+        )
+
+    df = compare_to_baseline(trial_results, baseline)
 
     # Display summary table
     table = Table(title="Trial Performance Summary")
@@ -216,13 +371,18 @@ def main() -> None:
     table.add_column("vs Dummy", justify="right")
 
     for _, row in df.iterrows():
-        vs_dummy_color = "green" if row["vs_dummy_return"] > 0 else "red"
+        vs_dummy = row["vs_dummy_return"]
+        if pd.isna(vs_dummy):
+            vs_dummy_cell = "[dim]n/a[/dim]"
+        else:
+            vs_dummy_color = "green" if vs_dummy > 0 else "red"
+            vs_dummy_cell = f"[{vs_dummy_color}]{vs_dummy:.4f}[/{vs_dummy_color}]"
         table.add_row(
             f"{int(row['trial'])}",
             f"{row['total_return']:.4f}",
             f"{row['sharpe_ratio']:.2f}",
             f"{row['win_rate']:.2%}",
-            f"[{vs_dummy_color}]{row['vs_dummy_return']:.4f}[/{vs_dummy_color}]",
+            vs_dummy_cell,
         )
 
     console.print(table)
@@ -232,7 +392,7 @@ def main() -> None:
     significance = compute_learning_significance(df)
 
     # Display learning criteria
-    criteria = check_learning_criteria(significance)
+    criteria = check_learning_criteria(significance, baseline)
 
     criteria_table = Table(title="Learning Criteria Check")
     criteria_table.add_column("Criterion")
@@ -242,7 +402,11 @@ def main() -> None:
         "positive_return": "Positive mean return",
         "positive_sharpe": "Positive mean Sharpe ratio",
         "significant_return": "Statistically significant return (p<0.05)",
-        "win_rate_above_baseline": "Win rate > 50% (random baseline)",
+        "win_rate_above_baseline": (
+            f"Win rate > {baseline.win_rate:.2%} (measured random baseline)"
+            if (baseline is not None and baseline.usable)
+            else "Win rate > 50% (assumed random baseline)"
+        ),
     }
 
     for key, label in criteria_labels.items():
@@ -300,7 +464,7 @@ def main() -> None:
     }
 
     with results_file.open("w") as f:
-        json.dump(report_data, f, indent=2)
+        json.dump(_json_safe(report_data), f, indent=2)
 
     console.print(f"\nReport saved to: {results_file}")
 
@@ -330,10 +494,10 @@ def main() -> None:
     now = datetime.now(UTC).isoformat()
 
     (snapshot_dir / "evaluation_report.json").write_text(
-        json.dumps(evaluation_report, indent=2)
+        json.dumps(_json_safe(evaluation_report), indent=2)
     )
     (snapshot_dir / "h4_learning_report.json").write_text(
-        json.dumps(report_data, indent=2)
+        json.dumps(_json_safe(report_data), indent=2)
     )
 
     # Write run.json for consistency
