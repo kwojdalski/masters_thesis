@@ -902,13 +902,19 @@ def create_equity_progression_plot(
     history: list[tuple[int, ReturnSeries]],
     initial_portfolio_value: float = DEFAULT_INITIAL_PORTFOLIO_VALUE,
     max_plot_points: int | None = None,
+    max_total_points: int = 60_000,
 ):
     """Equity curve at each training checkpoint with a single blue hue gradient.
 
     Args:
         history: List of (training_step, ReturnSeries) pairs, ordered by step.
         initial_portfolio_value: Starting portfolio value for equity reconstruction.
-        max_plot_points: Downsample each series to at most this many points.
+        max_plot_points: Optional extra cap on the points kept per series.
+        max_total_points: Cap on points across the whole figure. This plot draws
+            one line per checkpoint, so a per-series cap alone does not bound it
+            -- the cost grows with checkpoint count and the caller re-renders the
+            full history at every periodic eval, making the total work quadratic
+            over a run (#513). Budgeting the figure keeps each render flat.
 
     Returns:
         A plotnine ggplot, or None if fewer than two checkpoints are available.
@@ -916,26 +922,29 @@ def create_equity_progression_plot(
     if len(history) < 2:
         return None
 
-    rows = []
+    per_series_cap = max(1, max_total_points // len(history))
+    if max_plot_points is not None:
+        per_series_cap = min(per_series_cap, max_plot_points)
+
+    frames = []
     for training_step, returns in history:
         equity = returns.to_equity(initial_portfolio_value).values
         n = len(equity)
-        stride = (
-            max(1, n // max_plot_points)
-            if max_plot_points and max_plot_points < n
-            else 1
-        )
+        # Ceiling division: floor would round the stride down to 1 for
+        # caps just under n and overshoot the budget by up to 2x.
+        stride = max(1, -(-n // per_series_cap)) if per_series_cap < n else 1
         idx = np.arange(n)[::stride]
-        for s, v in zip(idx, equity[::stride], strict=False):
-            rows.append(
+        frames.append(
+            pd.DataFrame(
                 {
-                    "Steps": int(s),
-                    "Portfolio_Value": float(v),
+                    "Steps": idx.astype(int),
+                    "Portfolio_Value": equity[::stride].astype(float),
                     "Training_Step": int(training_step),
                 }
             )
+        )
 
-    df = pd.DataFrame(rows)
+    df = pd.concat(frames, ignore_index=True)
     n_checkpoints = df["Training_Step"].nunique()
 
     return (
