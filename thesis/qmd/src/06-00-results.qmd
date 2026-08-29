@@ -54,13 +54,10 @@ actions.
 
 ### Comparison Methodology
 
-All three algorithms are trained on the same training split with identical
-hyperparameter tuning procedures, evaluated on the same held-out test split, and
-assessed using the same financial metrics. The exported thesis snapshots report
-one completed evaluation run per algorithm for the final comparison. The
-comparison should therefore be read as matched experimental evidence on the
-available exports, not as a multi-seed estimate of the population distribution
-of outcomes.
+The exported thesis snapshots report one completed evaluation run per
+algorithm for this comparison: it should be read as matched experimental
+evidence on the available exports, not as a multi-seed estimate of the
+population distribution of outcomes.
 
 ### Performance Comparison
 
