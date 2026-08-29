@@ -369,28 +369,10 @@ historical period used, TD3's replay-based learning extracts more signal from
 each transition, making its combination of off-policy efficiency and stability
 mechanisms a strong fit for the thesis design.
 
-| Property | PPO | DDPG | TD3 |
-|----------|------|-----|-----|
-| Policy Type | Stochastic | Deterministic | Deterministic |
-| Learning Paradigm | On-policy | Off-policy (replay) | Off-policy (replay) |
-| Exploration Mechanism | Entropy bonus | Action noise | Action noise + smoothing |
-| Stability Mechanism | Clipped objective | Prone to overestimation | Double Q + delayed updates |
-| Sample Efficiency | Moderate | High | High |
-| Training Stability | High | Low | High |
-| Hyperparameter Sensitivity | Low | High | Moderate |
-| Suitability for Limited Data | Lower | Moderate$^a$ | High |
-| Interpretability | Lower (stochastic) | High (deterministic) | High (deterministic) |
-
-: Algorithm properties for trading applications. {#tbl-algo-comparison}
-
-::: {.table-note}
-**Source:** Author's own synthesis based on [@Fujimoto2018; @Schulman2017; @Lillicrap2015; @Mohammadshafie2024].
-**Note:** $^a$ DDPG's replay buffer provides high sample efficiency in principle, but its training instability [@Henderson2018] undermines this advantage when data is limited.
-:::
-
-This comparison framework guides the experimental design in Chapter 6, where
-PPO, DDPG, and TD3 are evaluated on identical trading tasks to empirically
-assess how these algorithmic differences translate to trading performance.
+This comparison framework, together with the implementation-level controls
+summarized in @tbl-policy-comparison, guides the experimental design in Chapter
+6, where PPO, DDPG, and TD3 are evaluated on identical trading tasks to
+empirically assess how these algorithmic differences translate to trading performance.
 The results help determine whether TD3's theoretical advantages (reduced
 overestimation, deterministic policy) translate to practical benefits in the
 noisy, non-stationary trading environment, and whether PPO's on-policy stability

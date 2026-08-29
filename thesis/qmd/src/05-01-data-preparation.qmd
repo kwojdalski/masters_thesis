@@ -369,56 +369,9 @@ else:
 
 ### Feature Statistics {#sec-feature-statistics}
 
-@tbl-feature-stats reports distributional statistics for all engineered
-microstructure features computed over the training split, after skipping
-the first 500 events to allow rolling-window features to stabilise. Means
-close to zero and standard deviations near one confirm that the causal
-running normalisation is operating as intended. Q1, Q2, and Q3 show the
-inter-quartile spread; Skew and Kurt (excess kurtosis) characterise the
-shape of each marginal distribution.
-
-Several features — most notably `ofi` and `ofi_rolling_50` — exhibit
-extreme minimum and maximum values despite the near-unit standard
-deviation. This is a structural property of order-flow imbalance, not a
-data quality issue. The order book is quiet the overwhelming majority of
-the time: most tick events represent small queue adjustments that produce
-z-scores close to zero. Occasionally, however, a large aggressive order
-consumes multiple price levels in rapid succession, causing a spike of
-hundreds of raw OFI units. The Welford running standard deviation is
-dominated by the quiet majority, so these rare spikes emerge as z-scores
-of $\pm$290 or larger after normalisation. The large positive excess
-kurtosis visible for OFI features reflects this heavy-tailed structure.
-
-The values in @tbl-feature-stats are post-normalization but pre-clipping.
-The environment applies a hard observation clip of $[-5, 5]$ via the
-`obs_clip` parameter, so the policy network never receives the extreme
-tails shown here. The table therefore faithfully describes the prepared
-dataset, while the effective input range seen by the agent is bounded.
-This two-step design — normalize to make the typical range well-behaved,
-then clip to suppress the rare extreme events — is standard practice in
-continuous-control RL on financial microstructure data.
-
-```{python}
-#| label: cell-feature-stats
-#| output: asis
-#| echo: false
-#| warning: false
-
-import pandas as pd
-from thesis_mlflow_results import repo_root
-from thesis_tables import feature_stats_table, missing_data_notice
-
-_feat_path = (
-    repo_root()
-    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/feature_stats.csv"
-)
-if _feat_path.exists():
-    feature_stats_table(pd.read_csv(_feat_path))
-else:
-    missing_data_notice(
-        "feature_stats.csv not found — run: uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export, then: "
-        "uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
-    )
-```
+Across the engineered features, means close to zero and standard deviations
+near one confirm that causal running normalisation operates as intended. The
+main exception is the heavy-tailed OFI family: rare aggressive orders produce
+pre-clipping z-scores of $\pm 290$ or more, but the environment bounds the
+values received by the policy to $[-5, 5]$. The full distributional breakdown
+is reported in Appendix, @tbl-feature-stats.
