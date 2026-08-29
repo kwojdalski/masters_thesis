@@ -18,14 +18,21 @@ LOB snapshot columns (bid/ask price, size, count for all levels):
     .last()  — end-of-second LOB state
 
 tick-level metadata (rtype, publisher_id, instrument_id, flags, ts_in_delta,
-                     sequence, ts_event, price, depth, side):
+                     sequence, ts_event, depth):
     .last()
 
-action:
-    synthetic: 'T' if any trade occurred in the second, else last action
+action, side, size, price (the trade-describing fields):
+    If any trade occurred in the bin, these are taken from the LAST TRADE in
+    that bin, so the bar reports action=='T' together with that trade's own
+    side, size and price. Otherwise they are the last event's values.
 
-size:
-    .last()  (per-event size is not meaningful after aggregation; use trade_volume)
+    Taking action from the trades but size/side from the last event of any
+    kind would label the bar a trade while attributing an unrelated book
+    update's size and side to it, which is what every action=='T' feature
+    reads. The fields therefore move together or not at all.
+
+    Only the last trade in the bin survives: use trade_volume for the bin's
+    total traded size.
 
 trade_volume:
     sum of size[action=='T'] — total traded size in the bar (used by VWAP benchmark)
@@ -36,6 +43,7 @@ volume (raw field, equals size for every event type in MBP-10):
 symbol:
     .last()  (constant per file, just carry through)
 """
+
 from __future__ import annotations
 
 import argparse
@@ -45,24 +53,84 @@ from pathlib import Path
 import pandas as pd
 
 # Columns that carry LOB snapshot state — use end-of-period value.
+# fmt: off — one row per book level is the point of this layout
 _LOB_SNAPSHOT_COLS = [
-    "bid_px_00", "ask_px_00", "bid_sz_00", "ask_sz_00", "bid_ct_00", "ask_ct_00",
-    "bid_px_01", "ask_px_01", "bid_sz_01", "ask_sz_01", "bid_ct_01", "ask_ct_01",
-    "bid_px_02", "ask_px_02", "bid_sz_02", "ask_sz_02", "bid_ct_02", "ask_ct_02",
-    "bid_px_03", "ask_px_03", "bid_sz_03", "ask_sz_03", "bid_ct_03", "ask_ct_03",
-    "bid_px_04", "ask_px_04", "bid_sz_04", "ask_sz_04", "bid_ct_04", "ask_ct_04",
-    "bid_px_05", "ask_px_05", "bid_sz_05", "ask_sz_05", "bid_ct_05", "ask_ct_05",
-    "bid_px_06", "ask_px_06", "bid_sz_06", "ask_sz_06", "bid_ct_06", "ask_ct_06",
-    "bid_px_07", "ask_px_07", "bid_sz_07", "ask_sz_07", "bid_ct_07", "ask_ct_07",
-    "bid_px_08", "ask_px_08", "bid_sz_08", "ask_sz_08", "bid_ct_08", "ask_ct_08",
-    "bid_px_09", "ask_px_09", "bid_sz_09", "ask_sz_09", "bid_ct_09", "ask_ct_09",
+    "bid_px_00",
+    "ask_px_00",
+    "bid_sz_00",
+    "ask_sz_00",
+    "bid_ct_00",
+    "ask_ct_00",
+    "bid_px_01",
+    "ask_px_01",
+    "bid_sz_01",
+    "ask_sz_01",
+    "bid_ct_01",
+    "ask_ct_01",
+    "bid_px_02",
+    "ask_px_02",
+    "bid_sz_02",
+    "ask_sz_02",
+    "bid_ct_02",
+    "ask_ct_02",
+    "bid_px_03",
+    "ask_px_03",
+    "bid_sz_03",
+    "ask_sz_03",
+    "bid_ct_03",
+    "ask_ct_03",
+    "bid_px_04",
+    "ask_px_04",
+    "bid_sz_04",
+    "ask_sz_04",
+    "bid_ct_04",
+    "ask_ct_04",
+    "bid_px_05",
+    "ask_px_05",
+    "bid_sz_05",
+    "ask_sz_05",
+    "bid_ct_05",
+    "ask_ct_05",
+    "bid_px_06",
+    "ask_px_06",
+    "bid_sz_06",
+    "ask_sz_06",
+    "bid_ct_06",
+    "ask_ct_06",
+    "bid_px_07",
+    "ask_px_07",
+    "bid_sz_07",
+    "ask_sz_07",
+    "bid_ct_07",
+    "ask_ct_07",
+    "bid_px_08",
+    "ask_px_08",
+    "bid_sz_08",
+    "ask_sz_08",
+    "bid_ct_08",
+    "ask_ct_08",
+    "bid_px_09",
+    "ask_px_09",
+    "bid_sz_09",
+    "ask_sz_09",
+    "bid_ct_09",
+    "ask_ct_09",
 ]
+# fmt: on
 
+# Fields that describe the event itself rather than book state. In a bin that
+# contains at least one trade these are taken from that trade, so a bar
+# labelled action=='T' carries that trade's own side/size/price -- the columns
+# every action=='T' feature reads alongside the label.
+_TRADE_ATTR_COLS = ["action", "side", "size", "price"]
+
+# fmt: off
 _LAST_COLS = [
     "ts_event", "rtype", "publisher_id", "instrument_id",
     "action", "side", "depth", "price", "size",
     "flags", "ts_in_delta", "sequence", "symbol",
 ]
+# fmt: on
 
 
 def _resample_file(src: Path, dst: Path, freq: str) -> dict:
@@ -75,13 +143,21 @@ def _resample_file(src: Path, dst: Path, freq: str) -> dict:
 
     if df.empty:
         df.to_parquet(dst)
-        return {"input_rows": 0, "output_rows": 0, "elapsed_s": time.perf_counter() - t0}
+        return {
+            "input_rows": 0,
+            "output_rows": 0,
+            "elapsed_s": time.perf_counter() - t0,
+        }
 
     # --- trade_volume: total traded size per bar (preferred VWAP weight)
     if "action" in df.columns and "size" in df.columns:
         trade_mask = df["action"].astype(str) == "T"
         trade_vol_series = df["size"].where(trade_mask, other=0).resample(freq).sum()
+    elif "action" in df.columns:
+        trade_mask = df["action"].astype(str) == "T"
+        trade_vol_series = None
     else:
+        trade_mask = None
         trade_vol_series = None
 
     # --- volume: raw column sum (MBP-10: volume == size per event)
@@ -95,6 +171,29 @@ def _resample_file(src: Path, dst: Path, freq: str) -> dict:
 
     # --- assemble
     out = resampled_last.copy()
+
+    # --- trade-describing fields: last TRADE in the bin, not last event.
+    # Book updates vastly outnumber trades, so the last event in a second is
+    # almost never a trade: on a sample session 97.4% of trade-bearing bins
+    # were labelled with a book-update action, hiding 98.1% of trade events
+    # from every feature that gates on action=='T'.
+    if trade_mask is not None:
+        attr_cols = [c for c in _TRADE_ATTR_COLS if c in df.columns]
+        if attr_cols and bool(trade_mask.any()):
+            # .resample().any() is unavailable on this resampler; max() over a
+            # boolean series is the equivalent reduction.
+            had_trade = (
+                trade_mask.astype("int8")
+                .resample(freq)
+                .max()
+                .reindex(out.index, fill_value=0)
+                .astype(bool)
+            )
+            last_trade = (
+                df.loc[trade_mask, attr_cols].resample(freq).last().reindex(out.index)
+            )
+            for col in attr_cols:
+                out[col] = out[col].where(~had_trade, last_trade[col])
     for col, series in sum_cols.items():
         out[col] = series
     if trade_vol_series is not None:
@@ -116,11 +215,25 @@ def _resample_file(src: Path, dst: Path, freq: str) -> dict:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--src", default="data/raw/stocks/daily", help="Source directory tree root")
-    parser.add_argument("--dst", default="data/raw/stocks_1s/daily", help="Destination directory tree root")
-    parser.add_argument("--freq", default="1s", help="Resample frequency (pandas offset alias, e.g. 1s, 5s, 1min)")
-    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing output files")
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--src", default="data/raw/stocks/daily", help="Source directory tree root"
+    )
+    parser.add_argument(
+        "--dst",
+        default="data/raw/stocks_1s/daily",
+        help="Destination directory tree root",
+    )
+    parser.add_argument(
+        "--freq",
+        default="1s",
+        help="Resample frequency (pandas offset alias, e.g. 1s, 5s, 1min)",
+    )
+    parser.add_argument(
+        "--overwrite", action="store_true", help="Overwrite existing output files"
+    )
     args = parser.parse_args()
 
     src_root = Path(args.src)
@@ -151,7 +264,9 @@ def main() -> None:
             f"{stats['elapsed_s']:.1f}s"
         )
 
-    print(f"\nDone. Total: {total_in:,} -> {total_out:,} rows  ({100.0*(1-total_out/max(total_in,1)):.1f}% reduction)")
+    print(
+        f"\nDone. Total: {total_in:,} -> {total_out:,} rows  ({100.0 * (1 - total_out / max(total_in, 1)):.1f}% reduction)"
+    )
 
 
 if __name__ == "__main__":
