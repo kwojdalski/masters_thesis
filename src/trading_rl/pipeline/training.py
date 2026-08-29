@@ -218,8 +218,23 @@ def _build_training_bundle(
     train_env = _build_train_env(dataset, config, logger)
     eval_env = None
     if getattr(config.training, "eval_interval", 0) > 0:
+        # Only the rows the periodic rollout can actually reach. Building this
+        # over the full val split held a 666 MB DataFrame plus the env's derived
+        # arrays resident for the whole run to serve a bounded pulse-check
+        # (#514). The full split is reserved for final evaluation, which builds
+        # its own env per split. +1 row so the env can take the final step.
+        _n_eval = config.evaluation.periodic_eval_steps
+        # head_rows, not .iloc: .iloc goes through LazyDataFrame.__getattr__ and
+        # materialises (and caches) the whole split first, which is the load
+        # this slice exists to avoid.
+        _val_df = dataset.val_df
+        _eval_df = (
+            _val_df.head_rows(_n_eval + 1)
+            if hasattr(_val_df, "head_rows")
+            else _val_df.iloc[: _n_eval + 1]
+        )
         eval_env = AlgorithmicEnvironmentBuilder().create(
-            dataset.val_df, EnvBuildParams.from_config(config), use_memmap=False
+            _eval_df, EnvBuildParams.from_config(config), use_memmap=False
         )
     trainer = _build_trainer(
         train_env,
@@ -228,7 +243,10 @@ def _build_training_bundle(
         effective_experiment_name,
         logger,
         eval_env=eval_env,
-        eval_data_len=len(dataset.val_df),
+        # Row count only -- len() would materialise the split. Since the
+        # periodic eval budget stopped deriving from it, this value is used
+        # solely in a log line.
+        eval_data_len=getattr(dataset.val_df, "n_rows", None) or len(dataset.val_df),
     )
 
     mlflow_callback = None

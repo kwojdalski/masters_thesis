@@ -74,6 +74,62 @@ class LazyDataFrame:
         df = self._load_if_needed()
         return len(df)
 
+    @property
+    def n_rows(self) -> int:
+        """Return the row count without loading the frame.
+
+        Reads the parquet footer when the frame is not already cached. Callers
+        that only need a size for reporting should prefer this over ``len()``:
+        ``__len__`` materialises the whole split and, with the default
+        ``cache_after_load=True``, pins it for the process lifetime -- 666 MB
+        for the pooled val/test splits, even when the split is never evaluated
+        (#519).
+        """
+        if self._df is not None:
+            return len(self._df)
+        try:
+            import pyarrow.parquet as pq
+
+            return pq.ParquetFile(self.file_path).metadata.num_rows
+        except Exception:
+            logger.debug(
+                "parquet footer read failed, falling back to load path={}",
+                self.file_path,
+            )
+            return len(self._load_if_needed())
+
+    def head_rows(self, n: int) -> pd.DataFrame:
+        """Return the first *n* rows without materialising or caching the frame.
+
+        ``.iloc`` reaches ``__getattr__`` and loads the whole split first, which
+        defeats the point when a caller only needs a bounded prefix -- e.g. the
+        periodic-eval env, which can only ever step through its budget (#514).
+        Falls back to the normal load path if the parquet cannot be read
+        incrementally.
+        """
+        if self._df is not None:
+            return self._df.iloc[:n]
+        try:
+            import pyarrow as pa
+            import pyarrow.parquet as pq
+
+            pf = pq.ParquetFile(self.file_path)
+            batches, total = [], 0
+            for batch in pf.iter_batches(batch_size=min(max(n, 1), 65_536)):
+                batches.append(batch)
+                total += batch.num_rows
+                if total >= n:
+                    break
+            if not batches:
+                return self._load_if_needed().iloc[:n]
+            return pa.Table.from_batches(batches).to_pandas().iloc[:n]
+        except Exception:
+            logger.debug(
+                "incremental parquet read failed, falling back to load path={}",
+                self.file_path,
+            )
+            return self._load_if_needed().iloc[:n]
+
     def __getitem__(self, key):
         """Get column by name or slice rows (loads file if needed)."""
         df = self._load_if_needed()
@@ -141,7 +197,9 @@ def save_prepared_splits(
         output_path = output_dir / f"{split_name}_prepared.parquet"
         df.to_parquet(output_path)
         paths[split_name] = output_path
-        logger.info("save split name={} path={} n_rows={}", split_name, output_path, len(df))
+        logger.info(
+            "save split name={} path={} n_rows={}", split_name, output_path, len(df)
+        )
 
     return paths
 
@@ -174,7 +232,7 @@ def load_prepared_splits(
 class MemmapPaths:
     """Paths and metadata for a single symbol's memmap training split."""
 
-    data_path: Path   # float32 array, shape (n_rows, n_cols)
+    data_path: Path  # float32 array, shape (n_rows, n_cols)
     index_path: Path  # int64 nanosecond timestamps, shape (n_rows,)
     n_rows: int
     columns: list[str]
@@ -210,7 +268,9 @@ def save_symbol_memmap(
     numeric_df = df.select_dtypes(include=[np.number])
     dropped = set(df.columns) - set(numeric_df.columns)
     if dropped:
-        logger.warning("save memmap dropping non-numeric columns cols={}", sorted(dropped))
+        logger.warning(
+            "save memmap dropping non-numeric columns cols={}", sorted(dropped)
+        )
 
     columns = list(numeric_df.columns)
     data_path = output_dir / f"{prefix}_train_data.npy"
@@ -227,8 +287,20 @@ def save_symbol_memmap(
     if symbol:
         (output_dir / f"{prefix}_symbol.txt").write_text(symbol)
 
-    logger.info("save memmap prefix={} symbol={} dir={} n_rows={}", prefix, symbol or "?", output_dir, len(df))
-    return MemmapPaths(data_path=data_path, index_path=index_path, n_rows=len(df), columns=columns, symbol=symbol)
+    logger.info(
+        "save memmap prefix={} symbol={} dir={} n_rows={}",
+        prefix,
+        symbol or "?",
+        output_dir,
+        len(df),
+    )
+    return MemmapPaths(
+        data_path=data_path,
+        index_path=index_path,
+        n_rows=len(df),
+        columns=columns,
+        symbol=symbol,
+    )
 
 
 def load_memmap_paths(output_dir: str | Path) -> list[MemmapPaths]:
