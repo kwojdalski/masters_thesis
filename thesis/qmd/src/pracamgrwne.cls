@@ -72,7 +72,7 @@
 \advance\textheight -50mm
 \advance\textheight -\footskip
 \marginparwidth15mm
-% Define abstract environment with large font
+% Abstract environment: 12 pt body text at the document's own margins.
 % The \null\vfil ... \vfil\null pair previously wrapping this body is the
 % standard "vertically centre the abstract on its own page" idiom. It only
 % works when the abstract is short enough to sit on one page with the glue
@@ -88,13 +88,20 @@
 % footnotes (rule 8), figure sources (rule 11), and long block quotations
 % (rule 7) -- and none licenses a larger font, so there is no basis for
 % setting the abstract above 12 pt.
+% \quotation previously wrapped the body. Its \leftmargin/\rightmargin is
+% \leftmargini -- 30 pt (10.5 mm) at 12 pt -- so the abstract printed at
+% 35.5 mm on both sides while the Key words, Erasmus code, and thematic
+% classification blocks directly beneath it on the same page sat at the
+% required 25 mm. WNE UW rule 5 fixes all four margins at 25 mm and grants
+% the abstract no exemption; it is not a block quotation (rule 7), which is
+% the only body text the requirements indent. \quotation also forced a
+% 1.5em first-line indent over the document's 1 cm (rule 4). Plain paragraph
+% flow inherits both correctly.
 \renewenvironment{abstract}{%
   \begin{center}
     \bfseries \abstractname
   \end{center}
-  \quotation
 }{%
-  \endquotation
 }
 
 \renewcommand\maketitle{%
