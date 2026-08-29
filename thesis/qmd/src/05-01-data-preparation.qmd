@@ -73,27 +73,12 @@ in Appendix A.
 
 ### Input Format
 
-The pipeline consumes time-indexed LOB snapshot data. Each row represents
-an order-book event with multi-level bid/ask prices, sizes, and order counts,
-plus trade descriptors used for order-flow features. The core column groups
-are summarized below.
-
-| Column group | Description | Role |
-|---|---|---|
-| `timestamp` | Chronological event index | Ordering, temporal features |
-| `bid/ask_px_NN` | Bid/ask prices at level `NN` | Spread, mid-price, slope, valuation |
-| `bid/ask_sz_NN` | Resting size at level `NN` | Imbalance, depth, OFI, queue features |
-| `bid/ask_ct_NN` | Order count at level `NN` | Order count imbalance |
-| `action`, `side`, `size` | Event type, aggressor side, size | Signed trade flow features |
-| `close` | Mid-price-like series (auxiliary) | Reward and portfolio valuation |
-
-: Input schema used in the empirical pipeline. {#tbl-input-schema}
-
-::: {.table-note}
-**Source:** Author's own elaboration based on the DataBento Nasdaq TotalView-ITCH MBP-10 schema.
-:::
-
-*`NN` denotes the zero-indexed book level (00–09).*
+The pipeline consumes time-indexed LOB snapshot data. Each row represents an
+order-book event: a `timestamp` for ordering and temporal features; bid/ask
+price, resting size, and order count at each book level `NN` (00-09, feeding
+spread, imbalance, depth, and queue features respectively); `action`, `side`,
+and `size` describing the event itself (used for signed trade-flow features);
+and an auxiliary `close` series used only for reward and portfolio valuation.
 
 @tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The three events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book: the first event is a resting limit-order addition on the bid side at a non-top-of-book level; the second is a trade print that consumes displayed size at the best ask; the third and fourth are additions that refresh the ask side after the trade.
 
@@ -137,54 +122,11 @@ The dataset is organized as one parquet file per security per trading day,
 yielding 24 files in total (6 symbols × 4 trading days). The four days cover
 February 25–27, 2026 (days 1–3, training) and March 2, 2026 (day 4,
 evaluation). All files are filtered to US regular market hours (09:30–16:00 ET).
-@tbl-raw-file-inventory shows raw event counts and inter-event timing
-statistics per symbol and split before the level-0–4 filter is applied.
-Training counts aggregate all three training days per symbol; validation
-and test each represent one chronological half of the March 2 file.
-
-```{python}
-#| label: tbl-raw-file-inventory
-#| tbl-cap: "Raw MBP-10 event counts and inter-event timing per symbol and split."
-#| echo: false
-#| warning: false
-
-import json
-import pandas as pd
-from thesis_mlflow_results import repo_root
-from thesis_tables import fmt_duration, display_df, table_note, missing_data_notice
-
-_inv_path = (
-    repo_root()
-    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/raw_file_inventory.json"
-)
-
-if _inv_path.exists():
-    df = pd.DataFrame(json.loads(_inv_path.read_text()))
-    df["Split"] = df["split"].str.capitalize()
-    df["Events"] = df["rows"].apply(lambda x: f"{int(x):,}")
-    df["Trades"] = df["trades"].apply(lambda x: f"{int(x):,}")
-    df["Mean Δt"] = df["mean_delta_s"].apply(fmt_duration)
-    df["Median Δt"] = df["median_delta_s"].apply(fmt_duration)
-    display_df(df[["symbol", "Split", "Events", "Trades", "Mean Δt", "Median Δt"]].rename(
-        columns={"symbol": "Symbol"}
-    ))
-    table_note(
-        source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
-        note=(
-            "Mean and median Δt computed from positive within-session inter-event deltas only "
-            "(overnight gaps excluded for the training split). "
-            "Training aggregates all three days per symbol (February 25–27, 2026); "
-            "validation and test each cover one chronological half of the March 2 session."
-        ),
-    )
-else:
-    missing_data_notice(
-        "raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export, then: "
-        "uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
-    )
-```
+Raw event counts and inter-event timing per symbol and split, before the
+level-0–4 filter is applied, are reported in Appendix, @tbl-raw-file-inventory;
+event density varies substantially across symbols (from roughly 190,000 to
+7.1 million events per split) and this variation carries through to the
+post-filter split sizes summarized below.
 
 **Training data.** The 18 files from days 1–3 are used exclusively for
 training. Each daily file is treated as a complete, independent training unit:
@@ -221,37 +163,26 @@ leakage from the held-out evaluation day.
 
 Normalization of microstructure features presents a methodological challenge for sequential learning: the conventional approach of fitting a standard scaler on the full training dataset and applying it globally introduces look-ahead bias. Each observation's normalized value would incorporate statistical information from future timesteps, violating the causal structure that a trading agent must respect in deployment. An agent at step $t$ can only condition on information available at time $t$; allowing its inputs to be scaled using the mean and variance of the entire training set (including steps $t+1, t+2, \dots$) would, in effect, provide the agent with knowledge it cannot access.
 
-To preserve causality, this study employs a **cumulative running normalization** scheme based on Welford's online algorithm for computing sample mean and variance incrementally [@Welford1962]. For each feature $x$ observed at sequential timesteps $1, 2, \dots, T$, the running statistics are updated as:
+To preserve causality, this study employs a **cumulative running normalization**
+scheme: for each feature, the mean and variance used to standardize the
+observation at step $t$ are updated incrementally from the mean and variance
+at step $t-1$, following Welford's online algorithm [@Welford1962]. This
+requires no buffer of past observations and no pass over future data, updates
+in $O(1)$ per step, and remains numerically stable even for the near-empty
+denominators of early-session observations.
 
-$$
-\bar{x}_t = \bar{x}_{t-1} + \frac{1}{t}(x_t - \bar{x}_{t-1})
-$$ {#eq-welford-mean}
-
-$$
-\sigma_t^2 = \sigma_{t-1}^2 + \frac{1}{t}\bigl[(x_t - \bar{x}_{t-1})^2 - \sigma_{t-1}^2\bigr]
-$$ {#eq-welford-var}
-
-where:
-
-- $\bar{x}_t$ — running mean after observing $t$ values
-- $\sigma_t^2$ — running variance after observing $t$ values
-- $x_t$ — current observation
-- $\bar{x}_{t-1}$ — mean from the previous step
-
-The normalized value at timestep $t$ is then computed from the cumulative statistics available after observing the current feature value:
+The resulting normalized value is the single-feature case of @eq-z-score
+(Chapter 4), with the feature index $i$ suppressed and the running mean and
+variance written as $\bar{x}_t, \sigma_t^2$ rather than $\mu_{i,t},
+\sigma_{i,t}^2$:
 
 $$
 \tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{\sigma_t^2 + \varepsilon}}
 $$ {#eq-running-normalize}
 
-where:
-
-- $\bar{x}_t$ and $\sigma_t^2$ — defined by @eq-welford-mean and @eq-welford-var
-- $\varepsilon > 0$ — small constant (here $10^{-4}$) added to the denominator for numerical stability when variance is near zero
-
-This single-feature presentation corresponds to $\mu_{i,t}$ and $\sigma_{i,t}^2$ in the multi-feature formulation of @eq-z-score, with the feature index $i$ suppressed here for clarity.
-
-This ensures that the scaling statistics used to normalize $\tilde{x}_t$ incorporate only observations $1, \dots, t$ and no future values. Since $x_t$ is part of the observation available before the action at time $t$ is chosen, this transformation preserves the causal information structure while avoiding the instability that would arise from normalizing early-session observations with an almost empty denominator. The computational cost of this approach is $O(1)$ per update, making it efficient even for large datasets.
+Because $\bar{x}_t$ and $\sigma_t^2$ incorporate only observations
+$1, \dots, t$, and $x_t$ is available before the action at step $t$ is
+chosen, this transformation never uses future information.
 
 #### Session-Aware Normalization
 

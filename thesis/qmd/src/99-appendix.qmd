@@ -142,6 +142,64 @@ else:
 
 ---
 
+# Raw Data Inventory {#sec-appendix-raw-inventory}
+
+```{=latex}
+\addcontentsline{loa}{section}{Raw Data Inventory}
+```
+
+@tbl-raw-file-inventory reports raw MBP-10 event counts and inter-event
+timing per symbol and split, before the level-0-4 filter described in
+@sec-dataset-split-summary is applied. Training aggregates all three
+training days per symbol (February 25-27, 2026); validation and test each
+cover one chronological half of the March 2 session.
+
+```{python}
+#| label: tbl-raw-file-inventory
+#| tbl-cap: "Raw MBP-10 event counts and inter-event timing per symbol and split."
+#| echo: false
+#| warning: false
+
+import json
+import pandas as pd
+from thesis_mlflow_results import repo_root
+from thesis_tables import fmt_duration, display_df, table_note, missing_data_notice
+
+_inv_path = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/raw_file_inventory.json"
+)
+
+if _inv_path.exists():
+    df = pd.DataFrame(json.loads(_inv_path.read_text()))
+    df["Split"] = df["split"].str.capitalize()
+    df["Events"] = df["rows"].apply(lambda x: f"{int(x):,}")
+    df["Trades"] = df["trades"].apply(lambda x: f"{int(x):,}")
+    df["Mean Δt"] = df["mean_delta_s"].apply(fmt_duration)
+    df["Median Δt"] = df["median_delta_s"].apply(fmt_duration)
+    display_df(df[["symbol", "Split", "Events", "Trades", "Mean Δt", "Median Δt"]].rename(
+        columns={"symbol": "Symbol"}
+    ))
+    table_note(
+        source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
+        note=(
+            "Mean and median Δt computed from positive within-session inter-event deltas only "
+            "(overnight gaps excluded for the training split). "
+            "Training aggregates all three days per symbol (February 25–27, 2026); "
+            "validation and test each cover one chronological half of the March 2 session."
+        ),
+    )
+else:
+    missing_data_notice(
+        "raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export, then: "
+        "uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+    )
+```
+
+---
+
 # Data Preparation Pipeline
 
 ```{=latex}
