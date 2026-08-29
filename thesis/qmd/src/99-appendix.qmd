@@ -92,7 +92,7 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_hour\_cos} & Regime/temp. & $\cos(2\pi h_t/24)$ & --- & & Wood et al.\ (1985) \\
 \end{longtable}
 \vspace{-0.5\baselineskip}
-{\footnotesize\parindent0pt\raggedright\relax Source: author's own compilation; each formula is attributed to its originating study in the Citation column.\par}
+{\footnotesize\itshape\parindent0pt\raggedright\relax\textbf{Source:} author's own compilation; each formula is attributed to its originating study in the Citation column.\par}
 \end{landscape}
 ```
 

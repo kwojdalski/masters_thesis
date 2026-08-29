@@ -131,19 +131,17 @@
   \begin{titlepage}
     \c@page=1
     \thispagestyle{plain}
-    \large
+    \fontsize{12pt}{14.4pt}\selectfont
     \null
     \vfill
 
-
-   \textbf{\Large }
     \vspace{10mm}
     \vspace{10mm}
 
    Data \hfill Podpis opiekuna
 
    \vspace{2cm}
-   \textbf{\Large Statement of the Supervisor on Submission of the Thesis}
+   \textbf{Statement of the Supervisor on Submission of the Thesis}
    \vspace{10mm}
 
     I hereby certify that the thesis submitted has been prepared under my supervision and I declare that it satisfies the requirements of submission in the
@@ -153,7 +151,7 @@
    \vspace{10mm}
 
    \vspace{2cm}
-   \textbf{\Large O\'swiadczenie autora (autor\'ow) pracy}
+   \textbf{O\'swiadczenie autora (autor\'ow) pracy}
     \vspace{10mm}
 
    \vspace{10mm}
@@ -162,7 +160,7 @@
    Data \hfill Podpis autora (autor\'ow) pracy
 
    \vspace{2cm}
-   \textbf{\Large Statement of the Author(s) on Submission of the Thesis }
+   \textbf{Statement of the Author(s) on Submission of the Thesis }
       \vspace{10mm}
 
    Aware of legal liability I certify that the thesis submitted has been prepared by myself and does not include information gathered contrary to the law.
