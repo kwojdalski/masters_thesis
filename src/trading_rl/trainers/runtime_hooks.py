@@ -58,6 +58,12 @@ class PeriodicExplainabilityHook:
     last_step: int = 0
 
 
+# Cap on retained progression checkpoints per split. Each holds a full
+# ReturnSeries, and the plot re-renders the whole history at every periodic
+# eval, so an unbounded list costs both memory and render time (#516).
+_MAX_PROGRESSION_CHECKPOINTS = 25
+
+
 class TrainerRuntimeHooks:
     """Manage optional periodic work triggered from the training loop."""
 
@@ -182,6 +188,9 @@ class TrainerRuntimeHooks:
         if self._explainability is not None:
             self._close_env_safely(self._explainability.eval_env)
             self._explainability = None
+        # Release the retained ReturnSeries arrays too, not just the envs (#516).
+        self._progression_history.clear()
+        self._price_plots_logged.clear()
 
     def _maybe_run_evaluation(self, step_number: int) -> None:
         hook = self._evaluation
@@ -585,9 +594,14 @@ class TrainerRuntimeHooks:
                 # Commit the staged progression entry now that the full
                 # evaluation succeeded — history is only modified on success.
                 if _staged_prog_entry is not None:
-                    self._progression_history.setdefault(split_ctx.split, []).append(
-                        _staged_prog_entry
-                    )
+                    _hist = self._progression_history.setdefault(split_ctx.split, [])
+                    _hist.append(_staged_prog_entry)
+                    # Each entry holds a full ReturnSeries (up to
+                    # temp_eval.max_steps float64). Append-only, this grew for
+                    # the length of the run (#516). Keep the first entry as the
+                    # baseline and drop the oldest interior one.
+                    if len(_hist) > _MAX_PROGRESSION_CHECKPOINTS:
+                        del _hist[1]
                     logger.trace(
                         "temp eval: progression entry committed split={} step={} n={}",
                         split_ctx.split,

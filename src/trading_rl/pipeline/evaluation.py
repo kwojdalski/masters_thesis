@@ -815,6 +815,17 @@ def build_final_metrics(
     else:
         val_test_symbols = unique_symbols
 
+    def _row_count(frame: Any) -> int:
+        """Row count that does not materialise a LazyDataFrame.
+
+        len() loads the whole split and, with cache_after_load=True, pins it for
+        the process lifetime. These sizes are reporting metadata, so they must
+        not force a 666 MB load of a split this run may never evaluate -- H4
+        sets skip_final_eval=true and still reached here (#519).
+        """
+        n = getattr(frame, "n_rows", None)
+        return int(n) if n is not None else len(frame)
+
     def _fmt_ts(ts: Any) -> str:
         if hasattr(ts, "strftime"):
             return ts.strftime("%Y-%m-%d %H:%M:%S UTC")
@@ -840,6 +851,8 @@ def build_final_metrics(
         entry["symbols"] = split_symbols.get(split, unique_symbols)
         enriched_split_results[split] = entry
 
+    _end_frame = split_frames.get(primary_split) if primary_split else None
+
     return {
         "final_reward": final_reward,
         "optimizer_steps": len(logs.get("loss_value", [])),
@@ -857,15 +870,20 @@ def build_final_metrics(
             "portfolio_weights" if is_portfolio_backend else "last_position_per_episode"
         ): last_positions,
         "data_start_date": str(train_df.index[0]) if not train_df.empty else "unknown",
+        # Read the end date off the split that was actually evaluated. Reaching
+        # into test_df unconditionally materialised it even when it was never
+        # scored (#519); train_df is already resident, so it is a free fallback.
         "data_end_date": (
-            str(test_df.index[-1])
-            if not test_df.empty
+            str(_end_frame.index[-1])
+            if _end_frame is not None and not _end_frame.empty
             else (str(train_df.index[-1]) if not train_df.empty else "unknown")
         ),
-        "data_size_total": len(train_df) + len(val_df) + len(test_df),
-        "train_size": len(train_df),
-        "validation_size": len(val_df),
-        "test_size": len(test_df),
+        "data_size_total": (
+            _row_count(train_df) + _row_count(val_df) + _row_count(test_df)
+        ),
+        "train_size": _row_count(train_df),
+        "validation_size": _row_count(val_df),
+        "test_size": _row_count(test_df),
         "trading_fees": config.env.trading_fees,
         "borrow_interest_rate": config.env.borrow_interest_rate,
         "positions": str(config.env.positions),
