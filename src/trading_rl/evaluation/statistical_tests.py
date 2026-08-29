@@ -123,6 +123,8 @@ def run_all_statistical_tests(
             baseline_results.update(spec.metadata)
             if "volume_source" in spec.metadata:
                 all_results["vwap_volume_source"] = spec.metadata["volume_source"]
+            if "schedule" in spec.metadata:
+                all_results["vwap_schedule"] = spec.metadata["schedule"]
             all_results["baselines"].append(baseline_results)
             _status(f"  [{i}/{n_baselines}] {spec.name} done")
         except Exception as e:

@@ -334,6 +334,10 @@ def log_statistical_tests(
     if isinstance(vwap_volume_source, str) and vwap_volume_source:
         mlflow.log_param("stat_vwap_volume_source", vwap_volume_source)
 
+    vwap_schedule = test_results.get("vwap_schedule")
+    if isinstance(vwap_schedule, str) and vwap_schedule:
+        mlflow.log_param("stat_vwap_schedule", vwap_schedule)
+
     benchmark_table = test_results.get("benchmark_comparison_table")
     if isinstance(benchmark_table, list) and benchmark_table:
         benchmark_df = pd.DataFrame(benchmark_table)
