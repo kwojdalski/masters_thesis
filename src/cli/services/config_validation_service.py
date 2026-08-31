@@ -390,7 +390,10 @@ def validate_experiment_config(config: ExperimentConfig) -> ValidationReport:
         )
         return report
 
-    _validate_split_feasibility(config, dataset_len, report)
+    # Per-day configs use every row in data_paths for training and split the
+    # separate validation files instead, so train_size is intentionally unset.
+    if not getattr(config.data, "val_data_paths", None):
+        _validate_split_feasibility(config, dataset_len, report)
 
     raw_columns = set(df.columns)
     if pipeline is not None:

@@ -123,6 +123,19 @@ def test_infeasible_split_is_error(tmp_path: Path):
     assert any(i.code == "TRAIN_SPLIT_INVALID" for i in report.issues)
 
 
+def test_per_day_config_allows_unbounded_train_size(tmp_path: Path):
+    data_path = _write_dataset(tmp_path / "train.parquet")
+    val_path = _write_dataset(tmp_path / "val.parquet")
+    config = ExperimentConfig()
+    config.data.data_paths = [str(data_path)]
+    config.data.val_data_paths = [str(val_path)]
+    config.data.train_size = None
+
+    report = validate_experiment_config(config)
+
+    assert not any(i.code == "TRAIN_SPLIT_INVALID" for i in report.issues)
+
+
 def test_missing_env_feature_column_is_error(tmp_path: Path):
     data_path = _write_dataset(tmp_path / "data.parquet")
     feat_cfg = _write_feature_config(

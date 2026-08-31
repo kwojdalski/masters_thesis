@@ -72,7 +72,10 @@ def log_training_parameters(config) -> None:
         mlflow.log_param("experiment_name", str(config.experiment_name))
         mlflow.log_param("seed", int(config.seed))
 
-        mlflow.log_param("data_train_size", int(config.data.train_size))
+        train_size = config.data.train_size
+        mlflow.log_param(
+            "data_train_size", "all" if train_size is None else int(train_size)
+        )
         mlflow.log_param("data_timeframe", str(config.data.timeframe))
         mlflow.log_param("data_exchange_names", json.dumps(config.data.exchange_names))
         mlflow.log_param("data_symbols", json.dumps(config.data.symbols))
