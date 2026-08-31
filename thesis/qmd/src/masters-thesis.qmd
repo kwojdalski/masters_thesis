@@ -196,6 +196,7 @@ assumptions separating these findings from deployable performance claims.
 ```{=latex}
 \listoftables
 \listoffigures
+\listofappendices
 ```
 
 {{< include ./99-appendix.qmd >}}
