@@ -95,5 +95,6 @@
       "information_ratio": 1414.4334682909484,
       "tracking_error": 0.25016390348102224
     }
-  ]
+  ],
+  "__source_split__": "test"
 }
