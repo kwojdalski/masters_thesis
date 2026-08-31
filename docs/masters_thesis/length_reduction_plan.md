@@ -160,6 +160,9 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 32 | 1/3 | 02-01, 02-02, 02-03, 02-08 | User explicitly asked to reduce information (not just dedupe) in the first chapters. Found the same epistemic caveat — "this microstructure regularity is descriptive, not a proven trading signal; profitability is tested empirically in later chapters" — restated roughly 10 times across the chapter, on top of `02-00` already stating the rule once for the whole chapter. Cut 3 restatements in `02-01` (two per-finding tags plus its closing paragraph), 4 in `02-02` (spread-decomposition tag, LOB-mechanics tag, OFI's caveat stated twice within 10 lines — footnote and the very next paragraph — collapsed to one, and a closing-paragraph tag), condensed `02-03` from 338 to ~140 words keeping only its one genuinely new idea (the "alphas" framing from quant finance), and trimmed `02-08`'s restatement to one clause. Kept mechanism-specific limitations that aren't the generic caveat (Kyle's lambda proxies missing the latent informed-trader information set; microprice being top-of-book-only). | -473 (02-01: 826->697; 02-02: 1160->1016; 02-03: 338->163; 02-08: 283->258) | applied (`beea69df`) |
 | 33 | 1 | 03-00 | Fresh reconnaissance requested by the user (`03-00`-`03-02`, `02-04`, `02-07`, `07-02`) after the session-10 queue closed. Found the partial-observability explanation ("engineered features, not the full market state, because of hidden liquidity, private orders, latent regimes") given in full twice within ~20 lines of the same file — once in the "Components" chapter intro, once again under the "State" subsection. Kept the first (it sets up the whole chapter's approximate-MDP framing); compressed the second to its only genuinely new content, the forward pointer to Chapter 4.2. | -43 (64 -> 21) | applied |
 | 34 | 1 | 02-07 | Found in the same reconnaissance pass. Two consecutive closing paragraphs both distilled "lessons for this thesis's design" from the literature survey — one organized by finding (continuous-action preference, DSR promise, cost modeling), one by design dimension (state/action/reward/validation) — restating the same points twice under different frames. Merged into one paragraph keeping every distinct point, including the "proof of concept, not a robust edge" framing that was unique to the second paragraph. | -45 (176 -> 131) | applied |
+| 35 | 1 | 06-00, 06-02 | Found via a new automated near-duplicate-sentence scan (exact + Jaccard fuzzy match), not manual re-reading. `06-00`'s H1 table legend and `06-02`'s H2 table legend define the identical abbreviation set (Sharpe, Sortino, Return, Max DD, Win Rate, PF, Turnover, Ann. Vol), reordered and cosmetically reworded — a genuine zero-abbreviation-mismatch duplicate, unlike item 36. User asked whether a cross-referenced legend (vs. each table staying self-contained) is permitted under WNE UW's formal requirements; this skill has no authority on that (it's `thesis-format-auditor`/formal-compliance territory), so rather than guess, the user chose to skip. | ~45 (not applied) | skipped — formal-compliance uncertainty (self-contained-table convention), not verified against WNE UW's actual requirements |
+| 36 | 1 | 06-00, 06-03 | Same scan. `06-00`'s H1 legend and `06-03`'s benchmark-table legend share most definitions (Sortino, Max DD, Win Rate, Turnover) but use different abbreviations for three metrics (TR vs Return, SR vs Sharpe, Volatility vs Ann. Vol), so a clean full cross-reference would've needed either a residual mapping for the differing three or a column-header rename — more invasive than item 35. Not reviewed in detail once the user skipped item 35 for the same underlying reason. | ~20-25 (not applied) | skipped — same formal-compliance uncertainty as item 35 |
+| 37 | 1 | 06-00, 06-03 | Same scan. `06-03`'s one-sentence benchmark-category recap ("passive exposure, execution-style references, and a stochastic baseline") echoes `06-00`'s `#sec-benchmark-strategies` intro almost verbatim, but it's already compact (no re-definition of the five strategies) — marginal, comparable to item 31's "too small to be worth it" judgment. | ~10-15 (not applied) | skipped — marginal, same session decision as 35/36 |
 
 ## Session log
 
@@ -420,3 +423,43 @@ hemingway-style pass already running in this working directory is the
 correct next lever — sentence-level economy across the many short, correct,
 but occasionally verbose sentences this thesis still has — rather than more
 reconnaissance under this skill's three categories.
+
+**2026-08-31, session 13 (automated near-duplicate scan):** User asked for
+more candidates. Rather than re-read chapters by eye again (likely to
+reproduce session 12's "exhausted" conclusion), wrote a small script to find
+near-duplicate sentences across all body `.qmd` files by exact match and by
+Jaccard similarity on content words — a mechanical check none of the prior
+12 sessions had tried. Exact-match (9+ words) found zero cross-file repeats,
+confirming 12 sessions of dedup work eliminated verbatim restatement. Fuzzy
+matching (Jaccard >= 0.4 on content words) surfaced three items (35-37): the
+H1/H2/benchmark table legends in `06-00`/`06-02`/`06-03` restate the same
+metric definitions with cosmetic rewording — a pattern easy to miss reading
+narratively since each instance is a short "Legend:"/italic footnote line
+next to a table, not prose. Everything else the fuzzy scan surfaced (H1/07-01
+hypothesis restatement, 02-04/04-03 "direct optimization" description,
+01-00/04-03 tick-frequency-noise mention, 04-01/04-05 PPO entropy bonus) was
+confirmed to be the same legitimate literature-to-design or intro-to-summary
+recall pattern already established as acceptable in earlier sessions — not
+flagged.
+
+Presented item 35 (cleanest: zero abbreviation mismatch between `06-00`'s H1
+legend and `06-02`'s H2 legend) with a concrete diff. User asked whether a
+cross-referenced legend (vs. every table staying self-contained) is
+permitted under WNE UW's formal thesis requirements — a formal-compliance
+question this skill has no authority to answer (that's
+`thesis-format-auditor`'s or a direct check of the university's guide, not a
+length-reduction judgment call). Rather than guess, presented the tradeoff
+and asked the user to choose; user chose to skip all three items (35-37)
+entirely rather than apply now or log as an open issue. No `.qmd` files
+edited this session — plan file only.
+
+**Where this leaves the 80-page target:** unchanged from session 12's
+assessment. The automated scan is now available as a technique for a future
+session (e.g. lower the Jaccard threshold further, or run it after the
+concurrent hemingway pass lands, since sentence-level tightening can
+sometimes surface structural duplication that verbose phrasing had
+obscured), but it did not overturn the "structural signal exhausted"
+conclusion — it found one legitimate-but-small (~85 words total) candidate,
+and the user judged it not worth pursuing without formal-compliance
+confirmation. hemingway (sentence-level) or reconsidering the 80-page target
+remain the live paths forward.
