@@ -175,3 +175,95 @@ def test_debug_set_supplies_small_h4_defaults(
     assert args.experiment_set.name == "debug"
     assert "data.max_rows_per_file=20000" in args.overrides
     assert not args.experiment_set.export_to_thesis
+
+
+@pytest.mark.parametrize("command", ["h1", "h2", "h3", "h4", "all"])
+def test_max_train_seconds_is_offered_by_every_hypothesis_command(
+    command: str,
+) -> None:
+    """The wall-clock cap must not drift back to being h1-only.
+
+    It was originally declared inline on h1 alone, so `h2 --max-train-seconds`
+    failed with an unknown-option error while the identical h1 invocation
+    worked.
+    """
+    result = CliRunner().invoke(experiments.app, [command, "--help"])
+
+    assert result.exit_code == 0
+    assert "--max-train-seconds" in result.stdout
+
+
+@pytest.mark.parametrize("hypothesis", ["h1", "h2", "h3"])
+def test_max_train_seconds_reaches_the_train_command(
+    runner: ModuleType, monkeypatch: pytest.MonkeyPatch, hypothesis: str
+) -> None:
+    """Being accepted by the parser is not enough — it must reach training."""
+    extras: list[list[str]] = []
+    monkeypatch.setattr(runner, "_check_guardrails", lambda _scenarios, _args: None)
+    monkeypatch.setattr(runner, "_evaluate_all", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(
+        runner,
+        "_train_all",
+        lambda _scenarios, _args, extra_overrides=None: extras.append(
+            extra_overrides or []
+        ),
+    )
+
+    runner.run_hypothesis(
+        hypothesis,
+        runner._apply_experiment_set(
+            runner.RunArgs(overrides=[], skip_eval=True, max_train_seconds=240),
+            "full",
+            False,
+        ),
+    )
+
+    assert "training.max_train_seconds=240" in extras[0]
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+def test_h4_forwards_max_train_seconds_to_every_trial(
+    runner: ModuleType, monkeypatch: pytest.MonkeyPatch, parallel: bool
+) -> None:
+    """h4 builds its own overrides, bypassing run_hypothesis's forwarding."""
+    commands: list[list[str]] = []
+    monkeypatch.delenv("EXTRA_TRAIN_ARGS", raising=False)
+    monkeypatch.setattr(runner, "_check_guardrails", lambda _scenarios, _args: None)
+    monkeypatch.setattr(
+        runner, "_run_tee", lambda command, _log: commands.append(command)
+    )
+    monkeypatch.setattr(
+        runner,
+        "_run_parallel_jobs",
+        lambda _label, jobs, max_workers: commands.extend(cmd for cmd, _log in jobs),
+    )
+
+    runner.run_h4(
+        "scenario/name",
+        2,
+        1_000,
+        runner.RunArgs(
+            overrides=[], skip_eval=True, parallel=parallel, max_train_seconds=240
+        ),
+    )
+
+    assert commands
+    for command in commands:
+        assert "training.max_train_seconds=240" in command
+
+
+def test_h4_omits_max_train_seconds_when_the_flag_is_not_given(
+    runner: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    commands: list[list[str]] = []
+    monkeypatch.delenv("EXTRA_TRAIN_ARGS", raising=False)
+    monkeypatch.setattr(runner, "_check_guardrails", lambda _scenarios, _args: None)
+    monkeypatch.setattr(
+        runner, "_run_tee", lambda command, _log: commands.append(command)
+    )
+
+    runner.run_h4(
+        "scenario/name", 2, 1_000, runner.RunArgs(overrides=[], skip_eval=True)
+    )
+
+    assert not [tok for tok in commands[0] if "max_train_seconds" in tok]

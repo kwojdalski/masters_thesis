@@ -17,7 +17,7 @@ Examples
     uv run thesis-experiments h4 --trials 5 --steps 200000
     uv run thesis-experiments h4 --parallel --max-parallel 3
     uv run thesis-experiments all
-    uv run thesis-experiments h1 --max-train-seconds 300
+    uv run thesis-experiments h2 --max-train-seconds 300
     uv run thesis-experiments h1 -o training.max_steps=50000
     uv run thesis-experiments h2 -o evaluation.eval_steps=500
     uv run thesis-experiments h1 --dev
@@ -575,6 +575,15 @@ def run_h4(
             "evaluation.skip_final_eval=true",
             *(["training.skip_guardrails=true"] if args.skip_guardrails else []),
             *args.overrides,
+            # After args.overrides so the dedicated flag wins over a bare -o,
+            # matching run_hypothesis/_train_all's precedence; still ahead of
+            # EXTRA_TRAIN_ARGS, which stays the final escape hatch. Caps each
+            # trial's wall-clock time on top of the --steps cap above.
+            *(
+                [f"training.max_train_seconds={args.max_train_seconds}"]
+                if args.max_train_seconds
+                else []
+            ),
             *shlex.split(os.environ.get("EXTRA_TRAIN_ARGS", "")),
         ]
 
@@ -735,6 +744,14 @@ _DevSteps = Annotated[
         help="Training steps per scenario in [bold]--dev[/bold] mode (default: 2000).",
     ),
 ]
+_MaxTrainSeconds = Annotated[
+    int | None,
+    typer.Option(
+        "--max-train-seconds",
+        metavar="N",
+        help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).",
+    ),
+]
 _SetName = Annotated[
     str,
     typer.Option(
@@ -765,14 +782,7 @@ def h1(
     dev_steps: _DevSteps = 2000,
     set_name: _SetName = "full",
     debug: _DebugSet = False,
-    max_train_seconds: Annotated[
-        int | None,
-        typer.Option(
-            "--max-train-seconds",
-            metavar="N",
-            help="Cap training wall-clock time per scenario (forwarded as training.max_train_seconds=N).",
-        ),
-    ] = None,
+    max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
     """Test whether TD3 outperforms DDPG, PPO, and a random-policy baseline.
 
@@ -813,6 +823,7 @@ def h2(
     dev_steps: _DevSteps = 2000,
     set_name: _SetName = "full",
     debug: _DebugSet = False,
+    max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
     """Test how the observation feature set affects TD3 performance.
 
@@ -832,6 +843,7 @@ def h2(
                 overrides=overrides or [],
                 dev=dev,
                 dev_steps=dev_steps,
+                max_train_seconds=max_train_seconds,
             ),
             set_name,
             debug,
@@ -852,6 +864,7 @@ def h3(
     dev_steps: _DevSteps = 2000,
     set_name: _SetName = "full",
     debug: _DebugSet = False,
+    max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
     """Test whether the main result is robust to modelling choices.
 
@@ -871,6 +884,7 @@ def h3(
                 overrides=overrides or [],
                 dev=dev,
                 dev_steps=dev_steps,
+                max_train_seconds=max_train_seconds,
             ),
             set_name,
             debug,
@@ -921,6 +935,7 @@ def h4(
     overrides: _Overrides = None,
     set_name: _SetName = "full",
     debug: _DebugSet = False,
+    max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
     """Test whether TD3 learns consistently across independent short trials.
 
@@ -949,6 +964,7 @@ def h4(
                 verbose=verbose,
                 skip_guardrails=skip_guardrails,
                 overrides=overrides or [],
+                max_train_seconds=max_train_seconds,
             ),
             set_name,
             debug,
@@ -969,6 +985,7 @@ def run_all(
     dev_steps: _DevSteps = 2000,
     set_name: _SetName = "full",
     debug: _DebugSet = False,
+    max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
     """Run [bold]H1[/bold], [bold]H2[/bold], and [bold]H3[/bold] in sequence."""
     args = _apply_experiment_set(
@@ -982,6 +999,7 @@ def run_all(
             overrides=overrides or [],
             dev=dev,
             dev_steps=dev_steps,
+            max_train_seconds=max_train_seconds,
         ),
         set_name,
         debug,
