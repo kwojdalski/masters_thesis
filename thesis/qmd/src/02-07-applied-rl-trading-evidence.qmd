@@ -159,25 +159,20 @@ targeting risk-adjusted return directly, but does not fully resolve the tension
 between reward simplicity and the richness of real trading objectives.
 
 
-The literature reviewed here points to several patterns relevant to the design
-choices in this thesis. Across the representative studies discussed above,
-continuous-action actor-critic methods are frequently preferred over
-discrete-action alternatives for position-sizing tasks
-[@Liang2018; @Majidi2024; @Kabbani2022]. Risk-adjusted reward signals,
-especially Differential Sharpe Ratio formulations, also appear promising for
-out-of-sample generalization relative to raw return objectives, though such
-claims remain highly sensitive to the evaluation protocol and cost assumptions.
-Explicit transaction cost modeling is a prerequisite for any realistic
-performance claim at the frequencies considered here.
-
-Viewed by design dimension, the strongest lessons are narrower than the headline
-returns reported in many papers. State representations must include the
-information needed for the action being optimized; action spaces should match
-the economic decision, especially when the task is exposure sizing; rewards must
-penalize costs and avoid encouraging excessive turnover; and validation must use
-held-out periods, frozen policies, and repeated runs where stochastic training is
-material. Without these elements, a positive backtest is best interpreted as a
-proof of concept rather than evidence of a robust trading edge.
+The literature reviewed here converges on design lessons rather than a
+headline result. Continuous-action actor-critic methods are frequently
+preferred over discrete alternatives for position-sizing tasks
+[@Liang2018; @Majidi2024; @Kabbani2022], since action spaces must match the
+economic decision being made. Risk-adjusted reward signals — especially
+Differential Sharpe Ratio formulations — appear promising for out-of-sample
+generalization relative to raw return objectives, provided they penalize
+costs and avoid encouraging excessive turnover; explicit transaction-cost
+modeling is a prerequisite for any realistic performance claim at the
+frequencies considered here, and such claims remain highly sensitive to the
+evaluation protocol. Validation must use held-out periods, frozen policies,
+and repeated runs where stochastic training is material — without these
+elements, a positive backtest is best interpreted as a proof of concept
+rather than evidence of a robust trading edge.
 
 Within the representative literature reviewed here, a comparatively
 underexplored design combination is the joint use of order-book-derived state

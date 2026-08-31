@@ -47,13 +47,9 @@ non-terminal, continuing the interaction sequence. The Markov property requires
 that the optimal action depend only on $s_t$ and not on the full history; the
 feature engineering in Chapter 4 is designed to approximate this property.
 
-State representation is particularly challenging in financial markets because the
-true market state is only partially observable—agents lack information about
-hidden liquidity, other participants' private orders, and latent regime
-shifts. The engineered state vector described here is therefore necessarily
-an approximation, and Chapter 4.2 discusses how specific microstructure features
-are selected and normalized to construct a useful decision state under partial
-observability and non-stationarity.
+Chapter 4.2 discusses how specific microstructure features are selected and
+normalized to construct a useful decision state under this partial
+observability.
 
 **Action.** The action $a_t$ is the decision the agent takes given state $s_t$. In this
 thesis the action space is continuous: $a_t \in [-1, 1]$, representing the

@@ -14,7 +14,7 @@ real starting point for the 80-page target is the post-fix count, not 144.
 Current: **142 pages** (last rendered 2026-08-30, after item 32; not
 re-rendered since — item 11 below is word-count-tracked only until the next
 render)
-Body word count (chapters 01-07): **30,068 words** (30,405 - 78 item 11 - 134 item 18 - 71 item 29 - 54 item 30)
+Body word count (chapters 01-07): **29,980 words** (30,405 - 78 item 11 - 134 item 18 - 71 item 29 - 54 item 30 - 43 item 33 - 45 item 34)
 Body page range (as of last render): printed pages 8-106 (physical PDF pages
 9-107), **99 body pages**; Bibliography begins on printed page 107
 words_per_page: ~307 (30,405 / 99 measured body pages)
@@ -61,10 +61,13 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
       explicit request to reduce information, not just duplication. `02-00`,
       `02-05`, `02-06` remain tightly scoped from earlier reconnaissance — no
       findings.
-- [ ] 03 Reinforcement Learning — `03-02-actor-critic-methods.qmd` fully read
-      and now reviewed for both tables and category-3 breadth. Its redundant
-      table was removed (item 12), and its repeated algorithm-selection material
-      was consolidated (item 16). Other Chapter 3 files still need review.
+- [x] 03 Reinforcement Learning — all three files fully read and reviewed.
+      `03-02-actor-critic-methods.qmd`'s redundant table was removed (item 12),
+      and its repeated algorithm-selection material was consolidated (item 16).
+      `03-00-reinforcement-learning.qmd`'s in-file duplicated partial-observability
+      explanation was condensed (item 33). `03-01-rl-categories.qmd` re-checked
+      fresh and found tightly scoped — a taxonomy chapter that correctly defers
+      detail to `03-02` rather than duplicating it.
 - [x] 04 Design of the Trading Agent — all seven files fully read
       (`04-01` through `04-07`). The duplicated feature-formula and
       actor-architecture tables were removed (items 14-15); the controlled
@@ -156,6 +159,8 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 30 | 2 | 05-01, 99-appendix | Item 4's old note — "`cell-feature-correlations` was kept because the prose references specific cells" — was stale: the prose only ever cites the *aggregate* claim ("all absolute correlations are below 0.005"), never a single feature's value. Moved the code chunk to a new appendix section (`#sec-appendix-feature-correlations`, following the established `\addcontentsline{loa}{section}{...}` pattern), replacing it in the body with a one-sentence pointer to `@tbl-feature-correlations`. Confirmed via `thesis_tables.py` that the table's LaTeX `\label{tbl-feature-correlations}` is set directly by the table function (not the calling cell's label), so the cross-reference resolves regardless of which file the chunk lives in. | -54 body (3128 -> 3074, raw wc -w) | applied |
 | 31 | 2 | 06-02 | Reconsidered from session 6 (previously "too small to be worth the appendix-move churn"). The H4 code chunk generates three separate tables: summary stats, pass/fail criteria, and a per-trial breakdown (up to `n=5` rows). "Interpretation of H4 Results" only ever discusses what pass/fail verdicts mean in general, never a specific trial's number — the summary and criteria tables carry the load-bearing pass/fail verdict a reader needs; only the per-trial detail table would move. Still marginal at N=5 rows. User declined in session 11: effect too marginal to be worth the appendix-move churn (same judgment as session 6, now final rather than reopened). | ~15-25 est. | skipped — user judged too marginal |
 | 32 | 1/3 | 02-01, 02-02, 02-03, 02-08 | User explicitly asked to reduce information (not just dedupe) in the first chapters. Found the same epistemic caveat — "this microstructure regularity is descriptive, not a proven trading signal; profitability is tested empirically in later chapters" — restated roughly 10 times across the chapter, on top of `02-00` already stating the rule once for the whole chapter. Cut 3 restatements in `02-01` (two per-finding tags plus its closing paragraph), 4 in `02-02` (spread-decomposition tag, LOB-mechanics tag, OFI's caveat stated twice within 10 lines — footnote and the very next paragraph — collapsed to one, and a closing-paragraph tag), condensed `02-03` from 338 to ~140 words keeping only its one genuinely new idea (the "alphas" framing from quant finance), and trimmed `02-08`'s restatement to one clause. Kept mechanism-specific limitations that aren't the generic caveat (Kyle's lambda proxies missing the latent informed-trader information set; microprice being top-of-book-only). | -473 (02-01: 826->697; 02-02: 1160->1016; 02-03: 338->163; 02-08: 283->258) | applied (`beea69df`) |
+| 33 | 1 | 03-00 | Fresh reconnaissance requested by the user (`03-00`-`03-02`, `02-04`, `02-07`, `07-02`) after the session-10 queue closed. Found the partial-observability explanation ("engineered features, not the full market state, because of hidden liquidity, private orders, latent regimes") given in full twice within ~20 lines of the same file — once in the "Components" chapter intro, once again under the "State" subsection. Kept the first (it sets up the whole chapter's approximate-MDP framing); compressed the second to its only genuinely new content, the forward pointer to Chapter 4.2. | -43 (64 -> 21) | applied |
+| 34 | 1 | 02-07 | Found in the same reconnaissance pass. Two consecutive closing paragraphs both distilled "lessons for this thesis's design" from the literature survey — one organized by finding (continuous-action preference, DSR promise, cost modeling), one by design dimension (state/action/reward/validation) — restating the same points twice under different frames. Merged into one paragraph keeping every distinct point, including the "proof of concept, not a robust edge" framing that was unique to the second paragraph. | -45 (176 -> 131) | applied |
 
 ## Session log
 
@@ -376,3 +381,5 @@ fresh page count.
 Also applied item 30 (`05-01` -> `99-appendix`): moved the feature-correlation table's code chunk to a new listed appendix section, replacing it in the body with a one-sentence pointer, after confirming the prose only ever cites the aggregate correlation claim. Body word count now 30,068 (30,405 baseline - 78 - 134 - 71 - 54); not yet re-rendered to a fresh page count.
 
 Closed out the session on item 31 (H4 per-trial table, `06-02`): user judged the effect too marginal to be worth the appendix-move churn at N=5 rows — the same call made in session 6, now settled rather than reopened. Marked skipped rather than applied. All five items carried over from session 10 (11, 18, 29, 30, 31) are now resolved: four applied, one skipped. Each edit was committed individually to branch `kwojdalski/thesis-condense-session11` and pushed to PR #554 (unmerged as of end of session); no fresh Quarto render was run this session, so the page-count effect of items 11/18/29/30 (-337 body words combined) is tracked as a word-count estimate only, not yet confirmed via `pdfinfo`.
+
+User then asked for a fresh reconnaissance pass to find more candidates, scoped to the plan's own "most promising next targets" note: `03-00`-`03-02`, `02-04`, `02-07`, and `07-02`. Re-read all of these in full. Found two clean within-file dedups (33 in `03-00`, 34 in `02-07`), both applied on the same `ok`. Checked and cleared with no new findings: `03-01` (tight taxonomy chapter), `02-04` (tight after item 10), and `07-02` (no repeated-caveat pattern like Chapter 2's item 32 despite the plan flagging it as promising — its five limitation subsections are genuinely distinct, confirmed by grepping each one's specific claims against the rest of the thesis with no hits). One sentence-level redundancy noticed in `03-02` (a phrase repeated verbatim across two adjacent sentences) was explicitly out of scope — that belongs to `hemingway`, not flagged as a plan item. Body word count now 29,980 (30,405 baseline - 78 - 134 - 71 - 54 - 43 - 45); not yet re-rendered to a fresh page count.
