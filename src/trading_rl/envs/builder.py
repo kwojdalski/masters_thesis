@@ -25,9 +25,12 @@ def _neutral_position(positions: list[int]) -> int:
 
     ``positions`` defaults to ``[SHORT(-1), HOLD(0), LONG(1)]``, so indexing
     ``positions[0]`` yields SHORT — every episode would open short (#437).
-    Fall back to 0 when no explicit neutral entry exists.
+    Falls back to the first configured position when there's no explicit
+    HOLD entry, since gym_trading_env requires `initial_position` to be a
+    member of `positions` — falling back to a bare 0 would violate that for
+    a HOLD-less config like `[SHORT, LONG]`.
     """
-    return next((int(p) for p in positions if int(p) == 0), 0)
+    return next((int(p) for p in positions if int(p) == 0), int(positions[0]))
 
 
 @dataclass(frozen=True)

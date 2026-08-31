@@ -180,8 +180,13 @@ class CustomTradingEnvironmentFactory(BaseTradingEnvironmentFactory):
             # 'random' default draws from global np.random (unseeded by
             # reset(seed=...)), giving un-chosen opening exposure and breaking
             # seed reproducibility. positions[0] is SHORT, not neutral (#437).
+            # Falls back to positions[0] (rather than a bare 0) when there's
+            # no HOLD entry, since gym_trading_env requires initial_position
+            # to be a member of positions — a HOLD-less config like
+            # [SHORT, LONG] would otherwise fail that assertion.
             initial_position=next(
-                (int(p) for p in config.env.positions if int(p) == 0), 0
+                (int(p) for p in config.env.positions if int(p) == 0),
+                int(config.env.positions[0]),
             ),
             trading_fees=config.env.trading_fees,
             borrow_interest_rate=config.env.borrow_interest_rate,
