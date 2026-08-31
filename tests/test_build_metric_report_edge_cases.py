@@ -32,7 +32,7 @@ class TestBuildMetricReportEdgeCases:
         report = _report([])
 
         assert all(np.isnan(v) for v in report.to_dict().values())
-        assert len(report.to_dict()) == 44  # All metric keys should be present
+        assert len(report.to_dict()) == 46  # All metric keys should be present
 
     def test_single_return(self):
         """Single return should work correctly."""
@@ -318,8 +318,10 @@ class TestBuildMetricReportEdgeCases:
             "mean_return",
             "std_return",
             "sharpe_ratio",
+            "sharpe_ratio_annualized",
             "sharpe_expost",
             "sortino_ratio",
+            "sortino_ratio_annualized",
             "calmar_ratio",
             "omega_ratio",
             "max_drawdown",
