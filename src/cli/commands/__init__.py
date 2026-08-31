@@ -16,6 +16,7 @@ from .experiment_command import ExperimentCommand, ExperimentParams
 from .experiments_command import ExperimentsCommand, ExperimentsParams
 from .feature_research_command import FeatureResearchCommand, FeatureResearchParams
 from .peek_command import PeekCommand, PeekParams
+from .ps_command import AttachCommand, AttachParams, PsCommand, PsParams
 from .scenarios_command import ScenariosCommand, ScenariosParams
 from .training_command import TrainingCommand, TrainingParams
 from .validate_data_command import ValidateDataCommand, ValidateDataParams
@@ -24,6 +25,8 @@ from .validation_command import ValidationCommand, ValidationParams
 __all__ = [
     "ArtifactsCommand",
     "ArtifactsParams",
+    "AttachCommand",
+    "AttachParams",
     "BaseCommand",
     "CheckpointsCommand",
     "CheckpointsParams",
@@ -43,6 +46,8 @@ __all__ = [
     "FeatureResearchParams",
     "PeekCommand",
     "PeekParams",
+    "PsCommand",
+    "PsParams",
     "ScenariosCommand",
     "ScenariosParams",
     "SineWaveParams",

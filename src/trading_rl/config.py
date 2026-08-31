@@ -384,6 +384,14 @@ class TrainingConfig:
         False  # suppress the y/N prompt; warnings still logged
     )
 
+    # Live introspection: expose a read-only IPC socket (see trading_rl/ipc.py)
+    # for `thesis-experiments ps` / `attach`. Each instance gets its own
+    # randomly generated run_id (see IpcServer), so concurrent trainers in
+    # one process don't collide; TrainerRuntimeHooks.teardown() stops the
+    # socket deterministically at end of trial, keeping sequential
+    # in-process trials clean too.
+    ipc_enabled: bool = True
+
     # Loss function
     loss_function: LossFunction = LossFunction.L2
 
