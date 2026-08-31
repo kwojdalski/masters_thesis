@@ -36,9 +36,8 @@ In trading, two properties are essential for the reward to work well in
 practice: the signal should be risk-adjusted so the agent does not maximize
 returns by taking excessive volatility, and it should be computable recursively
 so that no look-ahead into future returns is required at each training step.
-The following sections explain why the baseline formulation above requires
-refinement in a high-frequency setting, and how the Differential Sharpe Ratio
-addresses both requirements.
+The baseline reward requires refinement at high frequency. The Differential
+Sharpe Ratio addresses both requirements.
 
 ### Why Raw Log-Return Is Insufficient
 

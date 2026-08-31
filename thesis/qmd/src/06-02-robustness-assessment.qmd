@@ -1,14 +1,10 @@
 ## Robustness Assessment
 <!-- [PLACEHOLDER] -->
 
-This section shifts from training stochasticity to
-sensitivity to modeling choices. The question is whether the
-conclusions for the current high-frequency TD3 setup would
-change materially under nearby alternatives in feature specification, reward
-definition, transaction-cost assumptions, or split design.
-
-The goal is to separate results that appear structural from results that may
-depend too heavily on one narrow experimental setup.
+Robustness depends on whether nearby changes in feature specification, reward
+definition, transaction-cost assumptions, or split design materially alter the
+conclusions for the high-frequency TD3 setup. Stable results indicate structural
+effects; unstable results suggest dependence on a narrow experimental design.
 
 ```{python}
 #| label: robustness_setup
