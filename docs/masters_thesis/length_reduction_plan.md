@@ -154,7 +154,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 26 | - | 06-00, 06-01, 06-03 | Two data/consistency issues noticed while reading Chapter 6 closely, out of this skill's scope (not duplication, breadth, or a movable table). (a) `06-00` reports the DSR-reward TD3 run's exposure as "49.8% long, 50.2% short, turnover 0.054%" while `06-03` reports the *same* experiment (`pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr`) as "54.9% long, 45.1% short, turnover 0.058%" — should be identical numbers from the same run. Still open; refer to `thesis-data-auditor` or a manual check. (b) `06-01` listed repeating "each configuration across at least five seeds" as unaddressed future work, while `06-02`'s H4 section (`_h4_n5`, `n=5` trials) explicitly claims to close exactly that gap — apparent contradiction. Incidentally resolved as a side effect of item 28: the gutted `06-01` no longer makes the 5-seed future-work claim, so the contradiction no longer exists in the rendered text (not verified against which claim was actually correct, just no longer stated twice). | 0 | (a) open — logged; (b) resolved incidentally by item 28 |
 | 29 | 1 | 07-01 | H1's summary paragraph was roughly 2x the length of its H2/H3 siblings, the only one re-citing a full battery of exact figures (TWAP/VWAP percentages, long/short split, profit factor, drawdown comparison) that `06-03` already presents and discusses in detail. Compressed to state the qualified-support verdict and its reasoning (near-neutral positioning, poor trade-level quality, feasibility-not-edge framing) without repeating every number, with a plain-text pointer to Section 6.3 for the exact figures — matching H2/H3's style. `07-00` and `07-05` re-checked and found proportionate, no changes. | -71 (219 -> 148) | applied |
 | 30 | 2 | 05-01, 99-appendix | Item 4's old note — "`cell-feature-correlations` was kept because the prose references specific cells" — was stale: the prose only ever cites the *aggregate* claim ("all absolute correlations are below 0.005"), never a single feature's value. Moved the code chunk to a new appendix section (`#sec-appendix-feature-correlations`, following the established `\addcontentsline{loa}{section}{...}` pattern), replacing it in the body with a one-sentence pointer to `@tbl-feature-correlations`. Confirmed via `thesis_tables.py` that the table's LaTeX `\label{tbl-feature-correlations}` is set directly by the table function (not the calling cell's label), so the cross-reference resolves regardless of which file the chunk lives in. | -54 body (3128 -> 3074, raw wc -w) | applied |
-| 31 | 2 | 06-02 | Reconsidered from session 6 (previously "too small to be worth the appendix-move churn"). The H4 code chunk generates three separate tables: summary stats, pass/fail criteria, and a per-trial breakdown (up to `n=5` rows). "Interpretation of H4 Results" only ever discusses what pass/fail verdicts mean in general, never a specific trial's number — the summary and criteria tables carry the load-bearing pass/fail verdict a reader needs; only the per-trial detail table would move. Still marginal at N=5 rows; logged rather than applied. | ~15-25 est. | logged — awaiting go-ahead |
+| 31 | 2 | 06-02 | Reconsidered from session 6 (previously "too small to be worth the appendix-move churn"). The H4 code chunk generates three separate tables: summary stats, pass/fail criteria, and a per-trial breakdown (up to `n=5` rows). "Interpretation of H4 Results" only ever discusses what pass/fail verdicts mean in general, never a specific trial's number — the summary and criteria tables carry the load-bearing pass/fail verdict a reader needs; only the per-trial detail table would move. Still marginal at N=5 rows. User declined in session 11: effect too marginal to be worth the appendix-move churn (same judgment as session 6, now final rather than reopened). | ~15-25 est. | skipped — user judged too marginal |
 | 32 | 1/3 | 02-01, 02-02, 02-03, 02-08 | User explicitly asked to reduce information (not just dedupe) in the first chapters. Found the same epistemic caveat — "this microstructure regularity is descriptive, not a proven trading signal; profitability is tested empirically in later chapters" — restated roughly 10 times across the chapter, on top of `02-00` already stating the rule once for the whole chapter. Cut 3 restatements in `02-01` (two per-finding tags plus its closing paragraph), 4 in `02-02` (spread-decomposition tag, LOB-mechanics tag, OFI's caveat stated twice within 10 lines — footnote and the very next paragraph — collapsed to one, and a closing-paragraph tag), condensed `02-03` from 338 to ~140 words keeping only its one genuinely new idea (the "alphas" framing from quant finance), and trimmed `02-08`'s restatement to one clause. Kept mechanism-specific limitations that aren't the generic caveat (Kyle's lambda proxies missing the latent informed-trader information set; microprice being top-of-book-only). | -473 (02-01: 826->697; 02-02: 1160->1016; 02-03: 338->163; 02-08: 283->258) | applied (`beea69df`) |
 
 ## Session log
@@ -332,19 +332,23 @@ pages, body words 30,878 -> 30,405.
 **Where this leaves the 80-page target:** every chapter has now had at least
 one full duplication/breadth pass, every table-bearing file a dedicated
 tables pass, and Chapter 2 a genuine information-reduction pass beyond pure
-deduplication. Items 11, 18, 29, 30, and 31 are still awaiting go-ahead
-(~635-810 words, ~2-2.5 pages combined). Applying them would bring the body
-to roughly 96-97 pages — still ~16-17 pages above the 80-page target.
-Session 10 shows the "reduce information, not just duplication" mandate
-(category 3, applied harder) still has real room in chapters not yet given
-that treatment — 03-02's theory sections, 02-04/02-07's remaining survey
-material beyond item 11, and 07-02's limitations chapter (already cut hard
-once in session 1, but not with this specific "restated caveat" lens) are
-the most promising next targets if the user wants to keep pushing toward 80
-rather than stopping at the duplication-only ceiling identified after
-session 9. The alternative paths remain: sentence-level tightening across
-the board (`hemingway`, out of this skill's scope), or reconsidering whether
-80 pages is the right target for this thesis's actual content.
+deduplication. As of session 11, the full queue of items carried over from
+session 10 (11, 18, 29, 30, 31) is closed: items 11, 18, 29, and 30 applied
+(-337 body words combined), item 31 skipped as too marginal. Body word count
+is now 30,068 against the session-10 baseline of 30,405 — not yet
+re-rendered to a fresh page count, so the exact page effect is unconfirmed,
+but at ~307 words/page this is roughly 1 page. The queue of specifically
+scoped, already-reviewed items is now empty. Session 10's "reduce
+information, not just duplication" mandate (category 3, applied harder)
+still has real room in chapters not yet given that treatment — 03-02's
+theory sections, 02-04/02-07's remaining survey material beyond item 11, and
+07-02's limitations chapter (already cut hard once in session 1, but not
+with this specific "restated caveat" lens) are the most promising next
+targets if the user wants to keep pushing toward 80 rather than stopping at
+the duplication-only ceiling identified after session 9. The alternative
+paths remain: sentence-level tightening across the board (`hemingway`, out
+of this skill's scope), or reconsidering whether 80 pages is the right
+target for this thesis's actual content.
 
 **2026-08-31, session 11 (item 11):** User asked how item 11's cut would
 actually be phrased before approving. Presented a concrete before/after diff
@@ -370,3 +374,5 @@ count now 30,122 (30,405 baseline - 78 - 134 - 71); not yet re-rendered to a
 fresh page count.
 
 Also applied item 30 (`05-01` -> `99-appendix`): moved the feature-correlation table's code chunk to a new listed appendix section, replacing it in the body with a one-sentence pointer, after confirming the prose only ever cites the aggregate correlation claim. Body word count now 30,068 (30,405 baseline - 78 - 134 - 71 - 54); not yet re-rendered to a fresh page count.
+
+Closed out the session on item 31 (H4 per-trial table, `06-02`): user judged the effect too marginal to be worth the appendix-move churn at N=5 rows — the same call made in session 6, now settled rather than reopened. Marked skipped rather than applied. All five items carried over from session 10 (11, 18, 29, 30, 31) are now resolved: four applied, one skipped. Each edit was committed individually to branch `kwojdalski/thesis-condense-session11` and pushed to PR #554 (unmerged as of end of session); no fresh Quarto render was run this session, so the page-count effect of items 11/18/29/30 (-337 body words combined) is tracked as a word-count estimate only, not yet confirmed via `pdfinfo`.
