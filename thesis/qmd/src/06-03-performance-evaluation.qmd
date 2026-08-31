@@ -250,10 +250,10 @@ reduces exposure during a period when all passive long strategies lost money
 quality metrics (win rate, profit factor) are substantially worse than even a
 passive strategy, so the positive relative total return
 ($-0.014\%$ versus $-0.057\%$ to $-0.070\%$) is entirely attributable to the
-neutral position stance, not profitable active trading. The H1 verdict is
+neutral position stance, not profitable active trading. The Hypothesis 1 verdict is
 therefore qualified: the agent passes a weak feasibility test — it does not
 commit capital to a sustained wrong-direction bet — but does not establish a
 basis for claiming a deployable or benchmark-dominating strategy. Whether a
 longer training horizon, richer feature set, or more targeted reward design
-can yield active trading profitability is the question addressed in the H2
-and H3 comparisons.
+can yield active trading profitability is the question addressed in the
+Hypothesis 2 and Hypothesis 3 comparisons.

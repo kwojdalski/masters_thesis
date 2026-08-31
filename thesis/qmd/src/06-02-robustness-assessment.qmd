@@ -27,7 +27,7 @@ _audit = audit_plots_enabled()
 ```
 
 
-## H2: Feature Specification Sensitivity
+## Hypothesis 2: Feature Specification Sensitivity
 <!-- [PLACEHOLDER] -->
 
 This section compares three feature-specification levels under otherwise
@@ -45,7 +45,7 @@ out-of-sample performance.
 #| label: h2_feature_comparison
 #| echo: false
 #| warning: false
-#| tbl-cap: "H2 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
+#| tbl-cap: "Hypothesis 2 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
 
 from thesis_mlflow_results import load_scenario_metrics
 from thesis_tables import build_comparison_rows, comparison_table_html
@@ -76,7 +76,7 @@ scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label,
 rows = build_comparison_rows(scenario_metrics, _H2_COLS, index_col="Feature Set", higher_better=_HIGHER_BETTER)
 
 if all(row.get("Sharpe", "—") == "—" for row in rows):
-    print("No H2 results available. Run: uv run thesis-experiments h2")
+    print("No Hypothesis 2 results available. Run: uv run thesis-experiments h2")
 else:
     display(comparison_table_html(rows, _H2_COLS, index_col="Feature Set"))
     show_table_meta(finished, audit=_audit)
@@ -93,7 +93,7 @@ else:
 ```
 :::
 
-The feature comparison supports a qualified version of H2. The minimal
+The feature comparison supports a qualified version of Hypothesis 2. The minimal
 three-feature representation produces a negative cumulative return
 ($-3.45 \times 10^{-8}$), a profit factor below one, and a short-biased policy
 that spends 77.2% of the evaluation window short. The selected 10-feature
@@ -105,17 +105,17 @@ The full 33-feature representation does not improve further. It remains
 positive on cumulative return ($2.68 \times 10^{-8}$), but underperforms the
 selected representation on return, drawdown, profit factor, and turnover. This
 suggests that the benefit comes from adding relevant microstructure information,
-not from maximizing feature count. For this thesis, H2 is therefore supported
+not from maximizing feature count. For this thesis, Hypothesis 2 is therefore supported
 for the transition from a minimal snapshot representation to the selected
 microstructure-aware state, but not for the claim that every broader feature set
 is better.
 
-## H3: Sensitivity Analysis
+## Hypothesis 3: Sensitivity Analysis
 <!-- [PLACEHOLDER] -->
 
 This section reports reward-design and transaction-cost sensitivity. Feature
-specification is reported separately in H2 above. Each axis holds all other
-design choices constant. The shared baseline across both H3 axes is the selected
+specification is reported separately in Hypothesis 2 above. Each axis holds all other
+design choices constant. The shared baseline across both Hypothesis 3 axes is the selected
 10-feature set with log return reward and zero transaction cost.
 
 ```{python}
@@ -185,7 +185,7 @@ $1.29 \times 10^{-7}$ to $2.28 \times 10^{-7}$, improves profit factor from
 $-1.05 \times 10^{-7}$. The DSR policy is also more balanced in exposure,
 moving from an 86.7% long policy under log-return reward to an approximately
 neutral 49.8% long and 50.2% short distribution. This supports the reward-design
-part of H3: the reward objective materially affects both performance and policy
+part of Hypothesis 3: the reward objective materially affects both performance and policy
 behavior.
 
 The transaction-cost comparison places a sharper bound on the economic claim.
@@ -195,14 +195,14 @@ run. At 0.1 basis points, cumulative return turns negative
 ($-7.60 \times 10^{-7}$), and at 1 basis point the loss increases to
 $-5.89 \times 10^{-6}$. The direction of the result is unambiguous: the
 observed edge exists only under very low transaction-cost assumptions. This
-supports H3 and also limits the practical interpretation of H1.
+supports Hypothesis 3 and also limits the practical interpretation of Hypothesis 1.
 
 Overall, the robustness evidence is strongest for feature specification,
 reward-design sensitivity, and transaction-cost sensitivity. It is not yet
 strong evidence of robustness across market regimes, longer samples, alternative
 chronological splits, or repeated random seeds.
 
-## H4: Learning Progression Check
+## Hypothesis 4: Learning Progression Check
 
 This section addresses a more fundamental robustness question: whether the
 algorithm is actually learning at all, rather than converging to a policy that
@@ -212,7 +212,7 @@ agent reliably outperforms a dummy strategy.
 
 ### Experimental Design
 
-The H4 experiment runs $N$ independent trials of the baseline TD3 configuration
+The Hypothesis 4 experiment runs $N$ independent trials of the baseline TD3 configuration
 (selected 10 features, DSR reward, zero fees) with limited training steps.
 Each trial is initialized with a different random seed and evaluated on the same
 held-out test split. The key question is whether the distribution of trial
@@ -222,7 +222,7 @@ outcomes shows systematic learning rather than random variation around zero.
 #| label: h4_learning_progression
 #| echo: false
 #| warning: false
-#| tbl-cap: "H4 learning progression: performance statistics across multiple short trials."
+#| tbl-cap: "Hypothesis 4 learning progression: performance statistics across multiple short trials."
 
 import pandas as pd
 from IPython.display import Image, display
@@ -293,25 +293,25 @@ if h4_data:
     table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 else:
-    print("No H4 results available. Run: uv run thesis-experiments h4")
+    print("No Hypothesis 4 results available. Run: uv run thesis-experiments h4")
 ```
 
-### Interpretation of H4 Results
+### Interpretation of Hypothesis 4 Results
 
-The H4 design complements the single-run evidence reported in H1-H3 by
+The Hypothesis 4 design complements the single-run evidence reported in Hypotheses 1-3 by
 directly testing learning capability. A positive result here would mean that the
 algorithm, when given a relatively short training budget (200k steps versus
 several million in the main experiments), consistently produces policies that
 outperform a random baseline. This addresses the concern that the reported
-H1-H3 edge might reflect favorable initialization rather than genuine learning.
+Hypotheses 1-3 edge might reflect favorable initialization rather than genuine learning.
 
 A negative result — where the agent fails to demonstrate statistically
-significant improvement across trials — would not invalidate H1-H3, but it would
+significant improvement across trials — would not invalidate Hypotheses 1-3, but it would
 temper the interpretation. It would suggest that the observed performance
 requires either longer training, more favorable initialization conditions, or
 that the learned edge is smaller than the single-run results imply.
 
-For the current experimental package, H4 provides the seed-level robustness
+For the current experimental package, Hypothesis 4 provides the seed-level robustness
 check identified as a gap in the robustness matrix above. When combined with the
-H2 and H3 sensitivities, it offers a more complete picture of whether the
+Hypotheses 2 and 3 sensitivities, it offers a more complete picture of whether the
 TD3 agent's performance is structural or artifact-dependent.

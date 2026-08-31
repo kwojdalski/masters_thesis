@@ -87,7 +87,7 @@ _audit = audit_plots_enabled()
 #| label: h1_algo_comparison
 #| echo: false
 #| warning: false
-#| tbl-cap: "H1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random."
+#| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random."
 
 import pandas as pd
 from IPython.display import HTML
@@ -125,7 +125,7 @@ for exp_name, label in _H1_AGENTS:
 
 h1_df = pd.DataFrame(rows)
 if h1_df.iloc[:, 1:].isin(["—"]).all().all():
-    print("No H1 results available. Run: uv run thesis-experiments h1")
+    print("No Hypothesis 1 results available. Run: uv run thesis-experiments h1")
 else:
     display_df(h1_df)
     table_note(source="Author's own calculations.")
@@ -218,10 +218,10 @@ This comparison provides empirical grounding for the algorithmic choices made
 in this study and offers guidance for algorithm selection in similar
 continuous-action trading applications.
 
-The H1 evidence is therefore mixed rather than unambiguously supportive. TD3
+The Hypothesis 1 evidence is therefore mixed rather than unambiguously supportive. TD3
 clearly improves on DDPG, while also showing substantially better drawdown control than the high-turnover random
 policy. It does not, however, dominate PPO or passive long exposure on
-cumulative return in the zero-fee evaluation window. The defensible H1 verdict is
+cumulative return in the zero-fee evaluation window. The defensible Hypothesis 1 verdict is
 that TD3 learns a conservative, economically coherent policy with strong
 drawdown control and trade quality, but the exported results do not establish
 general benchmark dominance on absolute return.
