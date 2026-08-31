@@ -246,30 +246,8 @@ the function approximator inside the RL policy: the network can, in principle, l
 arbitrary non-linear mappings from the feature vector to action-value estimates,
 capturing the higher-order interactions that linear models cannot represent.
 
-```{python}
-#| label: cell-feature-correlations
-#| output: asis
-#| echo: false
-#| warning: false
-
-import pandas as pd
-from thesis_mlflow_results import repo_root
-from thesis_tables import feature_correlation_table, missing_data_notice
-
-_corr_path = (
-    repo_root()
-    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/correlations.csv"
-)
-if _corr_path.exists():
-    feature_correlation_table(pd.read_csv(_corr_path))
-else:
-    missing_data_notice(
-        "correlations.csv not found — run: uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
-        "--corr --export, then: uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
-    )
-```
+The full per-feature Pearson and Spearman breakdown is reported in Appendix,
+Table @tbl-feature-correlations.
 
 ### Feature and Price Column Separation
 
@@ -332,10 +310,12 @@ if _splits_path.exists():
     table_note(source="Author's own calculations based on DataBento Nasdaq MBP-10 data.")
 else:
     missing_data_notice(
-        "splits.json not found — run: uv run python src/cli.py peek dataset "
+        "splits.json not found — run: "
+        "`uv run python src/cli.py peek dataset "
         "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
-        "--skip 500 --export, then: uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+        "--skip 500 --export`, then: "
+        "`uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
     )
 ```
 

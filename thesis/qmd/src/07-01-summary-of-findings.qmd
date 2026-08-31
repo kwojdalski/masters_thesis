@@ -6,25 +6,19 @@ for high-frequency single-asset trading using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
 **Hypothesis 1: the TD3 agent can outperform benchmark strategies on a
-risk-adjusted basis.** The evaluation offers only qualified support for this
-hypothesis. On the held-out test window — which is characterized by a slight
-market decline — the agent records a total return of $-0.014\%$, better than
-buy-and-hold ($-0.070\%$), TWAP ($-0.057\%$), and VWAP ($-0.061\%$). However,
-the mechanism is near-neutral positioning (54.9\% long, 45.1\% short) rather
-than directional trading skill: the agent avoids the brunt of the market
-decline by holding minimal net exposure. Trade-level quality metrics tell a
-more sobering story — a win rate of 1.3\% and a profit factor of $3.65 \times
-10^{-3}$ confirm that the vast majority of individual position adjustments are
-loss-generating. Maximum drawdown is contained at $-0.014\%$ versus $-0.37\%$
-for buy-and-hold, again as a consequence of low net exposure rather than active
-risk management. Hypothesis 1 is therefore supported in the narrow sense that the agent
-produces a better realized return than passive benchmarks on this specific test
-window, but not in the stronger sense originally contemplated: the
-outperformance reflects risk avoidance through near-neutral positioning, not
-the development of a profitable directional strategy. These results should be
-read as a feasibility finding — the learning problem is tractable and the agent
-avoids systematic mispositioning — rather than as evidence of a deployable
-trading edge.
+risk-adjusted basis.** The evaluation offers only qualified support. On the
+held-out test window, the agent posts a better total return and a lower
+maximum drawdown than buy-and-hold, TWAP, and VWAP (Section 6.3 gives the
+exact figures), but the mechanism is near-neutral positioning rather than
+directional trading skill — the agent avoids the market decline by holding
+minimal net exposure rather than actively managing risk. Trade-level quality
+metrics are more sobering: win rate and profit factor confirm that the vast
+majority of individual position adjustments are loss-generating. Hypothesis 1
+is therefore supported only in the narrow sense that the agent beats passive
+benchmarks on this test window, not in the stronger sense originally
+contemplated — the outperformance reflects risk avoidance, not a profitable
+directional strategy. These results are a feasibility finding, not evidence
+of a deployable trading edge.
 
 **Hypothesis 2: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** The

@@ -1,13 +1,12 @@
 ## Market Microstructure Mechanisms
-<!-- [VERIFIED] -->
 
 Market microstructure is grounded in a theoretical literature that models the
 strategic interactions between informed
 traders, uninformed liquidity demanders, and market makers in a limit order book.
-This section reviews the theoretical frameworks that directly underpin the feature
-design choices made in Chapter 4. The organizing logic is mechanism, observable
-feature, and limitation: each framework motivates a candidate state variable,
-but none establishes by itself that the variable is profitable after costs.
+Chapter 4 derives its features from three elements of each theoretical framework:
+the market mechanism, its observable proxy, and its limitation. Each framework
+motivates a candidate state variable, but none alone establishes profitability
+after costs.
 
 **Adverse selection and the spread decomposition.**
 The bid-ask spread reflects a market

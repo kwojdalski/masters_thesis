@@ -11,10 +11,12 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **142 pages** (measured 2026-08-30, fresh render after item 32)
-Body word count (chapters 01-07): **30,405 words**
-Body page range: printed pages 8-106 (physical PDF pages 9-107), **99 body
-pages**; Bibliography begins on printed page 107
+Current: **142 pages** (last rendered 2026-08-30, after item 32; not
+re-rendered since — item 11 below is word-count-tracked only until the next
+render)
+Body word count (chapters 01-07): **29,980 words** (30,405 - 78 item 11 - 134 item 18 - 71 item 29 - 54 item 30 - 43 item 33 - 45 item 34)
+Body page range (as of last render): printed pages 8-106 (physical PDF pages
+9-107), **99 body pages**; Bibliography begins on printed page 107
 words_per_page: ~307 (30,405 / 99 measured body pages)
 Cumulative body reduction from the complete pre-condensation draft: **8,196
 words**. Session 2 alone removed 710 body words and reduced the measured body
@@ -50,18 +52,22 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 
 - [x] 01 Introduction — fully read and reviewed. The hypotheses and chapter
       roadmap are proportionate; the novelty/objectives material and the end of
-      the introduction repeat the same scope and limitations (item 18).
+      the introduction's repeated scope/limitations were condensed (item 18,
+      -134 words).
 - [x] 02 Literature Review — all 9 files fully read. `02-04` was cleared
-      after item 10; `02-07` is a confirmed breadth candidate (item 11,
-      awaiting go-ahead). A chapter-wide repeated epistemic caveat across
+      after item 10; `02-07`'s breadth candidate was applied (item 11,
+      framing-only trim, -78 words). A chapter-wide repeated epistemic caveat across
       `02-01`, `02-02`, `02-03`, and `02-08` was cut (item 32) at the user's
       explicit request to reduce information, not just duplication. `02-00`,
       `02-05`, `02-06` remain tightly scoped from earlier reconnaissance — no
       findings.
-- [ ] 03 Reinforcement Learning — `03-02-actor-critic-methods.qmd` fully read
-      and now reviewed for both tables and category-3 breadth. Its redundant
-      table was removed (item 12), and its repeated algorithm-selection material
-      was consolidated (item 16). Other Chapter 3 files still need review.
+- [x] 03 Reinforcement Learning — all three files fully read and reviewed.
+      `03-02-actor-critic-methods.qmd`'s redundant table was removed (item 12),
+      and its repeated algorithm-selection material was consolidated (item 16).
+      `03-00-reinforcement-learning.qmd`'s in-file duplicated partial-observability
+      explanation was condensed (item 33). `03-01-rl-categories.qmd` re-checked
+      fresh and found tightly scoped — a taxonomy chapter that correctly defers
+      detail to `03-02` rather than duplicating it.
 - [x] 04 Design of the Trading Agent — all seven files fully read
       (`04-01` through `04-07`). The duplicated feature-formula and
       actor-architecture tables were removed (items 14-15); the controlled
@@ -73,10 +79,13 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
       and `04-07` are tightly scoped, thesis-specific instantiations of
       Chapter 3 theory — checked, no findings.
 - [x] 05 Implementation — both files fully read. `05-01-data-preparation.qmd`
-      reviewed for tables twice; four table reductions/moves applied across
-      sessions (items 4, 13, and 20); the raw-sample, feature-correlation, and
+      reviewed for tables three times; five table reductions/moves applied
+      across sessions (items 4, 13, 20, and 30); the raw-sample and
       three-row split tables were kept because surrounding prose uses their
-      specific values. The twelve-row transformed-feature illustration was
+      specific values. The feature-correlation table (initially kept under
+      item 4) was later moved to the appendix once a re-read confirmed the
+      prose only cites the aggregate claim (item 30). The twelve-row
+      transformed-feature illustration was
       moved to the appendix in session 6 (item 20). `05-02-code.qmd` (pipeline,
       training-loop pseudocode, sanity checks) read for the first time in
       session 7: the pseudocode is legitimate operationalization of Chapter 3/4
@@ -128,14 +137,14 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 8 | 3 | 05-01 (`sec-feature-normalization-and-causality-preservation`) | User flagged: full Welford's-algorithm derivation (2 numbered equations, itemized symbol definitions) for a 60-year-old, off-the-shelf online mean/variance algorithm — inconsistent with how the thesis treats other standard techniques (e.g. ReLU gets a one-line citation, no derivation, in 04-05-policy.qmd). Verified via grep that `eq-welford-mean`/`eq-welford-var` are never cross-referenced anywhere else in the thesis before cutting them. Also found while investigating: the kept equation (`eq-running-normalize`, cited later at line ~253 so it had to stay) redefined $\bar{x}_t$/$\sigma_t^2$/$\varepsilon$ that ch4's `eq-z-score` (04-02-state-space.qmd:147) already fully defines — trimmed to note the correspondence instead of re-itemizing. Causal-normalization reasoning (genuinely thesis-specific: why global normalization would leak future information) kept in full. | -115 (3812 -> 3697) | applied |
 | 9 | 3 | Whole thesis | User asked for a systematic sweep for the same over-derivation pattern. Inventoried all 35 numbered equations, cross-reference-counted each (`@eq-...` citations elsewhere), then read every zero/low-citation candidate to separate "thesis's own design, correctly proportionate" (eq-huber-loss, eq-target-actor-update, eq-obs-space, eq-action-space, eq-transaction-fee — all checked and cleared, one equation + few symbols + thesis-specific justification each) from genuine over-derivation. Two confirmed and applied: (a) `eq-tw-mean`/`eq-tw-var` (05-01) — two full equations for a time-weighted normalization variant the text itself says was never used in the main experiments ("Sensitivity analysis... a direction for future work"); compressed to one sentence. (b) `eq-microprice-ch2` (02-02, literature review) — genuine cross-chapter duplication, not just over-derivation: the identical formula with the same citation (@Stoikov2018) already exists in the appendix's Feature Inventory table (99-appendix.qmd:65), and ch4's own body just says "the microprice [@Stoikov2018] is the central construct" without re-deriving it. Cut the display equation and symbol list, kept the intuition-building prose (why microprice beats mid-price when queues are imbalanced — not duplicated anywhere), added a pointer to Appendix A for the exact formula. | -48 (05-01: 3697->3649) + -33 (02-02: 1193->1160) | applied |
 | 10 | 3 | 02-04-competing-modeling-approaches.qmd | Found during the item-9 sweep but dropped from the final report until the user asked to look for more instances. `eq-imitation-learning`: generic empirical-risk-minimization loss formula for imitation learning (one of several "competing approaches" surveyed, never this thesis's own method), 6-symbol itemized list, 0 cross-references anywhere. Same shape as items 8/9. Cut the equation, kept the surrounding prose describing behavior cloning in one clause. | -67 (1486 -> 1419) | applied |
-| 11 | 3 | 02-07-applied-rl-trading-evidence.qmd | Fully read. The ~15-20 individually-surveyed papers are closer to PhD-survey breadth than a representative master's-thesis sample, although the methodological criticism is good. Merge the early mixed-evidence cluster (Neuneier1998, Lee2007, Gold2003, Dempster2002) into one paragraph and combine the Yang2020/AlphaStock boundary cases into one paragraph explaining why bar-level/cross-asset evidence does not establish LOB-level performance. Keep Majidi2024, Kabbani2022, and FinRL2020 individually treated because they bear directly on the thesis design and closing synthesis. | ~230-300 est. | reviewed — awaiting go-ahead |
+| 11 | 3 | 02-07-applied-rl-trading-evidence.qmd | Merged the early mixed-evidence cluster (Neuneier1998, Lee2007, Gold2003, Dempster2002) into one paragraph and the Yang2020/AlphaStock boundary cases into one paragraph. Kept every citation and every distinct claim — only the per-paper framing sentences ("The study is relevant as...", "Their relevance is that...") were cut, restated once per cluster instead of once per paper. Actual saving (78 words) came in well under the original 230-300 estimate because the user confirmed a framing-only trim rather than cutting a paper's treatment down to citation-only. Majidi2024, Kabbani2022, and FinRL2020 kept individually treated as planned. | -78 (1568 -> 1490) | applied |
 | 12 | 1 | 03-02, 04-05 | Removed the nine-row algorithm-properties table from Chapter 3: its four preceding paragraphs already explain every comparison, and Chapter 4 retains the single implementation-level policy table. Added a cross-reference to `@tbl-policy-comparison`. | -153 body | applied |
 | 13 | 2 | 05-01, 99-appendix | See item 4a: moved the full feature-statistics table to the appendix while preserving all Chapter 5 conclusions. | included in 4a | applied |
 | 14 | 2 | 04-02 | Removed the six-row key-feature formula table because Appendix A already contains the same formulas plus parameters, citations, and inclusion status. Kept the complete feature-selection rationale inline. | -146 body | applied |
 | 15 | 2 | 04-05 | Removed the generated actor-architecture table because the immediately preceding network equation gives every layer and activation, while Appendix B records the exported widths. | -144 body | applied |
 | 16 | 1/3 | 03-02 | Consolidated the repeated algorithm-selection material. The final 549-word PPO/DDPG/TD3 comparison is now a short bridge to Chapter 4's implementation table, and the selection rationale now states each constraint once. Retained all core equations, TD3's three mechanisms, the SAC scope rationale, the contextual-not-general-superiority caveat, and the market-design limitations. | -672 body (measured) | applied (`95ac3f99`) |
 | 17 | 1 | 03-02, 04-01, 04-05 | Gaussian exploration was explained generally in `04-01`, then re-derived separately for DDPG and TD3 in `04-05`; evaluation-time noise removal and TD3 target smoothing were each stated multiple times. Kept `eq-exploration-noise` as the authoritative equation, replaced the two policy subsections with one compact DDPG/TD3 comparison, retained the distinct target-smoothing parameters and purpose, and repaired Chapter 3's PPO cross-reference. | -400 body (measured) | applied |
-| 18 | 1/3 | 01-00, 01-01 | The introduction already states the TD3/HFT/LOB/continuous-control contribution, then "Novelty" states it again. The objectives list also restates the hypotheses, while the introduction's final three paragraphs preview execution and evaluation limitations treated fully in Chapters 5 and 7. Keep the hypotheses and one concise boundary paragraph; compress novelty and objectives around them. | ~220-300 est. | reviewed — awaiting go-ahead |
+| 18 | 1/3 | 01-00, 01-01 | Merged the introduction's three closing paragraphs (execution constraints, methodological-discipline framing, simulation-scope caveat) into one boundary paragraph pointing to Chapters 5/7 for detail (-83). Compressed "Novelty" to stop restating the intro's TD3/HFT/continuous-control claim, keeping only the genuinely new comparative claim vs. Q-learning/DQN/PPO bar-level studies (-23). Cut the two Objectives bullets that restated Hypotheses 1 and 2 verbatim, folding a one-clause pointer into the surviving bullets instead (-28). Hypotheses themselves untouched. Actual saving (134 words) came in under the 220-300 estimate, same pattern as item 11 — keeping every distinct claim costs less than a raw subsection-level estimate suggests. | -134 (441 -> 307 across both files) | applied |
 | 19 | 1 | 04-01, 05-01 | The blue-chip short-borrow justification appeared twice with slightly different benchmark rates (04-01: 25-75 bps range with a 50 bps worked example tied to the reward function's cost-symmetry term; 05-01: "below 0.5% per annum" ceiling in the asset-selection context). Kept 04-01's quantitative version as authoritative; condensed 05-01 to its own distinct content (why blue-chip liquidity was the selection criterion, the illiquid-instrument contrast) with a cross-reference to Section 4.1. | -80 | applied (`a34ca641`) |
 | 20 | 2 | 05-01, 99-appendix | User-directed re-review of tables specifically. `tbl-transformed-features` (12-row x 9-col AAPL example) forced its own dedicated landscape page purely for illustration; the row-selection window is hardcoded in `thesis_tables.py::lob_events_table()`, so shrinking it in place would have required a Python edit with uncertain page payoff (landscape is driven by column width, not row count). Moved the full table and its intro paragraph to a new listed appendix section (`#sec-appendix-transformed-features`); the body keeps the three interpretive claims (bid-refresh sign flip at event 12, microprice-deviation intuition, OFI spike) in one condensed paragraph pointing to the appendix table. | -2 body pages (107 -> 105); words -198 (32,392 -> 32,194); total PDF unchanged (148) since the appendix absorbed the page | applied (`75ad10de`) |
 | 21 | 1 | 04-03, 05-02, 07-03 | First full read of `04-03` (reward function), `04-04`, `04-06`, `04-07`, and `05-02` (all previously untouched by any session). Found a genuine methodological point restated in full 4 times: "training reward (DSR) is not the evaluation financial metric; conflating them (e.g. citing a high training DSR as evidence of held-out Sharpe) is invalid" appears in `04-03` (fullest, kept as authoritative), `05-02`'s "two output streams" implementation note, `07-03`'s practitioner-recommendation bullet, and a fourth copy at the end of `04-03` itself restating `07-02`'s "Algorithm and reward ablation" future-work item down to the same Sortino/drawdown-penalized alternatives. Kept 04-03's version, compressed 05-02 and 07-03 to their own distinct framing with a pointer to Section 4.3, and replaced 04-03's closing sentence with a plain forward pointer to Chapter 7. `04-04`, `04-06`, `04-07`, and the pseudocode in `05-02` were checked and found tightly scoped — no further findings. | -70 (05-02+07-03) | applied (`997e1e0e`) |
@@ -146,10 +155,12 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 27 | 3 | 06-01 | User flagged `06-01`'s "Comparative Validation Strategy" 4-point interpretation hierarchy and "Statistical Risks and Interpretation Caveats" as generic filler never explicitly invoked by name in the H2/H3/H4 discussions that follow. Confirmed and asked the user to choose between delete, move to appendix, or gut to load-bearing content; user chose gut. Cut the 4-point hierarchy, the extended caveats list, and a dead code chunk that computed run statistics but never displayed them. Kept only: repeated-run divergence quantifies training stochasticity not market uncertainty, tuning-bias risk, and reward-vs-financial-objective divergence. | -287 (374 -> 87) | applied (`4395919c`) |
 | 28 | 1 | 06-00 | Self-inflicted duplicate caught immediately by the user: item 27's gutted `06-01` text used nearly the same phrase as `06-00`'s "Comparison Methodology" ("matched experimental evidence... not a multi-seed estimate of the population distribution of outcomes"). Also separately, `06-00`'s version's first sentence restated its own section's opening paragraph ("identical data, features, and evaluation protocols"). Cut the redundant first sentence from `06-00`, kept its specific single-run-per-algorithm caveat as authoritative, and pointed `06-01` back to it instead of repeating the phrase. | -32 (1517 -> 1485) | applied (`4395919c`) |
 | 26 | - | 06-00, 06-01, 06-03 | Two data/consistency issues noticed while reading Chapter 6 closely, out of this skill's scope (not duplication, breadth, or a movable table). (a) `06-00` reports the DSR-reward TD3 run's exposure as "49.8% long, 50.2% short, turnover 0.054%" while `06-03` reports the *same* experiment (`pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr`) as "54.9% long, 45.1% short, turnover 0.058%" — should be identical numbers from the same run. Still open; refer to `thesis-data-auditor` or a manual check. (b) `06-01` listed repeating "each configuration across at least five seeds" as unaddressed future work, while `06-02`'s H4 section (`_h4_n5`, `n=5` trials) explicitly claims to close exactly that gap — apparent contradiction. Incidentally resolved as a side effect of item 28: the gutted `06-01` no longer makes the 5-seed future-work claim, so the contradiction no longer exists in the rendered text (not verified against which claim was actually correct, just no longer stated twice). | 0 | (a) open — logged; (b) resolved incidentally by item 28 |
-| 29 | 1 | 07-01 | Fresh pass on `07-00`, `07-01`, `07-05` (last touched in session 1; not re-scrutinized since). H1's summary paragraph is roughly 2x the length of its H2/H3 siblings in the same file, and the only one that re-cites a full battery of exact figures (TWAP/VWAP percentages, long/short split, profit factor, drawdown comparison) that `06-03` already presents and discusses in detail (tightened further by item 25). H2/H3's paragraphs are already properly compressed with no repeated figures. `07-00` and `07-05` re-checked and found proportionate: `07-00` is a 4-sentence roadmap, `07-05` restates the headline answer only briefly before adding genuinely new synthesis (methodological-contribution framing, explicit scope boundaries) not present in `07-01`. | ~115 est. | logged — awaiting go-ahead |
-| 30 | 2 | 05-01, 99-appendix | User asked for a fresh tables-to-appendix sweep. Found that item 4's old note — "`cell-feature-correlations` was kept because the prose references specific cells" — is stale: re-read the current text and the prose only ever cites the *aggregate* claim ("all absolute correlations are below 0.005"), never a single feature's specific value. The per-feature Pearson/Spearman breakdown is reproducibility detail, not argument-critical. Not applied; logged for a future session (full-thesis re-grep confirmed no other new table candidates exist). | ~40-60 est. | logged — awaiting go-ahead |
-| 31 | 2 | 06-02 | Reconsidered from session 6 (previously "too small to be worth the appendix-move churn"). The H4 code chunk generates three separate tables: summary stats, pass/fail criteria, and a per-trial breakdown (up to `n=5` rows). "Interpretation of H4 Results" only ever discusses what pass/fail verdicts mean in general, never a specific trial's number — the summary and criteria tables carry the load-bearing pass/fail verdict a reader needs; only the per-trial detail table would move. Still marginal at N=5 rows; logged rather than applied. | ~15-25 est. | logged — awaiting go-ahead |
+| 29 | 1 | 07-01 | H1's summary paragraph was roughly 2x the length of its H2/H3 siblings, the only one re-citing a full battery of exact figures (TWAP/VWAP percentages, long/short split, profit factor, drawdown comparison) that `06-03` already presents and discusses in detail. Compressed to state the qualified-support verdict and its reasoning (near-neutral positioning, poor trade-level quality, feasibility-not-edge framing) without repeating every number, with a plain-text pointer to Section 6.3 for the exact figures — matching H2/H3's style. `07-00` and `07-05` re-checked and found proportionate, no changes. | -71 (219 -> 148) | applied |
+| 30 | 2 | 05-01, 99-appendix | Item 4's old note — "`cell-feature-correlations` was kept because the prose references specific cells" — was stale: the prose only ever cites the *aggregate* claim ("all absolute correlations are below 0.005"), never a single feature's value. Moved the code chunk to a new appendix section (`#sec-appendix-feature-correlations`, following the established `\addcontentsline{loa}{section}{...}` pattern), replacing it in the body with a one-sentence pointer to `@tbl-feature-correlations`. Confirmed via `thesis_tables.py` that the table's LaTeX `\label{tbl-feature-correlations}` is set directly by the table function (not the calling cell's label), so the cross-reference resolves regardless of which file the chunk lives in. | -54 body (3128 -> 3074, raw wc -w) | applied |
+| 31 | 2 | 06-02 | Reconsidered from session 6 (previously "too small to be worth the appendix-move churn"). The H4 code chunk generates three separate tables: summary stats, pass/fail criteria, and a per-trial breakdown (up to `n=5` rows). "Interpretation of H4 Results" only ever discusses what pass/fail verdicts mean in general, never a specific trial's number — the summary and criteria tables carry the load-bearing pass/fail verdict a reader needs; only the per-trial detail table would move. Still marginal at N=5 rows. User declined in session 11: effect too marginal to be worth the appendix-move churn (same judgment as session 6, now final rather than reopened). | ~15-25 est. | skipped — user judged too marginal |
 | 32 | 1/3 | 02-01, 02-02, 02-03, 02-08 | User explicitly asked to reduce information (not just dedupe) in the first chapters. Found the same epistemic caveat — "this microstructure regularity is descriptive, not a proven trading signal; profitability is tested empirically in later chapters" — restated roughly 10 times across the chapter, on top of `02-00` already stating the rule once for the whole chapter. Cut 3 restatements in `02-01` (two per-finding tags plus its closing paragraph), 4 in `02-02` (spread-decomposition tag, LOB-mechanics tag, OFI's caveat stated twice within 10 lines — footnote and the very next paragraph — collapsed to one, and a closing-paragraph tag), condensed `02-03` from 338 to ~140 words keeping only its one genuinely new idea (the "alphas" framing from quant finance), and trimmed `02-08`'s restatement to one clause. Kept mechanism-specific limitations that aren't the generic caveat (Kyle's lambda proxies missing the latent informed-trader information set; microprice being top-of-book-only). | -473 (02-01: 826->697; 02-02: 1160->1016; 02-03: 338->163; 02-08: 283->258) | applied (`beea69df`) |
+| 33 | 1 | 03-00 | Fresh reconnaissance requested by the user (`03-00`-`03-02`, `02-04`, `02-07`, `07-02`) after the session-10 queue closed. Found the partial-observability explanation ("engineered features, not the full market state, because of hidden liquidity, private orders, latent regimes") given in full twice within ~20 lines of the same file — once in the "Components" chapter intro, once again under the "State" subsection. Kept the first (it sets up the whole chapter's approximate-MDP framing); compressed the second to its only genuinely new content, the forward pointer to Chapter 4.2. | -43 (64 -> 21) | applied |
+| 34 | 1 | 02-07 | Found in the same reconnaissance pass. Two consecutive closing paragraphs both distilled "lessons for this thesis's design" from the literature survey — one organized by finding (continuous-action preference, DSR promise, cost modeling), one by design dimension (state/action/reward/validation) — restating the same points twice under different frames. Merged into one paragraph keeping every distinct point, including the "proof of concept, not a robust edge" framing that was unique to the second paragraph. | -45 (176 -> 131) | applied |
 
 ## Session log
 
@@ -326,16 +337,49 @@ pages, body words 30,878 -> 30,405.
 **Where this leaves the 80-page target:** every chapter has now had at least
 one full duplication/breadth pass, every table-bearing file a dedicated
 tables pass, and Chapter 2 a genuine information-reduction pass beyond pure
-deduplication. Items 11, 18, 29, 30, and 31 are still awaiting go-ahead
-(~635-810 words, ~2-2.5 pages combined). Applying them would bring the body
-to roughly 96-97 pages — still ~16-17 pages above the 80-page target.
-Session 10 shows the "reduce information, not just duplication" mandate
-(category 3, applied harder) still has real room in chapters not yet given
-that treatment — 03-02's theory sections, 02-04/02-07's remaining survey
-material beyond item 11, and 07-02's limitations chapter (already cut hard
-once in session 1, but not with this specific "restated caveat" lens) are
-the most promising next targets if the user wants to keep pushing toward 80
-rather than stopping at the duplication-only ceiling identified after
-session 9. The alternative paths remain: sentence-level tightening across
-the board (`hemingway`, out of this skill's scope), or reconsidering whether
-80 pages is the right target for this thesis's actual content.
+deduplication. As of session 11, the full queue of items carried over from
+session 10 (11, 18, 29, 30, 31) is closed: items 11, 18, 29, and 30 applied
+(-337 body words combined), item 31 skipped as too marginal. Body word count
+is now 30,068 against the session-10 baseline of 30,405 — not yet
+re-rendered to a fresh page count, so the exact page effect is unconfirmed,
+but at ~307 words/page this is roughly 1 page. The queue of specifically
+scoped, already-reviewed items is now empty. Session 10's "reduce
+information, not just duplication" mandate (category 3, applied harder)
+still has real room in chapters not yet given that treatment — 03-02's
+theory sections, 02-04/02-07's remaining survey material beyond item 11, and
+07-02's limitations chapter (already cut hard once in session 1, but not
+with this specific "restated caveat" lens) are the most promising next
+targets if the user wants to keep pushing toward 80 rather than stopping at
+the duplication-only ceiling identified after session 9. The alternative
+paths remain: sentence-level tightening across the board (`hemingway`, out
+of this skill's scope), or reconsidering whether 80 pages is the right
+target for this thesis's actual content.
+
+**2026-08-31, session 11 (item 11):** User asked how item 11's cut would
+actually be phrased before approving. Presented a concrete before/after diff
+for both survey clusters in `02-07`, computed the exact word saving (78,
+versus the original 230-300 estimate), and explained the gap: the diff only
+trims per-paper framing sentences, keeping every citation and distinct claim,
+per the item's original scope ("keep Majidi2024, Kabbani2022, and FinRL2020
+individually treated"). User approved as-is. Applied; word count not yet
+re-rendered to a fresh page count this session.
+
+Continuing the same session, applied item 18 (`01-00`, `01-01`): merged the
+introduction's three closing paragraphs into one boundary paragraph pointing
+to Chapters 5/7 for detail, compressed "Novelty" to stop restating the
+intro's TD3/HFT/continuous-control claim, and cut two Objectives bullets that
+restated Hypotheses 1 and 2 verbatim. User approved the full diff for all
+three sub-edits in one `ok`. Saved 134 words, again under estimate for the
+same reason as item 11. Also applied item 29 (`07-01`): compressed H1's
+oversized summary paragraph to match H2/H3's style, replacing the repeated
+exact figures (already in `06-03`) with a plain-text pointer to Section 6.3.
+Saved 71 words, close to the 115-word estimate this time since the fix was a
+straightforward figure-removal rather than a framing-only trim. Body word
+count now 30,122 (30,405 baseline - 78 - 134 - 71); not yet re-rendered to a
+fresh page count.
+
+Also applied item 30 (`05-01` -> `99-appendix`): moved the feature-correlation table's code chunk to a new listed appendix section, replacing it in the body with a one-sentence pointer, after confirming the prose only ever cites the aggregate correlation claim. Body word count now 30,068 (30,405 baseline - 78 - 134 - 71 - 54); not yet re-rendered to a fresh page count.
+
+Closed out the session on item 31 (H4 per-trial table, `06-02`): user judged the effect too marginal to be worth the appendix-move churn at N=5 rows — the same call made in session 6, now settled rather than reopened. Marked skipped rather than applied. All five items carried over from session 10 (11, 18, 29, 30, 31) are now resolved: four applied, one skipped. Each edit was committed individually to branch `kwojdalski/thesis-condense-session11` and pushed to PR #554 (unmerged as of end of session); no fresh Quarto render was run this session, so the page-count effect of items 11/18/29/30 (-337 body words combined) is tracked as a word-count estimate only, not yet confirmed via `pdfinfo`.
+
+User then asked for a fresh reconnaissance pass to find more candidates, scoped to the plan's own "most promising next targets" note: `03-00`-`03-02`, `02-04`, `02-07`, and `07-02`. Re-read all of these in full. Found two clean within-file dedups (33 in `03-00`, 34 in `02-07`), both applied on the same `ok`. Checked and cleared with no new findings: `03-01` (tight taxonomy chapter), `02-04` (tight after item 10), and `07-02` (no repeated-caveat pattern like Chapter 2's item 32 despite the plan flagging it as promising — its five limitation subsections are genuinely distinct, confirmed by grepping each one's specific claims against the rest of the thesis with no hits). One sentence-level redundancy noticed in `03-02` (a phrase repeated verbatim across two adjacent sentences) was explicitly out of scope — that belongs to `hemingway`, not flagged as a plan item. Body word count now 29,980 (30,405 baseline - 78 - 134 - 71 - 54 - 43 - 45); not yet re-rendered to a fresh page count.

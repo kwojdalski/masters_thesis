@@ -117,8 +117,8 @@ if finished is not None:
 def _no_data_msg(kind: str) -> str:
     return (
         f"{kind} plot data not available — re-run evaluation to generate parquet artifacts: "
-        "uv run python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr "
-        "--output-dir logs/<run> --only metrics --only benchmarks --only plots"
+        "`uv run python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr "
+        "--output-dir logs/<run> --only metrics --only benchmarks --only plots`"
     )
 ```
 

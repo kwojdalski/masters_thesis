@@ -1,12 +1,9 @@
 ## Applied RL Trading Evidence
-<!-- [VERIFIED] -->
 
-The application of reinforcement learning to financial trading has evolved from
-theoretical proposals to practical implementations across diverse market
-segments. This section surveys the literature on RL-based trading systems through
-the design dimensions most relevant to the present thesis: state representation,
-action-space structure, reward definition, transaction-cost modeling, and
-validation protocol.
+RL trading research has progressed from theoretical proposals to applications
+across diverse markets. Five design dimensions organize the relevant evidence:
+state representation, action-space structure, reward definition, transaction-cost
+modeling, and validation protocol.
 
 To keep conclusions methodologically defensible, this review distinguishes
 between: (i) proof-of-concept evidence from backtests under simplified
@@ -18,7 +15,6 @@ information the agent observes, how actions map to trades, whether costs are
 charged, and how out-of-sample performance is selected and reported.
 
 ### Early Applications and Proof-of-Concept
-<!-- [VERIFIED] -->
 
 The first comprehensive application of RL to trading, introducing recurrent
 reinforcement learning for optimizing trading systems, was presented in
@@ -37,28 +33,20 @@ positive risk-adjusted returns after transaction costs — a stringent test of
 practical viability [@Moody2001].
 
 ### From Discrete to Continuous Action Spaces
-<!-- [VERIFIED] -->
 
-Early value-based approaches applied Q-learning with discrete buy/sell/hold
-actions to equity and futures markets [@Neuneier1998; @Lee2007]. These studies
-established that RL could learn profitable patterns from historical data, but
-also identified persistent problems: sparse rewards, delayed credit assignment,
-and out-of-sample performance degradation. More fundamentally, discrete action
-spaces force an artificial granularity on position sizing — a coarse grid
-loses control precision while a fine grid reintroduces the curse of
-dimensionality.
-
-The direct and recurrent reinforcement
-learning tradition was extended to foreign-exchange trading systems
-[@Gold2003; @Dempster2002]. Their relevance is that
-the trading policy maps market state directly into positions rather than into an
-intermediate price forecast. The evidence is also cautionary: performance varied
-substantially across currency pairs and depended on the choice of model and
-system parameters, making early direct-RL results better interpreted as
-feasibility evidence than as a robust trading edge.
+Early proof-of-concept studies established feasibility while surfacing
+problems this thesis's design responds to directly. Discrete Q-learning on
+equity and futures markets [@Neuneier1998; @Lee2007] learned profitable
+patterns but suffered sparse rewards, delayed credit assignment, and
+out-of-sample degradation; more fundamentally, discrete buy/sell/hold actions
+force an artificial granularity on position sizing — a coarse grid loses
+control precision, a fine grid reintroduces the curse of dimensionality.
+Extending direct/recurrent RL to foreign-exchange trading
+[@Gold2003; @Dempster2002] confirmed that mapping state directly into
+positions is viable, but performance varied substantially across currency
+pairs and system parameters — feasibility evidence, not a robust trading edge.
 
 ### Deep Reinforcement Learning Era
-<!-- [VERIFIED] -->
 
 The introduction of deep function approximators to RL trading extended
 applicability to high-dimensional state spaces.
@@ -118,20 +106,16 @@ standardized evaluation protocols — multi-seed reporting, held-out test period
 not used for model selection, and explicit cost assumptions — performance
 claims are difficult to assess on their own terms.
 
-An ensemble stock-trading strategy built from PPO, A2C, and
-DDPG on Dow Jones constituents was evaluated [@Yang2020]. The study is relevant as an actor-critic
-comparison in a liquid equity universe, but it is not evidence about
-millisecond-level LOB trading; its state representation, trading frequency, and
-execution assumptions differ from the setting studied in the current work.
-
-AlphaStock, which combines a Sharpe-oriented RL
-objective with history-state and cross-asset attention networks, was proposed
-[@Wang2019AlphaStock]. Its contribution
-is mainly about representation and interpretability in stock selection: the
-attention mechanism gives a partial account of which asset characteristics drive
-portfolio construction. This supports the broader claim that state representation
-matters materially in RL trading, but it does not address order-book-driven
-single-asset exposure control.
+Two further studies mark boundary cases outside this thesis's LOB-level,
+single-asset scope. An ensemble PPO/A2C/DDPG strategy on Dow Jones
+constituents [@Yang2020] is a useful actor-critic comparison in a liquid
+equity universe, but its state representation, trading frequency, and
+execution assumptions differ from millisecond-level LOB trading. AlphaStock
+[@Wang2019AlphaStock] combines a Sharpe-oriented objective with history-state
+and cross-asset attention, contributing mainly through representation and
+interpretability in stock selection — supporting the claim that state
+representation matters materially in RL trading, but not addressing
+order-book-driven single-asset exposure control.
 
 A volatility-scaled deep RL trading strategy tested across
 50 liquid futures contracts spanning commodities, equity indices, fixed income,
@@ -142,7 +126,6 @@ reinforces that algorithm choice cannot be separated from state representation,
 action design, reward definition, transaction costs, and evaluation protocol.
 
 ### Comparative Evidence and Limitations
-<!-- [VERIFIED] -->
 
 **Algorithm comparisons and reproducibility.**
 A later move toward reproducible DRL trading pipelines is illustrated by
@@ -176,25 +159,20 @@ targeting risk-adjusted return directly, but does not fully resolve the tension
 between reward simplicity and the richness of real trading objectives.
 
 
-The literature reviewed here points to several patterns relevant to the design
-choices in this thesis. Across the representative studies discussed above,
-continuous-action actor-critic methods are frequently preferred over
-discrete-action alternatives for position-sizing tasks
-[@Liang2018; @Majidi2024; @Kabbani2022]. Risk-adjusted reward signals,
-especially Differential Sharpe Ratio formulations, also appear promising for
-out-of-sample generalization relative to raw return objectives, though such
-claims remain highly sensitive to the evaluation protocol and cost assumptions.
-Explicit transaction cost modeling is a prerequisite for any realistic
-performance claim at the frequencies considered here.
-
-Viewed by design dimension, the strongest lessons are narrower than the headline
-returns reported in many papers. State representations must include the
-information needed for the action being optimized; action spaces should match
-the economic decision, especially when the task is exposure sizing; rewards must
-penalize costs and avoid encouraging excessive turnover; and validation must use
-held-out periods, frozen policies, and repeated runs where stochastic training is
-material. Without these elements, a positive backtest is best interpreted as a
-proof of concept rather than evidence of a robust trading edge.
+The literature reviewed here converges on design lessons rather than a
+headline result. Continuous-action actor-critic methods are frequently
+preferred over discrete alternatives for position-sizing tasks
+[@Liang2018; @Majidi2024; @Kabbani2022], since action spaces must match the
+economic decision being made. Risk-adjusted reward signals — especially
+Differential Sharpe Ratio formulations — appear promising for out-of-sample
+generalization relative to raw return objectives, provided they penalize
+costs and avoid encouraging excessive turnover; explicit transaction-cost
+modeling is a prerequisite for any realistic performance claim at the
+frequencies considered here, and such claims remain highly sensitive to the
+evaluation protocol. Validation must use held-out periods, frozen policies,
+and repeated runs where stochastic training is material — without these
+elements, a positive backtest is best interpreted as a proof of concept
+rather than evidence of a robust trading edge.
 
 Within the representative literature reviewed here, a comparatively
 underexplored design combination is the joint use of order-book-derived state

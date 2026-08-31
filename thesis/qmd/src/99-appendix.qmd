@@ -389,6 +389,46 @@ else:
 
 ---
 
+# Feature–Return Correlations {#sec-appendix-feature-correlations}
+
+```{=latex}
+\addcontentsline{loa}{section}{Feature-Return Correlations}
+```
+
+@tbl-feature-correlations reports Pearson and Spearman rank correlations
+between each engineered feature and the one-step-ahead log mid-price return,
+computed on the training split; see @sec-feature-return-correlations for the
+interpretation of this result.
+
+```{python}
+#| label: cell-feature-correlations
+#| output: asis
+#| echo: false
+#| warning: false
+
+import pandas as pd
+from thesis_mlflow_results import repo_root
+from thesis_tables import feature_correlation_table, missing_data_notice
+
+_corr_path = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek/correlations.csv"
+)
+if _corr_path.exists():
+    feature_correlation_table(pd.read_csv(_corr_path))
+else:
+    missing_data_notice(
+        "correlations.csv not found — run: "
+        "`uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
+        "--corr --export`, then: "
+        "`uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
+    )
+```
+
+---
+
 # Data Preparation Pipeline
 
 ```{=latex}
