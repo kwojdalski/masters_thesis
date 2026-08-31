@@ -17,7 +17,7 @@ more sobering story — a win rate of 1.3\% and a profit factor of $3.65 \times
 10^{-3}$ confirm that the vast majority of individual position adjustments are
 loss-generating. Maximum drawdown is contained at $-0.014\%$ versus $-0.37\%$
 for buy-and-hold, again as a consequence of low net exposure rather than active
-risk management. H1 is therefore supported in the narrow sense that the agent
+risk management. Hypothesis 1 is therefore supported in the narrow sense that the agent
 produces a better realized return than passive benchmarks on this specific test
 window, but not in the stronger sense originally contemplated: the
 outperformance reflects risk avoidance through near-neutral positioning, not
