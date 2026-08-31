@@ -11,13 +11,12 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **142 pages** (last rendered 2026-08-30, after item 32; not
-re-rendered since — item 11 below is word-count-tracked only until the next
-render)
-Body word count (chapters 01-07): **29,980 words** (30,405 - 78 item 11 - 134 item 18 - 71 item 29 - 54 item 30 - 43 item 33 - 45 item 34)
-Body page range (as of last render): printed pages 8-106 (physical PDF pages
-9-107), **99 body pages**; Bibliography begins on printed page 107
-words_per_page: ~307 (30,405 / 99 measured body pages)
+Current: **140 pages** (measured 2026-08-31, session 12, fresh render after
+merging PR #554 which contained session 11's items 11/18/29/30/33/34)
+Body word count (chapters 01-07): **29,552 words**
+Body page range: printed pages 8-102 (physical PDF pages 9-103), **95 body
+pages**; Bibliography begins on printed page 103
+words_per_page: ~311 (29,552 / 95 measured body pages)
 Cumulative body reduction from the complete pre-condensation draft: **8,196
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
@@ -383,3 +382,41 @@ Also applied item 30 (`05-01` -> `99-appendix`): moved the feature-correlation t
 Closed out the session on item 31 (H4 per-trial table, `06-02`): user judged the effect too marginal to be worth the appendix-move churn at N=5 rows — the same call made in session 6, now settled rather than reopened. Marked skipped rather than applied. All five items carried over from session 10 (11, 18, 29, 30, 31) are now resolved: four applied, one skipped. Each edit was committed individually to branch `kwojdalski/thesis-condense-session11` and pushed to PR #554 (unmerged as of end of session); no fresh Quarto render was run this session, so the page-count effect of items 11/18/29/30 (-337 body words combined) is tracked as a word-count estimate only, not yet confirmed via `pdfinfo`.
 
 User then asked for a fresh reconnaissance pass to find more candidates, scoped to the plan's own "most promising next targets" note: `03-00`-`03-02`, `02-04`, `02-07`, and `07-02`. Re-read all of these in full. Found two clean within-file dedups (33 in `03-00`, 34 in `02-07`), both applied on the same `ok`. Checked and cleared with no new findings: `03-01` (tight taxonomy chapter), `02-04` (tight after item 10), and `07-02` (no repeated-caveat pattern like Chapter 2's item 32 despite the plan flagging it as promising — its five limitation subsections are genuinely distinct, confirmed by grepping each one's specific claims against the rest of the thesis with no hits). One sentence-level redundancy noticed in `03-02` (a phrase repeated verbatim across two adjacent sentences) was explicitly out of scope — that belongs to `hemingway`, not flagged as a plan item. Body word count now 29,980 (30,405 baseline - 78 - 134 - 71 - 54 - 43 - 45); not yet re-rendered to a fresh page count.
+
+**2026-08-31, session 12 (merge PR #554, fresh reconnaissance, `05-01`):**
+User asked to run the condenser again. Discovered mid-session that a separate
+Claude Code session had independently completed all of session 11's work
+(items 11, 18, 29, 30, 33, 34) on branch `kwojdalski/thesis-condense-session11`,
+sitting in a clean, mergeable, unmerged PR #554 — plus a concurrent,
+uncommitted `hemingway`-style sentence-tightening pass across 8 files
+(`03-02`, `04-00`, `04-03`, `04-04`, `04-06`, `05-00`, `06-00`, `06-02`) in
+the same shared working directory. Merged PR #554 first rather than risk
+duplicating or conflicting with already-reviewed work; left the in-progress
+hemingway edits untouched (stashed and restored to the working tree, not
+committed, since that work isn't this session's to finish or judge).
+
+Fresh render after the merge: total PDF 142 -> 140 pages, body 99 -> 95 pages
+(a larger single-session drop than session 11's own word-count estimate
+implied, likely reflecting the `[VERIFIED]` marker cleanup in the same PR).
+Body words now 29,552 (measured fresh via `wc -w`, superseding session 11's
+running arithmetic estimate of 29,980 as the authoritative baseline).
+
+Did a fresh, harsh re-read of `05-01-data-preparation.qmd` (now the largest
+body file at 3,074 words) looking for the "reduce information" pattern from
+session 10. Found nothing new: the one candidate overlap — "per-security
+fitting prevents leakage" appearing both as a brief preview in "Preprocessing
+and Splitting" and again in full detail in "Split-Specific Statistics" — is a
+legitimate summary-then-detail structure (the second instance adds
+per-chronological-split and per-session granularity the first doesn't
+mention), not restatement. `03-02` (second-largest at 2,343 words) was
+already re-checked fresh in session 11 with the same conclusion.
+
+**Assessment:** across 12 sessions, every chapter has had multiple
+duplication/breadth/table passes, Chapter 2 has had a harder
+information-reduction pass, and the two largest remaining files were just
+re-checked with no new findings. The structural/duplication signal this
+skill is built to find appears genuinely exhausted. The concurrent
+hemingway-style pass already running in this working directory is the
+correct next lever — sentence-level economy across the many short, correct,
+but occasionally verbose sentences this thesis still has — rather than more
+reconnaissance under this skill's three categories.
