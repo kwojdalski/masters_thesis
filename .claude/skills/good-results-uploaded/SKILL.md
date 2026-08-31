@@ -1,0 +1,161 @@
+---
+name: good-results-uploaded
+description: Commit exported experiment result artifacts with a message that flags the run as promising. Use when the user has an experiment run whose outcome they are happy with and wants the results committed with a name and an explicit description that make clear the numbers look good.
+---
+
+# Good Results Uploaded
+
+The user has an experiment run they are happy with. Commit the exported result
+artifacts on a branch, then open and merge a PR. The commit subject must read as
+"these results are promising" and the body must state explicitly that the run's
+outcome is good, backed by the actual numbers.
+
+## What counts as "the results"
+
+Exported thesis snapshots and anything regenerated from the same run:
+
+- `thesis/qmd/results/<experiment>/manifest.json`
+- `thesis/qmd/results/<experiment>/latest_finished/**` — `evaluation_report.json`,
+  `statistical_tests.json`, `run.json`, `params.json`, `hyperparams.json`,
+  `latest_metrics.json`, `plots/*.png`
+- result-derived tables or figures under `thesis/qmd/` or `docs/` that changed as
+  part of this run and that the user points to
+
+Never in scope: `logs/**` (gitignored working files — checkpoints, buffers, eval
+CSVs), unrelated source edits, or WIP in other files.
+
+## Steps — execute in order
+
+### 1. Survey what changed
+
+```bash
+git status --porcelain
+git diff --stat -- 'thesis/qmd/results/**'
+```
+
+Identify the experiment(s) from the changed paths (e.g.
+`pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr`). If snapshots for
+several experiments changed, list them and confirm with the user whether all
+belong to this good run or only some.
+
+If nothing under `thesis/qmd/results/` changed, tell the user there are no
+exported results to commit — they likely still need to run
+`scripts/export_eval_to_thesis.py --scenario <scenario>` (or
+`uv run thesis-experiments <h1|h2|h3|h4>`) first. Then stop.
+
+### 2. Pull headline numbers for the commit body
+
+For each changed experiment, read
+`thesis/qmd/results/<experiment>/latest_finished/evaluation_report.json`,
+`statistical_tests.json`, and `run.json`, and extract:
+
+- from `evaluation_report.json`: `sharpe_ratio`, `sortino_ratio`, `total_return`,
+  `max_drawdown`, `information_ratio`, `alpha`, `profit_factor`, `win_rate`,
+  `omega_ratio`
+- from `statistical_tests.json` (the converted benchmark table): the
+  agent-vs-benchmark rows — `alpha` and `information_ratio` per benchmark
+  (`buy_and_hold`, `twap`, `vwap`), and the source split in `__source_split__`
+- from `run.json`: `experiment_name`, `end_time`, `status`, and any
+  `per_symbol_results` split rewards
+
+Note which split the numbers describe. Prefer test; if only `val` or `train` is
+present, say so — do not imply out-of-sample success you cannot show. Drop any
+metric that is `null` rather than printing "None". Round sensibly
+(Sharpe/Sortino/PF to 2-3 dp; returns and drawdown as percentages).
+
+### 3. Ask the user for the one-line "why"
+
+If the user has not already said what makes this run good, ask for one sentence
+(e.g. "first run where TD3 clears buy-and-hold on test Sharpe", "drawdown finally
+under 5% with return intact"). Use their words in the body. Do not invent a
+rationale, and do not upgrade "promising" to "conclusive".
+
+### 4. Branch
+
+If on `master`, branch first (this repo merges everything via PR):
+
+```bash
+git checkout -b kwojdalski/results-<experiment-short>-promising
+```
+
+`<experiment-short>` = a compact slug of the experiment, e.g. `td3-dsr-pooled`.
+
+### 5. Stage only the result artifacts
+
+```bash
+git add thesis/qmd/results/<experiment>/
+```
+
+Add other files only if the user confirms they belong to this run. Never
+`git add -A`. Show `git diff --cached --stat` before committing.
+
+### 6. Commit
+
+**Subject** — signals quality, sentence case, present/imperative, <= 72 chars.
+Pick the variant that matches how strong the result is:
+
+- `Add promising <experiment-short> results — <headline metric>`
+- `Upload strong <experiment-short> run — beats benchmarks risk-adjusted`
+- `Add good <experiment-short> results (test Sharpe <x.xx>, DD <-x.x%>)`
+
+**Body** — must open by stating the outcome is good, then give the numbers:
+
+```
+Uploading exported results from an experiment run whose outcome looks
+promising and is worth keeping as a reference point.
+
+Why it's good: <the user's one-line rationale>
+
+Experiment:   <experiment_name>
+Run finished: <end_time>  (status: <status>)
+Split:        <test|val|train>
+
+Headline metrics:
+  - Sharpe         <x.xx>
+  - Sortino        <x.xx>
+  - Total return   <x.x%>
+  - Max drawdown   <-x.x%>
+  - Profit factor  <x.xx>
+  - vs Buy & Hold: alpha <x.xxxx>, IR <x.xx>
+  - vs TWAP:       alpha <x.xxxx>, IR <x.xx>
+  - vs VWAP:       alpha <x.xxxx>, IR <x.xx>
+
+Artifacts: thesis/qmd/results/<experiment>/{manifest.json,latest_finished/**}
+```
+
+Include only the benchmark rows that exist in `statistical_tests.json`. End the
+commit message with the `Co-Authored-By:` and `Claude-Session:` trailers exactly
+as given in the current session context.
+
+The pre-commit `end-of-file-fixer` hook may rewrite unrelated already-modified
+result JSONs. If the commit fails only on files you did not stage, re-run it with
+`--no-verify` — the staged snapshot JSONs are machine-generated and already
+valid.
+
+### 7. Push, PR, merge
+
+```bash
+git push -u origin <branch>
+gh pr create --title "<same as the commit subject>" --body "<commit body without the trailers>
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+gh pr merge <n> --squash --delete-branch
+git checkout master && git pull --ff-only
+```
+
+If the user explicitly says "just commit, no PR", stop after step 6 and report
+the branch name.
+
+### 8. Report
+
+Print: branch, PR URL, merge status, and the headline metrics table from the
+body.
+
+## Notes
+
+- One good run == one commit == one PR. Run the skill again for the next one.
+- Keep the language calibrated: "promising", "strong", "encouraging" — never
+  "proves", "conclusive", "final" unless the user says so.
+- If several experiments' snapshots changed but only one is the good run, stage
+  only that experiment's directory and tell the user the others were left
+  unstaged.
