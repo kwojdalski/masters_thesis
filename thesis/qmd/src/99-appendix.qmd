@@ -5,7 +5,7 @@
 # Feature Inventory
 
 ```{=latex}
-\addcontentsline{lap}{section}{Feature Inventory}
+\addcontentsline{lap}{appendices}{Feature Inventory}
 ```
 
 The tables below catalogue every feature type implemented in the feature
@@ -101,7 +101,7 @@ Feature & Group & Formula & Param & In model & Citation \\
 # Main Experiment Specification
 
 ```{=latex}
-\addcontentsline{lap}{section}{Main Experiment Specification}
+\addcontentsline{lap}{appendices}{Main Experiment Specification}
 ```
 
 The table below condenses the main experiment into a self-contained
@@ -145,7 +145,7 @@ else:
 # Baseline Algorithm Pseudocode {#sec-appendix-baseline-algorithms}
 
 ```{=latex}
-\addcontentsline{lap}{section}{Baseline Algorithm Pseudocode}
+\addcontentsline{lap}{appendices}{Baseline Algorithm Pseudocode}
 ```
 
 Chapter 5.2 gives TD3's full training loop (Algorithm 2) since TD3 is this
@@ -229,7 +229,7 @@ reproducibility.
 # Raw Data Inventory {#sec-appendix-raw-inventory}
 
 ```{=latex}
-\addcontentsline{lap}{section}{Raw Data Inventory}
+\addcontentsline{lap}{appendices}{Raw Data Inventory}
 ```
 
 @tbl-raw-file-inventory reports raw MBP-10 event counts and inter-event
@@ -288,7 +288,7 @@ else:
 # Transformed Feature Example {#sec-appendix-transformed-features}
 
 ```{=latex}
-\addcontentsline{lap}{section}{Transformed Feature Example}
+\addcontentsline{lap}{appendices}{Transformed Feature Example}
 ```
 
 @tbl-transformed-features shows twelve consecutive events from the AAPL feed,
@@ -338,7 +338,7 @@ else:
 # Feature Distribution Statistics {#sec-appendix-feature-statistics}
 
 ```{=latex}
-\addcontentsline{lap}{section}{Feature Distribution Statistics}
+\addcontentsline{lap}{appendices}{Feature Distribution Statistics}
 ```
 
 @tbl-feature-stats reports distributional statistics for all engineered
@@ -392,7 +392,7 @@ else:
 # Feature–Return Correlations {#sec-appendix-feature-correlations}
 
 ```{=latex}
-\addcontentsline{lap}{section}{Feature-Return Correlations}
+\addcontentsline{lap}{appendices}{Feature-Return Correlations}
 ```
 
 @tbl-feature-correlations reports Pearson and Spearman rank correlations
@@ -432,7 +432,7 @@ else:
 # Data Preparation Pipeline
 
 ```{=latex}
-\addcontentsline{lap}{section}{Data Preparation Pipeline}
+\addcontentsline{lap}{appendices}{Data Preparation Pipeline}
 ```
 
 The diagram below shows the feature pipeline design that ensures no information
@@ -450,7 +450,7 @@ parameters.
 # Offline Feature Selection Pipeline
 
 ```{=latex}
-\addcontentsline{lap}{section}{Offline Feature Selection Pipeline}
+\addcontentsline{lap}{appendices}{Offline Feature Selection Pipeline}
 ```
 
 The feature selection procedure described in Section 4.2 operates in two stages:
@@ -498,7 +498,7 @@ introduce look-ahead bias or circular reasoning.
 # Experimental Pipeline Architecture {#sec-appendix-pipeline}
 
 ```{=latex}
-\addcontentsline{lap}{section}{Experimental Pipeline Architecture}
+\addcontentsline{lap}{appendices}{Experimental Pipeline Architecture}
 ```
 
 The figure below shows the six major stages of the experimental pipeline at a
