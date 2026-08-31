@@ -106,6 +106,53 @@ def test_h4_skip_eval_stops_after_training(
     assert tee_commands[0][4] == "train"
 
 
+def test_h4_parallel_runs_one_job_per_trial_with_distinct_seeds_and_dirs(
+    runner: ModuleType, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    jobs_seen: list[list[tuple[list[str], object]]] = []
+    tee_commands: list[list[str]] = []
+    monkeypatch.delenv("EXTRA_TRAIN_ARGS", raising=False)
+    monkeypatch.delenv("EXTRA_EVAL_ARGS", raising=False)
+    monkeypatch.setattr(runner, "_check_guardrails", lambda scenarios, _args: None)
+    monkeypatch.setattr(
+        runner,
+        "_run_parallel_jobs",
+        lambda label, jobs, max_workers: jobs_seen.append(jobs),
+    )
+    monkeypatch.setattr(
+        runner, "_run_tee", lambda command, _log: tee_commands.append(command)
+    )
+    monkeypatch.setattr(runner, "_run_simple", lambda _command: None)
+    monkeypatch.setattr(runner, "_export_all", lambda _scenarios: None)
+    monkeypatch.setattr(runner.random, "randint", lambda _lo, _hi: 42)
+
+    runner.run_h4(
+        "scenario/name",
+        3,
+        1_000,
+        runner.RunArgs(parallel=True, max_parallel=2),
+    )
+
+    jobs = jobs_seen[0]
+    assert len(jobs) == 3
+    scenario_dir = runner._EXPERIMENT_OUTPUT_DIR / "name"
+    seeds = []
+    for i, (cmd, log) in enumerate(jobs):
+        assert cmd[4:7] == ["train", "-c", "scenario/name"]
+        assert "--trials" not in cmd
+        trial_dir = scenario_dir / f"trial_{i}"
+        assert f"logging.log_dir={trial_dir}" in cmd
+        seed_flag = next(o for o in cmd if o.startswith("seed="))
+        seeds.append(int(seed_flag.split("=", 1)[1]))
+        assert log == trial_dir / f"trial_{i}_train.log"
+    assert seeds == [42, 43, 44]
+
+    # Post-training evaluate reads the last trial's own directory, since
+    # each parallel trial has its own log_dir instead of one shared dir.
+    last_trial_dir = scenario_dir / "trial_2"
+    assert f"logging.log_dir={last_trial_dir}" in tee_commands[0]
+
+
 def test_debug_set_supplies_small_h4_defaults(
     runner: ModuleType, monkeypatch: pytest.MonkeyPatch
 ) -> None:
