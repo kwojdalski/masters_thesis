@@ -85,7 +85,7 @@ _audit = audit_plots_enabled()
 #| label: h1_algo_comparison
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random."
+#| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random, under frictionless (mid-price, zero-fee) execution."
 
 import pandas as pd
 from IPython.display import HTML
@@ -126,7 +126,17 @@ if h1_df.iloc[:, 1:].isin(["—"]).all().all():
     print("No Hypothesis 1 results available. Run: uv run thesis-experiments h1")
 else:
     display_df(h1_df)
-    table_note(source="Author's own calculations.")
+    table_note(
+        source="Author's own calculations.",
+        note=(
+            "All figures use mid-price execution with zero transaction cost and "
+            "represent a signal ceiling, not net-of-cost performance; "
+            "transaction-cost sensitivity is in Section 6.2 "
+            "(@tbl-h3-transaction-costs). The displayed values predate the "
+            "execution-realism audit and a re-export under the corrected "
+            "evaluation pipeline is pending (Section 7.2)."
+        ),
+    )
     show_table_meta(finished, audit=_audit)
 ```
 
@@ -216,10 +226,20 @@ This comparison provides empirical grounding for the algorithmic choices made
 in this study and offers guidance for algorithm selection in similar
 continuous-action trading applications.
 
-The Hypothesis 1 evidence is therefore mixed rather than unambiguously supportive. TD3
-clearly improves on DDPG, while also showing substantially better drawdown control than the high-turnover random
-policy. It does not, however, dominate PPO or passive long exposure on
-cumulative return in the zero-fee evaluation window. The defensible Hypothesis 1 verdict is
-that TD3 learns a conservative, economically coherent policy with strong
-drawdown control and trade quality, but the exported results do not establish
-general benchmark dominance on absolute return.
+Read through the reworded Hypothesis 1, the algorithm comparison establishes the
+first half of the claim. Under frictionless mid-price execution TD3 learns a
+directionally coherent, risk-controlled policy — it improves on DDPG, avoids the
+high-turnover random policy's drawdowns, and posts a positive profit factor — so
+a learnable microstructure edge exists in this window. What the comparison does
+not establish is that the edge is economically large. Every figure in the table
+above is measured with the spread waived, and Section 4.3
+(@sec-execution-model-signal-friction) shows why that is decisive for a
+microstructure feature set: the features carrying the signal cannot express an
+edge larger than one half-spread per trade, which is exactly the cost mid-price
+execution declines to charge. Whether the edge survives once that cost is
+applied is a separate question, taken up by the transaction-cost sensitivity
+analysis in Section 6.2. The defensible Hypothesis 1 verdict on the algorithm
+comparison alone is that TD3 learns a real, conservative, economically coherent
+policy from limit-order-book microstructure, and that its frictionless
+risk-adjusted performance is a ceiling on — not an estimate of — deployable
+performance.
