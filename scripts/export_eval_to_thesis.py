@@ -356,6 +356,17 @@ def _resolve_eval_dir(
     return primary, fallback
 
 
+def _newer_checkpoint(results_file: Path) -> Path | None:
+    """Return the newest checkpoint when it is newer than ``results.json``."""
+    checkpoints = list(results_file.parent.rglob("*_checkpoint*.pt"))
+    if not checkpoints:
+        return None
+    newest = max(checkpoints, key=lambda path: path.stat().st_mtime_ns)
+    return (
+        newest if newest.stat().st_mtime_ns > results_file.stat().st_mtime_ns else None
+    )
+
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Export evaluate CLI output into a thesis result snapshot.",
@@ -407,6 +418,14 @@ def _parse_args() -> argparse.Namespace:
             "Publish val- or train-split metrics when no test split exists. "
             "Off by default: the thesis presents these snapshots as "
             "out-of-sample results, so a substituted split must be deliberate."
+        ),
+    )
+    p.add_argument(
+        "--allow-stale-results",
+        action="store_true",
+        help=(
+            "Export even when results.json predates a checkpoint in its directory. "
+            "Use only for a deliberate historical-checkpoint export."
         ),
     )
     p.add_argument(
@@ -475,6 +494,32 @@ def main() -> int:
         return 1
 
     logger.info("reading results from {}", results_file)
+
+    newer_checkpoint = _newer_checkpoint(results_file)
+    if newer_checkpoint is not None:
+        results_time = datetime.fromtimestamp(
+            results_file.stat().st_mtime, UTC
+        ).isoformat()
+        checkpoint_time = datetime.fromtimestamp(
+            newer_checkpoint.stat().st_mtime, UTC
+        ).isoformat()
+        if not args.allow_stale_results:
+            logger.error("results.json predates a checkpoint; refusing stale export")
+            logger.error("  results: {} ({})", results_file, results_time)
+            logger.error("  checkpoint: {} ({})", newer_checkpoint, checkpoint_time)
+            logger.error(
+                "re-run evaluate for the current checkpoint, or pass "
+                "--allow-stale-results for a deliberate historical export"
+            )
+            return 1
+        logger.warning(
+            "exporting stale results by explicit override: results={} ({}) "
+            "newer_checkpoint={} ({})",
+            results_file,
+            results_time,
+            newer_checkpoint,
+            checkpoint_time,
+        )
 
     try:
         results = _load_results_json(results_file)
@@ -564,6 +609,12 @@ def main() -> int:
     snapshot_dir.mkdir(parents=True, exist_ok=True)
 
     now = datetime.now(UTC).isoformat()
+    # The eval CLI wrote results.json when the rollout finished; that mtime is
+    # the only real run timing this script can see. Do not synthesise a run
+    # start time or a FINISHED status we cannot verify (experiment-audit #11).
+    results_mtime = datetime.fromtimestamp(
+        results_file.stat().st_mtime, UTC
+    ).isoformat()
 
     _write_json(snapshot_dir / "evaluation_report.json", metrics)
 
@@ -611,9 +662,12 @@ def main() -> int:
     run_json: dict = {
         "run_id": None,
         "run_name": experiment_name,
-        "status": "FINISHED",
-        "start_time": now,
-        "end_time": now,
+        # Not "FINISHED": this script exports an evaluate-CLI results file and
+        # has no way to confirm the training run completed. start_time is
+        # unknown; end_time is when results.json was written (experiment-audit #11).
+        "status": "EXPORTED",
+        "start_time": None,
+        "end_time": results_mtime,
         "artifact_uri": None,
         "experiment_name": experiment_name,
         "experiment_id": None,
@@ -621,6 +675,7 @@ def main() -> int:
             "type": "evaluate_cli",
             "eval_output_dir": str(eval_dir),
             "results_file": str(results_file),
+            "results_file_mtime_utc": results_mtime,
             "exported_at_utc": now,
         },
         "files": {
