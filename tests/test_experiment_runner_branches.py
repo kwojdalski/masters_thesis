@@ -178,6 +178,31 @@ def test_execute_single_experiment_saves_partial_metrics_after_evaluation_interr
     assert calls["saved_json"] == 1
 
 
+def test_execute_single_experiment_saves_partial_metrics_after_teardown_interrupt(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    """A Ctrl-C during post-training hook teardown (before the eval try block
+    in the old layout) must still degrade to partial results, not propagate."""
+    trainer = _Trainer()
+
+    def _raise() -> None:
+        raise KeyboardInterrupt
+
+    trainer.teardown_runtime_hooks = _raise  # type: ignore[method-assign]
+    calls = _patch_finalization(monkeypatch)
+
+    result = runner.execute_single_experiment(
+        config=_config(tmp_path),
+        build_experiment_runtime_fn=lambda **_kwargs: _runtime(trainer),
+    )
+
+    assert result["interrupted"] is False
+    assert result["final_metrics"]["interrupted"] is True
+    assert calls["checkpoints"] == []
+    assert calls["saved_json"] == 1
+
+
 def test_execute_single_experiment_resume_uses_checkpoint_callback_and_name(
     monkeypatch,
     tmp_path: Path,

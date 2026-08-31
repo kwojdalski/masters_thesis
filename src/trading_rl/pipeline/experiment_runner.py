@@ -321,28 +321,16 @@ def execute_single_experiment(
     with profiler.stage("training"):
         training_result = _run_training_phase(runtime=runtime)
 
-    # Hook-owned evaluation envs are only needed during training; close them
-    # deterministically before final evaluation (#366, #363).
-    runtime.training_bundle.trainer.teardown_runtime_hooks()
-
     trainer = runtime.training_bundle.trainer
     prepared_dataset = runtime.prepared_dataset
     logger = runtime.logger
-
-    with profiler.stage("checkpoint_save"):
-        final_checkpoint_path = save_final_checkpoint(
-            config=config,
-            effective_experiment_name=runtime.effective_experiment_name,
-            trainer=trainer,
-            checkpoint_path=checkpoint_path,
-            feature_pipeline_state=prepared_dataset.feature_pipeline_state,
-        )
 
     split_results = {}
     primary_split = None
     final_reward = float("nan")
     last_positions = []
     evaluation_report = {}
+    final_checkpoint_path = None
 
     skip_final_eval = getattr(
         getattr(config, "evaluation", None), "skip_final_eval", False
@@ -354,7 +342,24 @@ def execute_single_experiment(
             "per-symbol/explainability steps that depend on it"
         )
 
+    # A single Ctrl-C anywhere in the post-training phase -- hook teardown,
+    # checkpoint save, or evaluation -- degrades to "save partial results and
+    # exit cleanly" instead of unwinding past the CLI (which only catches
+    # Exception, not KeyboardInterrupt) and killing the process mid-write.
     try:
+        # Hook-owned evaluation envs are only needed during training; close
+        # them deterministically before final evaluation (#366, #363).
+        trainer.teardown_runtime_hooks()
+
+        with profiler.stage("checkpoint_save"):
+            final_checkpoint_path = save_final_checkpoint(
+                config=config,
+                effective_experiment_name=runtime.effective_experiment_name,
+                trainer=trainer,
+                checkpoint_path=checkpoint_path,
+                feature_pipeline_state=prepared_dataset.feature_pipeline_state,
+            )
+
         if not skip_final_eval:
             with profiler.stage("eval_all_splits"):
                 split_results = evaluate_all_splits(
@@ -420,7 +425,8 @@ def execute_single_experiment(
             )
     except KeyboardInterrupt:
         logger.warning(
-            "Evaluation interrupted by user. Using partial evaluation results..."
+            "Post-training phase interrupted by user (Ctrl-C). "
+            "Saving partial results and exiting cleanly..."
         )
         if split_results:
             primary_split, final_reward, last_positions, evaluation_report = (
