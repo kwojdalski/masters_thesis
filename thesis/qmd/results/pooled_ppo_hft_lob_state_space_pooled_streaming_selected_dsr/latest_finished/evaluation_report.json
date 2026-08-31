@@ -35,5 +35,9 @@
   "ulcer_index": 0.0,
   "var_95": 0.005062145126954021,
   "var_99": 0.004721824067853509,
-  "win_rate": 1.0
+  "win_rate": 1.0,
+  "__source_split__": "test",
+  "__source_keys__": [
+    "test"
+  ]
 }

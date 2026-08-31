@@ -1,12 +1,8 @@
 ## Performance Evaluation
 <!-- [PLACEHOLDER] -->
 
-This section reports the held-out performance of the latest completed run of
-the thesis experiment. The aim is not just to list metrics, but to judge
-whether the TD3 agent's behavior remains economically coherent once returns,
-turnover, and path-dependent risk measures are inspected together. Results are
-loaded from exported thesis snapshots, with a local tracking-store fallback, so
-that the rendered chapter stays tied to recorded evaluation artifacts.
+Returns, turnover, and path-dependent risk measures from the latest held-out run
+jointly test whether the TD3 agent behaves economically coherently.
 
 ```{python}
 #| label: perf_eval_setup
