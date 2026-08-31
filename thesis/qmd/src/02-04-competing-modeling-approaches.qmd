@@ -143,19 +143,11 @@ against actions derived from historical rules or expert behavior, which embeds
 a prior about what constitutes optimal behavior and does not guarantee
 maximizing risk-adjusted return.
 
-**Direct Optimization of Trading Performance.** Direct optimization removes the predict-then-trade pipeline: the agent observes
-the market state $X_t$, selects an action, and receives a reward computed from
-realized returns and transaction costs directly. There is no decoupled forecast
-stage and no separate rule translating predictions into positions — transaction
-costs and position sizing enter the optimization loop directly rather than being
-handled by a post-hoc threshold or sizing rule.
-
-The structural advantage over supervised approaches is therefore not the
-elimination of a modeling assumption but the elimination of the calibration gap
-between a forecast objective and a decision rule. The reward used in this thesis
-— the Differential Sharpe Ratio — is itself an approximation of risk-adjusted
-return rather than a direct measure of financial performance, and the
-relationship between training reward and out-of-sample return remains an
-empirical question. This distinction is developed in Chapter 4, which also
-explains why a shaped reward is necessary at tick frequency and how financial
-performance metrics are kept separate from the training objective.
+**Direct Optimization of Trading Performance.** Direct optimization maps market
+states to actions and rewards them from realized returns net of transaction
+costs, eliminating the calibration gap between a forecasting objective and a
+separate decision rule. It does not eliminate modeling assumptions: the
+Differential Sharpe Ratio used here approximates risk-adjusted return, so its
+relationship with out-of-sample performance remains empirical. Chapter 4
+develops this distinction, explains the need for reward shaping at tick
+frequency, and separates the training objective from financial evaluation.

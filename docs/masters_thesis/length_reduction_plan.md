@@ -11,13 +11,13 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **140 pages** (measured 2026-08-31, session 12, fresh render after
-merging PR #554 which contained session 11's items 11/18/29/30/33/34)
-Body word count (chapters 01-07): **29,552 words**
-Body page range: printed pages 8-102 (physical PDF pages 9-103), **95 body
-pages**; Bibliography begins on printed page 103
-words_per_page: ~311 (29,552 / 95 measured body pages)
-Cumulative body reduction from the complete pre-condensation draft: **8,196
+Current: **138 pages** (measured 2026-08-31, session 14, fresh render after
+merging the Hemingway pass in PR #556 and applying item 38)
+Body word count (chapters 01-07): **29,321 words**
+Body page range: physical PDF pages 9-102, **94 body pages**; Bibliography
+begins on physical page 103
+words_per_page: ~312 (29,321 / 94 measured body pages)
+Cumulative body reduction from the complete pre-condensation draft: **8,427
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
 body table moved into the appendix. Session 6 moved a second body table into
@@ -163,6 +163,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 35 | 1 | 06-00, 06-02 | Found via a new automated near-duplicate-sentence scan (exact + Jaccard fuzzy match), not manual re-reading. `06-00`'s H1 table legend and `06-02`'s H2 table legend define the identical abbreviation set (Sharpe, Sortino, Return, Max DD, Win Rate, PF, Turnover, Ann. Vol), reordered and cosmetically reworded — a genuine zero-abbreviation-mismatch duplicate, unlike item 36. User asked whether a cross-referenced legend (vs. each table staying self-contained) is permitted under WNE UW's formal requirements; this skill has no authority on that (it's `thesis-format-auditor`/formal-compliance territory), so rather than guess, the user chose to skip. | ~45 (not applied) | skipped — formal-compliance uncertainty (self-contained-table convention), not verified against WNE UW's actual requirements |
 | 36 | 1 | 06-00, 06-03 | Same scan. `06-00`'s H1 legend and `06-03`'s benchmark-table legend share most definitions (Sortino, Max DD, Win Rate, Turnover) but use different abbreviations for three metrics (TR vs Return, SR vs Sharpe, Volatility vs Ann. Vol), so a clean full cross-reference would've needed either a residual mapping for the differing three or a column-header rename — more invasive than item 35. Not reviewed in detail once the user skipped item 35 for the same underlying reason. | ~20-25 (not applied) | skipped — same formal-compliance uncertainty as item 35 |
 | 37 | 1 | 06-00, 06-03 | Same scan. `06-03`'s one-sentence benchmark-category recap ("passive exposure, execution-style references, and a stochastic baseline") echoes `06-00`'s `#sec-benchmark-strategies` intro almost verbatim, but it's already compact (no re-definition of the five strategies) — marginal, comparable to item 31's "too small to be worth it" judgment. | ~10-15 (not applied) | skipped — marginal, same session decision as 35/36 |
+| 38 | 1 | 02-04, 04-03 | A lower-threshold cross-file similarity scan after the Hemingway pass found that `02-04` explained the direct-optimization architecture and its DSR caveat in nearly the same terms as the authoritative reward implementation in `04-03`. Condensed the Chapter 2 passage from 170 to 80 words, preserving the calibration-gap argument, the DSR-as-approximation caveat, and the Chapter 4 pointer. | -90 | applied |
 
 ## Session log
 
@@ -463,3 +464,20 @@ conclusion — it found one legitimate-but-small (~85 words total) candidate,
 and the user judged it not worth pursuing without formal-compliance
 confirmation. hemingway (sentence-level) or reconsidering the 80-page target
 remain the live paths forward.
+
+**2026-08-31, session 14 (post-Hemingway lower-threshold scan):** Recalibrated
+after PR #556: 139 total pages, 94 body pages, and 29,411 body words before
+this condenser edit. Re-ran the cross-file sentence-similarity scan at Jaccard
+0.30 (555 prose sentences, 11 candidate pairs), excluding equations, code,
+tables, and captions. Ten pairs were cleared as necessary roadmap/detail,
+hypothesis/result, or introduction/conclusion links. One genuine duplicate
+remained: the direct-optimization architecture and DSR caveat in `02-04`
+substantially repeated the authoritative implementation in `04-03`. Applied
+item 38, cutting 90 body words while preserving every distinct claim. A fresh
+Quarto render succeeded with the same pre-existing seven missing-scenario
+warnings: 138 total pages, 94 body pages, and 29,321 body words. The body did
+not cross a page boundary; the one-page total-PDF reduction occurred in the
+back matter during a render that also refreshed existing dirty result
+snapshots, so it cannot be attributed solely to item 38. Roughly 14 body pages
+remain above the ~80-page target. The lower-threshold structural signal now
+also appears exhausted.
