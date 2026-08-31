@@ -100,7 +100,11 @@ _SCENARIOS: dict[str, list[str]] = {
 }
 
 _EVAL_ONLY: dict[str, list[str]] = {
-    "h1": ["metrics", "benchmarks", "plots"],
+    # "stats" runs the t_test / sharpe_bootstrap / sortino_bootstrap /
+    # mann_whitney declared in each h1 scenario's evaluate.yaml; without it the
+    # exported statistical_tests.json is only the benchmark comparison table
+    # (experiment-audit 2026-08-31 finding #9).
+    "h1": ["metrics", "benchmarks", "plots", "stats"],
     "h2": ["metrics", "plots"],
     "h3": ["metrics", "plots"],
 }

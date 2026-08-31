@@ -170,6 +170,8 @@ def _check_streaming_episode_vs_train_size(config: ExperimentConfig) -> Finding 
         return None
     ep = config.env.streaming_episode_length
     ts = config.data.train_size
+    if ts is None:  # train_size: null means "use every row" — no ratio to check
+        return None
     if ep > ts:
         return Finding(
             severity=Severity.FATAL,
@@ -432,6 +434,8 @@ def _check_warmup_rows(config: ExperimentConfig) -> Finding | None:
     """WARN: warmup_rows discards a large fraction of the training split."""
     w = config.data.warmup_rows
     ts = config.data.train_size
+    if ts is None:  # train_size: null means "use every row" — no ratio to check
+        return None
     if ts > 0 and w / ts >= 0.20:
         pct = w / ts * 100
         return Finding(
@@ -453,6 +457,8 @@ def _check_frames_per_batch_vs_train_size(config: ExperimentConfig) -> Finding |
     """WARN: frames_per_batch > train_size → env resets multiple times per batch."""
     f = config.training.frames_per_batch
     ts = config.data.train_size
+    if ts is None:  # train_size: null means "use every row" — no ratio to check
+        return None
     if f > ts:
         resets = math.ceil(f / ts)
         return Finding(
@@ -473,6 +479,8 @@ def _check_train_size_vs_warmup_rows(config: ExperimentConfig) -> Finding | None
     """FATAL: train_size <= warmup_rows → zero effective training rows after warmup."""
     w = config.data.warmup_rows
     ts = config.data.train_size
+    if ts is None:  # train_size: null means "use every row" — no ratio to check
+        return None
     if w > 0 and ts <= w:
         return Finding(
             severity=Severity.FATAL,
@@ -651,6 +659,57 @@ def _check_trading_fees(config: ExperimentConfig) -> Finding | None:
             ),
         )
     return None
+
+
+_MICROSTRUCTURE_FEATURE_HINTS = ("microprice", "ofi", "imbalance", "book_pressure")
+
+
+def _has_microstructure_feature(config: ExperimentConfig) -> bool:
+    cols = getattr(config.env, "feature_columns", None) or []
+    return any(
+        any(hint in str(col).lower() for hint in _MICROSTRUCTURE_FEATURE_HINTS)
+        for col in cols
+    )
+
+
+def _check_frictionless_microstructure(config: ExperimentConfig) -> Finding | None:
+    """WARN: zero fees + mid-price fills + zero latency on a microstructure
+    feature set. Each choice is defensible alone, but together the agent can
+    harvest the bid-ask half-spread it is never charged — the predictive content
+    of these features is bounded by the half-spread, so the reported edge is of
+    the same order as the omitted execution cost and will not survive realistic
+    bid/ask fills. Opt out with env.allow_frictionless=true when the frictionless
+    run is a deliberate signal-ceiling ablation (experiment-audit 2026-08-31 #18).
+    """
+    env = config.env
+    if getattr(env, "allow_frictionless", False):
+        return None
+    frictionless = (
+        env.trading_fees == 0
+        and getattr(env, "execution_price", "mid") == "mid"
+        and getattr(env, "exec_latency_ticks", 0) == 0
+    )
+    if not frictionless or not _has_microstructure_feature(config):
+        return None
+    return Finding(
+        severity=Severity.WARN,
+        parameter="env.trading_fees / env.execution_price / env.exec_latency_ticks",
+        message=(
+            "Frictionless execution (trading_fees=0, execution_price='mid', "
+            "exec_latency_ticks=0) with order-book microstructure features "
+            "(microprice / OFI / imbalance / book-pressure). Together on this "
+            "feature set the agent can harvest the bid-ask half-spread it is "
+            "never charged: the predictive content of these features is bounded "
+            "by the half-spread, so the reported edge is of the same order as "
+            "the execution cost it omits and will not survive realistic bid/ask "
+            "fills."
+        ),
+        suggestion=(
+            "Set execution_price='bid_ask' with a realistic trading_fees and "
+            "exec_latency_ticks >= 1, or set env.allow_frictionless=true if this "
+            "is a deliberate signal-ceiling ablation reported as such."
+        ),
+    )
 
 
 def _check_learning_rates(config: ExperimentConfig) -> Finding | None:
@@ -958,6 +1017,8 @@ def _check_streaming_episode_too_long(config: ExperimentConfig) -> Finding | Non
         return None
     ep = config.env.streaming_episode_length
     ts = config.data.train_size
+    if ts is None:  # train_size: null means "use every row" — no ratio to check
+        return None
     half = ts // 2
     if ep > half:
         episodes_per_pass = ts / ep
@@ -1837,6 +1898,7 @@ _ALL_CHECKS = [
     _check_tau_too_large,
     _check_obs_clip_none,
     _check_trading_fees,
+    _check_frictionless_microstructure,
     _check_learning_rates,
     _check_warmup_rows,
     _check_validation_size_vs_eval_steps,
@@ -1908,6 +1970,24 @@ def check_config_guardrails(config: ExperimentConfig) -> list[Finding]:
         except Exception as exc:  # never let a guardrail crash the run
             logger.warning(
                 "guardrail check {} failed unexpectedly: {}", check.__name__, exc
+            )
+            # Surface the crash as a WARN finding too, so a swallowed exception
+            # cannot hide behind the "Guardrails passed" banner (a check that
+            # raises has silently stopped protecting the config).
+            findings.append(
+                Finding(
+                    severity=Severity.WARN,
+                    parameter=f"guardrail:{check.__name__}",
+                    message=(
+                        f"guardrail check {check.__name__} raised "
+                        f"{type(exc).__name__}: {exc} and did not run. This "
+                        "configuration is not fully checked."
+                    ),
+                    suggestion=(
+                        "Report this — a guardrail crashing on a valid config "
+                        "is a bug in the check, not in the config."
+                    ),
+                )
             )
     findings.sort(key=lambda f: 0 if f.severity == Severity.FATAL else 1)
     return findings
