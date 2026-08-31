@@ -74,10 +74,12 @@ price, resting size, and order count at each book level `NN` (00-09, feeding
 spread, imbalance, depth, and queue features respectively); `action`, `side`,
 and `size` describing the event itself (used for signed trade-flow features);
 and an auxiliary `close` series used only for reward and portfolio valuation.
+Unless stated otherwise, all timestamps in this thesis are reported in UTC and
+all monetary values in US dollars.
 
 @tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The three events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book: the first event is a resting limit-order addition on the bid side at a non-top-of-book level; the second is a trade print that consumes displayed size at the best ask; the third and fourth are additions that refresh the ask side after the trade.
 
-| Timestamp (UTC) | Action | Side | Price (\$) | Size | Best Bid (\$) | Best Ask (\$) | Bid Sz | Ask Sz |
+| Timestamp | Action | Side | Price | Size | Best Bid | Best Ask | Bid Sz | Ask Sz |
 |:---|:---:|:---:|---:|---:|---:|---:|---:|---:|
 | 14:30:00.016 | A | B | 271.20 | 200 | 271.45 | 271.85 | 500 | 756 |
 | 14:30:00.024 | T | N | 271.65 |  21 | 271.45 | 271.85 | 500 | 756 |
@@ -301,8 +303,8 @@ if _splits_path.exists():
     out = out.rename(columns={
         "split": "Split",
         "rows": "Events",
-        "first_timestamp": "First timestamp (UTC)",
-        "last_timestamp": "Last timestamp (UTC)",
+        "first_timestamp": "First timestamp",
+        "last_timestamp": "Last timestamp",
         "mean_delta_s": "Mean Δt",
         "median_delta_s": "Median Δt",
     }).drop(columns=["columns"])
