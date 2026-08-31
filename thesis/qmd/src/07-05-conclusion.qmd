@@ -2,14 +2,19 @@
 <!-- [PLACEHOLDER] -->
 
 The central question of this thesis was: can a LOB-informed deep RL agent achieve meaningful out-of-sample trading performance in a high-frequency setting? The answer, under the specified experimental
-conditions, is affirmative. The TD3 agent trained on microstructure-aware
-limit order book features outperformed the evaluated benchmark strategies on
-risk-adjusted return metrics, and the extended feature set provided a measurable
-improvement over the simpler snapshot-based state representation. These findings
-hold together rather than in isolation: the performance advantage of the richer
-state design is visible in both summary metrics and in the qualitative character
-of the learned policy — lower unnecessary turnover, more responsive positioning,
-and more contained drawdown relative to passive exposure.
+conditions, is affirmative but bounded. Under frictionless mid-price execution,
+the TD3 agent trained on microstructure-aware limit order book features learned a
+directionally coherent, risk-controlled policy that outperformed the evaluated
+benchmark strategies on this held-out window, and the extended feature set
+provided a measurable improvement over the simpler snapshot-based state
+representation. That outperformance is real but cost-bounded: the edge the
+microstructure features can express is of the order of the bid–ask half-spread,
+so it is realised under frictionless execution and is not expected to survive
+realistic spread-crossing cost (Section 7.2). These findings hold together rather
+than in isolation: the performance advantage of the richer state design is
+visible in both summary metrics and in the qualitative character of the learned
+policy — lower unnecessary turnover, more responsive positioning, and more
+contained drawdown relative to passive exposure.
 
 The contribution of the thesis is methodological as much as empirical. The
 end-to-end pipeline developed here — covering feature engineering from 10-level

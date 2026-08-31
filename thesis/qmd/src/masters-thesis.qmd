@@ -96,12 +96,13 @@ modeling, transaction cost sensitivity, and evaluation discipline.
 A Twin Delayed DDPG (TD3) agent trains on tick-level order-book snapshots from
 six Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO) over three
 consecutive trading sessions in February 2026, evaluated against benchmark
-strategies under explicit simulation assumptions. It achieves positive held-out
-returns with low drawdown and a high profit factor but does not beat passive
-long exposure on cumulative return over the upward-drifting window. A
+strategies under explicit simulation assumptions. Under frictionless mid-price
+execution it achieves positive held-out returns with low drawdown and a high
+profit factor, but this edge is bounded by transaction cost: the microstructure
+signal it trades on cannot exceed the bid–ask half-spread, and the return turns
+negative once a fee of a fraction of a basis point is charged. A
 microstructure-aware state built from order flow, spread regime, and book shape
-improves policy behavior over simpler snapshot-based variants, though the edge
-is fragile once fees rise.
+improves policy behavior over simpler snapshot-based variants.
 
 The main contribution is an end-to-end, reproducible pipeline linking LOB
 feature engineering, Differential Sharpe Ratio reward design, TD3 training, and
