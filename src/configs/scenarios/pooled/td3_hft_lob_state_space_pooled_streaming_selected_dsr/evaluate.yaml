@@ -13,3 +13,5 @@ benchmarks:
   - buy_and_hold
   - twap
   - vwap
+  - random_actions
+  n_random_trials: 10
