@@ -1,8 +1,7 @@
 # Implementation of the Trading Agent
 
-This chapter describes how the design choices from Chapter 4 are realized in
-the experimental pipeline. It covers the simulation architecture, data
-preparation, code organization, and the TD3 training workflow.
+The experimental pipeline implements the Chapter 4 design through its simulation
+architecture, data preparation, code organization, and TD3 training workflow.
 
 ## Simulation Architecture
 

@@ -1,12 +1,9 @@
 ## Actor-Critic Methods for Continuous Control {#sec-td3-lineage}
 
-The development of reinforcement learning algorithms is a series of conceptual breaks,
-each motivated by a limitation in the preceding framework.
-This section traces the specific
-lineage that leads to the Twin Delayed Deep Deterministic Policy Gradient (TD3)
-algorithm, which is employed here. The survey is not exhaustive; it
-focuses on the algorithmic properties that are directly relevant to the
-continuous-action, single-asset trading problem formulated in Chapter 4.
+Reinforcement learning algorithms have advanced through conceptual breaks, each
+addressing a limitation of its predecessor. The lineage leading to TD3 isolates
+the properties relevant to the continuous-action, single-asset trading problem
+formulated in Chapter 4.
 
 ### Value-Based Methods and Their Limitations in Continuous Control
 

@@ -1,9 +1,8 @@
 ## Value Function
 
-Chapter 3 introduced the state-value function $V^\pi(s)$ and action-value
-function $Q^\pi(s,a)$ as the expected cumulative discounted return under
-policy $\pi$. This section describes how TD3 instantiates the Q-function in
-practice, focusing on the design choices that distinguish it from a vanilla
+The state-value function $V^\pi(s)$ and action-value function $Q^\pi(s,a)$ give
+the expected cumulative discounted return under policy $\pi$. TD3 implements the
+Q-function through design choices that distinguish it from a vanilla
 actor-critic.
 
 ### Twin Critics
