@@ -28,7 +28,7 @@ data:
   - ./data/raw/stocks/daily/TSLA/TSLA_2026-03-02_raw_mbp-10_us_hours.parquet
   data_path: ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
   download_data: false
-  train_size: 50000
+  train_size: null
   validation_size: null
   test_size: null
   lazy_load: true
@@ -36,7 +36,7 @@ data:
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
   feature_cache_dir: .cache/feature_transformation
   filter_lob_levels: 5
-  eval_symbol_selection: rotated
+  eval_symbol_selection: first
 env:
   backend: tradingenv
   trading_fees: 0.0
@@ -69,7 +69,7 @@ training:
   actor_lr: 0.0001
   value_lr: 0.0001
   value_weight_decay: 2.0e-06
-  actor_weight_decay: 0.0
+  actor_weight_decay: 2.0e-06
   max_steps: 3000000
   checkpoint_interval: 100000
   init_rand_steps: 5000
