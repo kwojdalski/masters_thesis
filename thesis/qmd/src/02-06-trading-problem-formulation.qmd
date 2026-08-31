@@ -1,10 +1,8 @@
 ## Trading Problem Formulation
-<!-- [VERIFIED] -->
 
-This section identifies the reinforcement learning concepts most important for
-interpreting the finance literature reviewed in this chapter. Formal definitions,
-equations, and algorithm taxonomies are presented in Chapter 3; the focus here
-is on why each one is consequential for trading problems.
+The finance literature reviewed here relies on RL concepts with specific
+consequences for trading. Chapter 3 provides their formal definitions, equations,
+and algorithm taxonomies.
 
 ::: {.content-visible when-format="pdf"}
 ```{=latex}

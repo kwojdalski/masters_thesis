@@ -1,12 +1,9 @@
 ## Applied RL Trading Evidence
-<!-- [VERIFIED] -->
 
-The application of reinforcement learning to financial trading has evolved from
-theoretical proposals to practical implementations across diverse market
-segments. This section surveys the literature on RL-based trading systems through
-the design dimensions most relevant to the present thesis: state representation,
-action-space structure, reward definition, transaction-cost modeling, and
-validation protocol.
+RL trading research has progressed from theoretical proposals to applications
+across diverse markets. Five design dimensions organize the relevant evidence:
+state representation, action-space structure, reward definition, transaction-cost
+modeling, and validation protocol.
 
 To keep conclusions methodologically defensible, this review distinguishes
 between: (i) proof-of-concept evidence from backtests under simplified
@@ -18,7 +15,6 @@ information the agent observes, how actions map to trades, whether costs are
 charged, and how out-of-sample performance is selected and reported.
 
 ### Early Applications and Proof-of-Concept
-<!-- [VERIFIED] -->
 
 The first comprehensive application of RL to trading, introducing recurrent
 reinforcement learning for optimizing trading systems, was presented in
@@ -37,7 +33,6 @@ positive risk-adjusted returns after transaction costs — a stringent test of
 practical viability [@Moody2001].
 
 ### From Discrete to Continuous Action Spaces
-<!-- [VERIFIED] -->
 
 Early proof-of-concept studies established feasibility while surfacing
 problems this thesis's design responds to directly. Discrete Q-learning on
@@ -52,7 +47,6 @@ positions is viable, but performance varied substantially across currency
 pairs and system parameters — feasibility evidence, not a robust trading edge.
 
 ### Deep Reinforcement Learning Era
-<!-- [VERIFIED] -->
 
 The introduction of deep function approximators to RL trading extended
 applicability to high-dimensional state spaces.
@@ -132,7 +126,6 @@ reinforces that algorithm choice cannot be separated from state representation,
 action design, reward definition, transaction costs, and evaluation protocol.
 
 ### Comparative Evidence and Limitations
-<!-- [VERIFIED] -->
 
 **Algorithm comparisons and reproducibility.**
 A later move toward reproducible DRL trading pipelines is illustrated by

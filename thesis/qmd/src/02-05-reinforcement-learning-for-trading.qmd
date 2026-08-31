@@ -1,5 +1,4 @@
 ## Reinforcement Learning for Trading
-<!-- [VERIFIED] -->
 
 Reinforcement learning is a reasoned choice for algorithmic trading, not an
 arbitrary methodological one. The argument rests on three structural properties
@@ -36,7 +35,6 @@ Together these three properties point toward a model-free, off-policy,
 continuous-action algorithm — which is the class to which TD3 belongs. This is a
 reasoned design choice, not a claim that TD3 is universally superior for trading.
 The MDP formulation remains approximate because market states are partially
-observable and non-stationary. The formal algorithmic properties of TD3 are
-derived in Chapter 3. The present section is concerned with how the broader RL
-literature has been applied to trading and what that literature implies for the
-design choices made in this thesis.
+observable and non-stationary. Chapter 3 derives TD3's formal algorithmic
+properties. The broader RL literature informs the trading-specific design choices
+made here.

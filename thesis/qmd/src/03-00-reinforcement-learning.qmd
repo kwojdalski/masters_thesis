@@ -1,22 +1,13 @@
 # Reinforcement Learning
-<!-- [VERIFIED] -->
 
-This chapter develops the reinforcement learning foundations required for the
-trading agent implemented here. It is organized in three parts. The
-first part introduces the core components of an RL system —
-the formal vocabulary of states, actions, rewards, policies, and value functions
-that all subsequent algorithms inherit. Each component is presented with trading
-motivation: the text explains why these concepts are challenging or distinctive
-in financial environments, while the detailed implementation choices (specific
-features, exact reward formulation, network architectures) are deferred to
-Chapter 4. The second part classifies RL algorithms along the dimensions that
-matter most for the trading problem: model-free vs. model-based, and on-policy
-vs. off-policy. The third part traces the algorithmic lineage from early
-value-based methods to TD3, showing how these properties converge on TD3 as the
-algorithm of choice for continuous-control trading.
+The formal RL framework comprises states, actions, rewards, policies, and value
+functions. Financial environments make each component challenging; Chapter 4
+specifies the features, reward, and network architectures used here. Two
+algorithmic distinctions—model-free versus model-based and on-policy versus
+off-policy—then frame the progression from early value-based methods to TD3 for
+continuous-control trading.
 
 ## Components of a Reinforcement Learning System
-<!-- [VERIFIED] -->
 
 Reinforcement learning systems address sequential decision-making problems by
 selecting actions that maximize cumulative discounted future rewards. This

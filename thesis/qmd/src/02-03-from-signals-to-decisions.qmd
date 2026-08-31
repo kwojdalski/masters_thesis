@@ -1,11 +1,8 @@
 ## From Microstructure Signals to Tradable Decisions
-<!-- [VERIFIED] -->
 
-The preceding sections motivate LOB-derived variables as state descriptors,
-but describing the market is not the same as forecasting it — a feature
-earns its place in the state space only if it also survives transaction
-costs and improves held-out performance, the same discipline stated in the
-chapter overview.
+LOB-derived variables may describe the market without forecasting it. A feature
+earns its place in the state space only if it survives transaction costs and
+improves held-out performance.
 
 In the quantitative trading literature, predictive signals of this kind are
 commonly referred to as alphas: mathematical expressions over market data
