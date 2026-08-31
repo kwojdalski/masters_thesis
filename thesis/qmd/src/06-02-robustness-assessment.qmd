@@ -109,10 +109,10 @@ is better.
 ## Hypothesis 3: Sensitivity Analysis
 <!-- [PLACEHOLDER] -->
 
-This section reports reward-design and transaction-cost sensitivity. Feature
-specification is reported separately in Hypothesis 2 above. Each axis holds all other
-design choices constant. The shared baseline across both Hypothesis 3 axes is the selected
-10-feature set with log return reward and zero transaction cost.
+Hypothesis 3 varies reward design and transaction costs while holding all other
+design choices fixed. Both axes share a baseline with the selected 10-feature set,
+log-return reward, and zero transaction cost. Hypothesis 2 tests feature
+specification separately.
 
 ### Reward Function Design
 
@@ -217,11 +217,9 @@ chronological splits, or repeated random seeds.
 
 ## Hypothesis 4: Learning Progression Check
 
-This section addresses a more fundamental robustness question: whether the
-algorithm is actually learning at all, rather than converging to a policy that
-merely appears competent due to favorable initialization or dataset quirks. The
-approach is to run multiple short trials (200k steps each) and test whether the
-agent reliably outperforms a dummy strategy.
+Hypothesis 4 tests whether the algorithm learns rather than merely appearing
+competent because of favorable initialization or dataset quirks. Multiple
+200,000-step trials measure whether it reliably outperforms a dummy strategy.
 
 ### Experimental Design
 
