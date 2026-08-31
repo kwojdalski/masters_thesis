@@ -1,18 +1,26 @@
-Review **Hypothesis 1** (TD3 outperforms benchmark strategies on a risk-adjusted basis) by reading only the relevant thesis sections and result files. Do not scan the whole thesis.
+Review **Hypothesis 1** (a TD3 agent learns a real but transaction-cost-bounded risk-adjusted edge from LOB microstructure — profitable under frictionless mid-price execution, not under realistic spread-crossing cost) by reading only the relevant thesis sections and result files. Do not scan the whole thesis.
 
 ## Step 1 — Read the thesis prose for H1
 
-Read these two files:
+Read these files:
+- `thesis/qmd/src/01-01-scope-and-objectives.qmd` (the formal H1 statement)
+- `thesis/qmd/src/04-03-reward-function.qmd` (the "Execution Model and the Signal–Friction Decomposition" subsection)
+- `thesis/qmd/src/06-00-results.qmd` (the H1 algorithm-comparison verdict)
+- `thesis/qmd/src/06-02-robustness-assessment.qmd` (the transaction-cost sweep — now part of the H1 test)
 - `thesis/qmd/src/06-03-performance-evaluation.qmd`
 - `thesis/qmd/src/07-01-summary-of-findings.qmd` (H1 paragraph only — stop before H2)
 
 ## Step 2 — Read the result data
 
-Read these files from the thesis snapshot for the main DSR experiment:
+Read these files from the thesis snapshots:
 
 ```bash
 cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/latest_finished/evaluation_report.json
 cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/latest_finished/statistical_tests.json
+# the fee sweep — the H1 edge should shrink/flip across these
+for f in pooled_td3_h3_fees_1e6 pooled_td3_h3_fees_1e5 pooled_td3_h3_fees_1e4; do
+  cat "thesis/qmd/results/$f/latest_finished/evaluation_report.json"
+done
 ```
 
 If a file is missing, note it as a gap.
@@ -36,11 +44,14 @@ Key results in `statistical_tests.json` to check:
 
 Answer these questions explicitly:
 
-1. Does the agent outperform passive benchmarks on **total return**? By how much?
+1. Does the agent outperform passive benchmarks on **total return** under the frictionless setup? By how much?
 2. Does the agent outperform on **risk-adjusted return** (Sharpe/Sortino)? Are these computable?
 3. Is the outperformance from **active trading** or from **positioning** (near-neutral in a down/up market)?
-4. Does the prose accurately describe the mechanism (not overstate the RL contribution)?
-5. Is the final H1 verdict in 07-01 (`supported` / `partially supported` / `not supported`) consistent with the data?
+4. Is **every H1 performance figure labelled** frictionless / mid-price / zero-fee?
+5. Does the prose state `|microprice − mid| ≤ half-spread` and tie the frictionless number to it as a **signal ceiling**, not just "frictions could matter"?
+6. Does the fee sweep in 06-02 show the edge shrinking/flipping at a fraction of a basis point, and is that presented as the test of the reworded H1?
+7. Is **H1 (existence + magnitude of the signal) kept distinct from H3 (sensitivity envelope)**?
+8. Is the final H1 verdict in 07-01 (`supported as reworded` / `not`) consistent with the data?
 
 ## Step 5 — Create GitHub issues for findings
 
@@ -82,7 +93,7 @@ Produce a structured report:
 | ...    | ...        | ...        | OK / MISMATCH |
 
 ### Verdict assessment
-[Your analysis of whether the stated H1 conclusion is justified]
+[Your analysis of whether the reworded H1 conclusion (`supported as reworded` = signal real + learnable + magnitude ≈ half-spread + cost-bounded, or `not`) is justified by the data]
 
 ### Gaps and recommendations
 - [List issues created: #N, #N, ...]
