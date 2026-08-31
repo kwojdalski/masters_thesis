@@ -15,6 +15,7 @@ Examples
     uv run thesis-experiments h2 --skip-train
     uv run thesis-experiments h3 --parallel
     uv run thesis-experiments h4 --trials 5 --steps 200000
+    uv run thesis-experiments h4 --parallel --max-parallel 3
     uv run thesis-experiments all
     uv run thesis-experiments h1 --max-train-seconds 300
     uv run thesis-experiments h1 -o training.max_steps=50000
@@ -27,6 +28,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import os
+import random
 import shlex
 import shutil
 import subprocess
@@ -532,13 +534,22 @@ def run_h4(
     if not args.skip_guardrails:
         _check_guardrails([scenario], args)
 
+    scenario_dir = args.experiment_set.output_root / _scenario_name(scenario)
+    # Directory the post-training evaluate call reads its checkpoint from.
+    # Sequential mode keeps the pre-existing behaviour of all trials sharing
+    # one log_dir (each trial's checkpoint overwrites the last, so only the
+    # final trial's checkpoint survives to be evaluated). Parallel mode gives
+    # each trial its own log_dir -- concurrent writes to one checkpoint path
+    # would corrupt it -- so it points at the last trial's own directory to
+    # match that same "evaluate the final trial" behaviour.
+    eval_log_dir = scenario_dir
+
     if not args.skip_train:
         _con.print(
             f"\n[bold cyan]=== H4: Training {trials} trials "
             f"(max_steps={steps}) ===[/bold cyan]"
         )
-        train_overrides = [
-            f"logging.log_dir={args.experiment_set.output_root / _scenario_name(scenario)}",
+        base_train_overrides = [
             f"training.max_steps={steps}",
             "evaluation.eval_fraction=0.05",
             "training.temp_eval.max_steps=5000",
@@ -547,18 +558,51 @@ def run_h4(
             *args.overrides,
             *shlex.split(os.environ.get("EXTRA_TRAIN_ARGS", "")),
         ]
-        cmd = [
-            *_CLI,
-            "train",
-            "-c",
-            scenario,
-            "--trials",
-            str(trials),
-            *_override_flags(train_overrides),
-        ]
-        if args.verbose:
-            cmd.append("--verbose")
-        _run_tee(cmd, _log_file(scenario, "train", args))
+
+        if args.parallel:
+            # Each trial runs as its own single-trial subprocess (rather than
+            # one `--trials N` process looping in-process) so trials actually
+            # overlap. Seeds are assigned base_seed + trial_index, mirroring
+            # run_multiple_experiments' own per-trial seeding, since each
+            # subprocess otherwise starts its own independent trial_number=0.
+            base_seed = random.randint(1, 100_000)  # noqa: S311
+            jobs = []
+            for trial in range(trials):
+                trial_dir = scenario_dir / f"trial_{trial}"
+                trial_overrides = [
+                    f"logging.log_dir={trial_dir}",
+                    f"seed={base_seed + trial}",
+                    *base_train_overrides,
+                ]
+                cmd = [
+                    *_CLI,
+                    "train",
+                    "-c",
+                    scenario,
+                    *_override_flags(trial_overrides),
+                ]
+                if args.verbose:
+                    cmd.append("--verbose")
+                jobs.append((cmd, trial_dir / f"trial_{trial}_train.log"))
+            _run_parallel_jobs("H4 trial", jobs, max_workers=args.max_parallel)
+            eval_log_dir = scenario_dir / f"trial_{trials - 1}"
+        else:
+            train_overrides = [
+                f"logging.log_dir={scenario_dir}",
+                *base_train_overrides,
+            ]
+            cmd = [
+                *_CLI,
+                "train",
+                "-c",
+                scenario,
+                "--trials",
+                str(trials),
+                *_override_flags(train_overrides),
+            ]
+            if args.verbose:
+                cmd.append("--verbose")
+            _run_tee(cmd, _log_file(scenario, "train", args))
 
     if args.skip_eval:
         _con.print(
@@ -568,7 +612,7 @@ def run_h4(
 
     _con.print(f"\n[bold cyan]=== H4: Evaluating {trials} trials ===[/bold cyan]")
     eval_overrides = [
-        f"logging.log_dir={args.experiment_set.output_root / _scenario_name(scenario)}",
+        f"logging.log_dir={eval_log_dir}",
         f"training.max_steps={steps}",
         *args.overrides,
         *shlex.split(os.environ.get("EXTRA_EVAL_ARGS", "")),
@@ -840,6 +884,19 @@ def h4(
     ] = None,
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
+    parallel: Annotated[
+        bool, typer.Option("--parallel", help="Run trials concurrently.")
+    ] = False,
+    max_parallel: Annotated[
+        int,
+        typer.Option(
+            "--max-parallel",
+            min=1,
+            metavar="N",
+            help="Max concurrent trials under [bold]--parallel[/bold] (default: 2). "
+            "Each holds its own copy of the val split, so raise with care.",
+        ),
+    ] = 2,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
@@ -868,6 +925,8 @@ def h4(
             RunArgs(
                 skip_train=skip_train,
                 skip_eval=skip_eval,
+                parallel=parallel,
+                max_parallel=max_parallel,
                 verbose=verbose,
                 skip_guardrails=skip_guardrails,
                 overrides=overrides or [],

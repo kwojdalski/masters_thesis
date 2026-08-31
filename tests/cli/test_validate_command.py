@@ -30,6 +30,7 @@ def _write_config(
         "  max_steps: 50\n"
         "  frames_per_batch: 10\n"
         "  init_rand_steps: 0\n"
+        "evaluation:\n"
         "  eval_steps: 10\n"
     )
     path.write_text(text, encoding="utf-8")
