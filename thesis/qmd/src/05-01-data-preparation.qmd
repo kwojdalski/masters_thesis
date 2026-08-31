@@ -148,39 +148,20 @@ not been exposed to different volatility regimes, spread environments, or
 intraday seasonality patterns beyond this specific period, and the
 generalizability of the results is bounded accordingly.
 
-**Feature pipeline fitting.** For each security, the feature transformation
-pipeline (@sec-feature-normalization-and-causality-preservation) is fitted on
-the concatenation of that security's three training-day files. The fitted
-pipeline is then applied independently to each training file and to the
-evaluation file. This per-security fitting ensures that the normalization
-statistics are computed exclusively from training-period observations, with no
-leakage from the held-out evaluation day.
-<!-- TODO(thesis-writer): this paragraph describes a mechanism the code does
-     not implement. Source:
-     docs/masters_thesis/experiment-audits/2026-08-31-h1-leakage-and-bias-sweep.md
-     findings 1 and 2. All ten h1 features use normalization_method: running
-     with reset_on_session_break: true, which routes transform() into
-     Feature._transform_session_aware (src/trading_rl/features/base.py:670-731).
-     That path installs a THROWAWAY RunningMeanStd per session and normalizes
-     with causal cumulative sums; the statistics from pipeline.fit(train) are
-     never consulted. Verified: transforming the AAPL evaluation day with a
-     pipeline fitted on TSLA gives bit-identical output to one fitted on AAPL
-     (max|diff| = 0.000e+00 on all ten features).
-     The causality guarantee still holds -- it is just a different and
-     stronger one: the evaluation day is normalized only by its own
-     expanding, strictly-causal within-session statistics, so training data
-     cannot contaminate it because it is not used at all. Confirmed
-     independently by a prefix-invariance test (transforming 200k vs 400k
-     rows gives max|diff| = 0.000e+00 over 196,491 overlapping rows).
-     Rewrite to describe expanding within-session normalization, and note
-     that the fit step is inert for this feature set.
-     Second correction, for the "per chronological split" claim at the
-     Feature Normalization section below: statistics reset per SESSION, not
-     per split, and validation/test are the two halves of one March 2 session
-     (src/trading_rl/data/preparation.py:543-548), so the test half's
-     statistics are warm-started by the validation half. Backward-looking, so
-     not look-ahead -- but validation and test are not independent samples
-     and should not be described as separated by the normalizer. -->
+**Feature pipeline fitting.** All ten features in the selected set use online,
+strictly-causal normalization: the statistics that standardize the observation at
+step $t$ are accumulated from that session's own events up to $t-1$ only
+(@sec-feature-normalization-and-causality-preservation), and they reset at each
+session break. For this feature set the separate fitting step over the
+concatenated training days is therefore inert — its output is never consulted at
+transform time — and the evaluation day is normalized entirely by its own
+expanding within-session statistics. The causality guarantee is consequently
+stronger than a train-fit-then-freeze scheme would provide: training-period data
+cannot leak into the evaluation representation because it does not enter it at
+all. This was confirmed directly — normalizing the AAPL evaluation day with a
+pipeline fitted on a different security (TSLA) reproduces the AAPL-fitted output
+bit for bit, and a prefix-invariance check (normalizing the first 200,000 versus
+the first 400,000 rows) leaves the overlapping rows unchanged.
 
 
 ### Feature Normalization and Causality Preservation {#sec-feature-normalization-and-causality-preservation}
@@ -227,9 +208,25 @@ used as the default, matching the standard approach in the RL literature
 [e.g., @Raffin2021; @Liang2018RLlib]; sensitivity analysis with time-weighted
 normalization is a direction for future work.
 
-#### Split-Specific Statistics and Leakage Prevention
+#### Session-Scoped Statistics and Leakage Prevention
 
-For causal running normalization, statistics are maintained **independently per security**, **per chronological split**, and **within each detected trading session**. The training, validation, and test subsets are transformed in chronological order, and at every timestep the scaler has access only to observations already encountered within that split and session. This separation serves two purposes. First, it prevents information leakage across the chronological split: statistics from the test period cannot influence the agent's training representation, and later validation or test observations cannot influence earlier ones. Second, it respects the per-symbol pooling design: each security's features are normalized relative to that security's own empirical microstructure rather than absolute magnitudes that differ across price levels or liquidity profiles.
+For causal running normalization, statistics are maintained **independently per
+security** and are **reset at each detected trading-session boundary**; they are
+not reset at the boundaries between the training, validation, and test subsets.
+Because the accumulator only moves forward in time and never uses observations
+after the current step, there is no look-ahead: statistics from the test period
+cannot influence the training representation, and a later observation cannot
+influence an earlier one. One consequence should be stated plainly. The
+validation and test sets are the two chronological halves of a single trading
+session, split at its midpoint, and the running statistics are not reset at that
+midpoint — so the test half's normalization is warm-started by the accumulated
+statistics of the validation half. This is backward-looking and therefore not
+leakage in the look-ahead sense, but it does mean the validation and test halves
+are not statistically independent samples and should not be described as
+separated by the normalizer. The per-symbol scoping is retained for its original
+purpose: each security's features are normalized relative to its own
+microstructure rather than to magnitudes that differ across price levels and
+liquidity profiles.
 
 Cyclical temporal encodings (hour-of-day sine and cosine) are already bounded in $[-1, 1]$ and are not subject to z-score normalization. Raw price columns used for portfolio accounting are kept in their original units and are never replaced by normalized values. This separation ensures that the observation features passed to the learning algorithm are statistically well-behaved, while the pricing inputs used for reward and valuation computation retain economic interpretability and correct accounting semantics.
 
