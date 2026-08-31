@@ -48,6 +48,10 @@ env:
   reward_eta: 0.01
   reward_scale: 1.0
   execution_price: mid
+  # Deliberate signal-ceiling arm of Hypothesis 1: frictionless execution
+  # measures how large the learnable microstructure signal is, not deployable
+  # performance. Acknowledges the _check_frictionless_microstructure guardrail.
+  allow_frictionless: true
   bid_column: bid_px_00
   ask_column: ask_px_00
   obs_latency_ticks: 0

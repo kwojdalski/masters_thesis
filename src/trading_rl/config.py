@@ -268,6 +268,11 @@ class EnvConfig:
     obs_latency_us: float = 0.0
     exec_latency_us: float = 0.0
 
+    # Opt-in acknowledgement that a zero-fee / mid-price / zero-latency run on a
+    # microstructure feature set is deliberate (e.g. a signal-ceiling ablation).
+    # Silences the _check_frictionless_microstructure guardrail; see that check.
+    allow_frictionless: bool = False
+
 
 @dataclass
 class NetworkConfig:
