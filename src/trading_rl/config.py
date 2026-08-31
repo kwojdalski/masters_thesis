@@ -126,7 +126,7 @@ class DataConfig:
             datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=1)
         )
     )
-    train_size: int = 1000
+    train_size: int | None = 1000
     validation_size: int | None = None
     test_size: int | None = None
     feature_config: str | None = None  # Path to feature config YAML

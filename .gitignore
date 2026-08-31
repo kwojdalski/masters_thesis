@@ -129,6 +129,9 @@ thesis/qmd/src/*.html
 thesis/qmd/src/*files
 thesis/qmd/src/*.pdf
 !thesis/qmd/src/masters-thesis.pdf
+# LaTeX aux files emitted by a local `quarto render ... --to pdf`
+thesis/qmd/src/*.lap
+mlflow.db-journal
 render_logs/*
 *.pkl
 logs/*
