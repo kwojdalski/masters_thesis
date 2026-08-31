@@ -1565,7 +1565,7 @@ def show_plot(
         if caption:
             display(Markdown(f"\n*{caption}*"))
 
-    if audit:
+    if audit and data:
         meta = data.get("asset_meta", {}).get(frame, {})
         if meta:
             commit = meta.get("commit", "unknown")[:8]
@@ -1593,6 +1593,11 @@ def show_table_meta(data: dict[str, Any], *, audit: bool = False) -> None:
         show_table_meta(finished, audit=_audit)
     """
     if not audit:
+        return
+    if not data:
+        # No snapshot for this experiment (e.g. results not exported yet). The
+        # table itself may still render from a logs/ fallback; the provenance
+        # footnote just has nothing to show.
         return
     from thesis_tables import table_note
 
