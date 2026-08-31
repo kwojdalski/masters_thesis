@@ -236,7 +236,13 @@ def _watch_hint(label: str, log_files: list[Path]) -> None:
 
 
 def _run_tee(cmd: list[str], log_file: Path) -> None:
-    """Run command streaming output to both terminal and log file."""
+    """Run command streaming output to both terminal and log file.
+
+    On Ctrl-C the SIGINT also reaches the child (shared process group), but we
+    still terminate and reap it here: without this, KeyboardInterrupt aborts the
+    read loop before ``proc.wait()``, leaving an unreaped subprocess and an
+    unclosed pipe that surface as ResourceWarnings during interpreter shutdown.
+    """
     log_file.parent.mkdir(parents=True, exist_ok=True)
     _con.print(f"  [dim]-> {escape(str(log_file))}[/dim]")
     env = os.environ.copy()
@@ -250,12 +256,25 @@ def _run_tee(cmd: list[str], log_file: Path) -> None:
             env=env,
         )
         assert proc.stdout is not None
-        for raw in proc.stdout:
-            text = raw.decode(errors="replace")
-            sys.stdout.write(text)
-            sys.stdout.flush()
-            fh.write(text)
-        proc.wait()
+        try:
+            for raw in proc.stdout:
+                text = raw.decode(errors="replace")
+                sys.stdout.write(text)
+                sys.stdout.flush()
+                fh.write(text)
+            proc.wait()
+        except BaseException:
+            # Ctrl-C or a mid-stream error: stop the child and reap it so no
+            # orphan process or unclosed pipe outlives this call.
+            proc.terminate()
+            try:
+                proc.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait()
+            raise
+        finally:
+            proc.stdout.close()
     if proc.returncode != 0:
         raise subprocess.CalledProcessError(proc.returncode, cmd)
 
