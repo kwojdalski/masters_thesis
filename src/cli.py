@@ -13,45 +13,14 @@ from rich.progress import ProgressColumn
 from rich.table import Table
 from rich.text import Text
 
-from cli.commands import (
-    ArtifactsCommand,
-    ArtifactsParams,
-    AttachCommand,
-    AttachParams,
-    CheckpointsCommand,
-    CheckpointsParams,
-    CollectResultsCommand,
-    CollectResultsParams,
-    DashboardCommand,
-    DashboardParams,
-    DataGenerationParams,
-    DataGeneratorCommand,
-    EvaluateCommand,
-    EvaluateParams,
-    ExperimentCommand,
-    ExperimentParams,
-    ExperimentsCommand,
-    ExperimentsParams,
-    FeatureResearchCommand,
-    FeatureResearchParams,
-    PeekCommand,
-    PeekParams,
-    PsCommand,
-    PsParams,
-    ScenariosCommand,
-    ScenariosParams,
-    SineWaveParams,
-    TrainingCommand,
-    TrainingParams,
-    UpwardDriftParams,
-    ValidateDataCommand,
-    ValidateDataParams,
-    ValidationCommand,
-    ValidationParams,
-)
+# Command classes and `trading_rl` are imported lazily inside each callback, so
+# a lightweight subcommand (dashboard, checkpoints, scenarios, ...) does not load
+# the training/evaluation stack (torch, torchrl, the statistical-test registry).
 from logger import setup_logging as _setup_root_logging
-from trading_rl import ExperimentConfig
-from trading_rl.config import EXPERIMENT_OUTPUT_DIR
+
+# Mirror of trading_rl.config.EXPERIMENT_OUTPUT_DIR, inlined to avoid importing
+# the trading_rl package (and its heavy transitive deps) at CLI startup.
+_EXPERIMENT_OUTPUT_DIR = Path(os.environ.get("EXPERIMENT_OUTPUT_DIR", "logs"))
 
 # Ensure matplotlib can cache fonts to a writable directory
 if "MPLCONFIGDIR" in os.environ:
@@ -127,28 +96,11 @@ def main(
 
 console = Console()
 
-# Command instances
-data_gen_cmd = DataGeneratorCommand(console)
-training_cmd = TrainingCommand(console)
-evaluate_cmd = EvaluateCommand(console)
-experiment_cmd = ExperimentCommand(console)
-dashboard_cmd = DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db")
-validation_cmd = ValidationCommand(console)
-validate_data_cmd = ValidateDataCommand(console)
-peek_cmd = PeekCommand(console)
-feature_research_cmd = FeatureResearchCommand(console)
-checkpoints_cmd = CheckpointsCommand(console)
-experiments_cmd = ExperimentsCommand(console)
-scenarios_cmd = ScenariosCommand(console)
-artifacts_cmd = ArtifactsCommand(console)
-ps_cmd = PsCommand(console)
-attach_cmd = AttachCommand(console)
-
 
 @app.command(name="checkpoints")
 def checkpoints(
     log_dir: Path = typer.Option(  # noqa: B008
-        EXPERIMENT_OUTPUT_DIR,
+        _EXPERIMENT_OUTPUT_DIR,
         "--log-dir",
         help="Root directory to scan for checkpoints",
     ),
@@ -162,7 +114,9 @@ def checkpoints(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
     """List checkpoints grouped by experiment with size, mtime, and step."""
-    checkpoints_cmd.execute(
+    from cli.commands import CheckpointsCommand, CheckpointsParams
+
+    CheckpointsCommand(console).execute(
         CheckpointsParams(
             log_dir=log_dir,
             delete=delete,
@@ -176,7 +130,9 @@ def checkpoints(
 @app.command(name="ps")
 def ps():
     """List live trainer processes started with -o training.ipc_enabled=true."""
-    ps_cmd.execute(PsParams())
+    from cli.commands import PsCommand, PsParams
+
+    PsCommand(console).execute(PsParams())
 
 
 @app.command(name="attach")
@@ -193,7 +149,9 @@ def attach(
     ),
 ):
     """Inspect one live trainer's status view (or a specific attribute with --path)."""
-    attach_cmd.execute(
+    from cli.commands import AttachCommand, AttachParams
+
+    AttachCommand(console).execute(
         AttachParams(run_id=run_id, watch=watch, interval=interval, path=path)
     )
 
@@ -290,6 +248,12 @@ def generate_data(
     ),
 ):
     """Generate synthetic price data from existing parquet files."""
+    from cli.commands import (
+        DataGenerationParams,
+        DataGeneratorCommand,
+        SineWaveParams,
+        UpwardDriftParams,
+    )
 
     # Create parameter objects
     params = DataGenerationParams(
@@ -324,7 +288,9 @@ def generate_data(
     )
 
     # Execute command
-    data_gen_cmd.execute(params, sine_wave_params, upward_drift_params, start_date)
+    DataGeneratorCommand(console).execute(
+        params, sine_wave_params, upward_drift_params, start_date
+    )
 
 
 @app.command()
@@ -429,6 +395,8 @@ def train(
             raise typer.BadParameter(
                 "Checkpoint resume options are only supported for single-run training."
             )
+        from cli.commands import ExperimentCommand, ExperimentParams
+
         params = ExperimentParams(
             experiment_name=experiment_name,
             n_trials=trials,
@@ -436,8 +404,10 @@ def train(
             clear_cache=clear_cache,
             config_overrides=config_override,
         )
-        experiment_cmd.execute(params)
+        ExperimentCommand(console).execute(params)
         return
+
+    from cli.commands import TrainingCommand, TrainingParams
 
     params = TrainingParams(
         config_file=config_file,
@@ -450,7 +420,7 @@ def train(
         interactive=interactive,
     )
 
-    training_cmd.execute(params)
+    TrainingCommand(console).execute(params)
 
 
 @app.command()
@@ -580,6 +550,8 @@ def evaluate(
         python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected \\
             --per-symbol --split test --no-mlflow
     """
+    from cli.commands import EvaluateCommand, EvaluateParams
+
     params = EvaluateParams(
         config_file=config_file,
         checkpoint=checkpoint,
@@ -594,10 +566,7 @@ def evaluate(
         save_trades=save_trades,
         per_symbol=per_symbol,
     )
-    evaluate_cmd.execute(params)
-
-
-_collect_results_cmd = CollectResultsCommand(console)
+    EvaluateCommand(console).execute(params)
 
 
 @app.command(name="collect-results")
@@ -634,13 +603,15 @@ def collect_results(
             -a PPO -d ./eval_results/ppo \\
             -o masters_thesis_results/
     """
+    from cli.commands import CollectResultsCommand, CollectResultsParams
+
     params = CollectResultsParams(
         algorithms=algorithms,
         dirs=dirs,
         output_dir=output_dir,
         overwrite=overwrite,
     )
-    _collect_results_cmd.execute(params)
+    CollectResultsCommand(console).execute(params)
 
 
 @app.command(name="prepare-data")
@@ -768,7 +739,9 @@ def peek_dataset(
     Loads from cache when available (instant after prepare-data).  Displays
     split sizes, date ranges, per-feature statistics, and memmap file inventory.
     """
-    peek_cmd.execute(
+    from cli.commands import PeekCommand, PeekParams
+
+    PeekCommand(console).execute(
         PeekParams(
             scenario=scenario,
             config_file=config_file,
@@ -860,7 +833,9 @@ def validate_config(
     ),
 ):
     """Validate experiment config, data dependencies, and feature wiring."""
-    validation_cmd.execute(
+    from cli.commands import ValidationCommand, ValidationParams
+
+    ValidationCommand(console).execute(
         ValidationParams(
             config_file=config_file,
             scenario=scenario,
@@ -917,7 +892,9 @@ def validate_data(
     ),
 ):
     """Validate the prepared dataset for a scenario using DataValidator."""
-    validate_data_cmd.execute(
+    from cli.commands import ValidateDataCommand, ValidateDataParams
+
+    ValidateDataCommand(console).execute(
         ValidateDataParams(
             scenario=scenario,
             config_file=config_file,
@@ -967,6 +944,7 @@ def validate_guardrails(
     """
     from rich.markup import escape as _escape
 
+    from trading_rl import ExperimentConfig
     from trading_rl.config_guardrails_checks import Severity, check_config_guardrails
 
     def _check_one(config_path: Path) -> tuple[list, list, str]:
@@ -1107,13 +1085,15 @@ def feature_research(
     ),
 ):
     """Run offline feature scoring and shortlist generation."""
+    from cli.commands import FeatureResearchCommand, FeatureResearchParams
+
     params = FeatureResearchParams(
         config_file=config_file,
         experiment_config_file=experiment_config_file,
         scenario=scenario,
         config_overrides=config_override,
     )
-    feature_research_cmd.execute(params)
+    FeatureResearchCommand(console).execute(params)
 
 
 @app.command()
@@ -1128,9 +1108,12 @@ def dashboard(
     ),
 ):
     """Launch MLflow UI for viewing experiments."""
+    from cli.commands import DashboardCommand, DashboardParams
 
     params = DashboardParams(port=port, host=host, tracking_uri=tracking_uri)
-    dashboard_cmd.execute(params)
+    DashboardCommand(console, default_tracking_uri="sqlite:///mlflow.db").execute(
+        params
+    )
 
 
 @app.command(name="experiments")
@@ -1160,7 +1143,9 @@ def experiments(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
     """List available MLflow experiments or permanently delete them."""
-    experiments_cmd.execute(
+    from cli.commands import ExperimentsCommand, ExperimentsParams
+
+    ExperimentsCommand(console).execute(
         ExperimentsParams(
             tracking_uri=tracking_uri,
             delete=delete,
@@ -1182,7 +1167,9 @@ def scenarios(
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be deleted"),
 ):
     """List available scenario configurations."""
-    scenarios_cmd.execute(
+    from cli.commands import ScenariosCommand, ScenariosParams
+
+    ScenariosCommand(console).execute(
         ScenariosParams(
             delete=delete,
             delete_all=delete_all,
@@ -1222,7 +1209,9 @@ def artifacts(
     ),
 ):
     """List MLflow artifacts grouped by experiment and run."""
-    artifacts_cmd.execute(
+    from cli.commands import ArtifactsCommand, ArtifactsParams
+
+    ArtifactsCommand(console).execute(
         ArtifactsParams(
             tracking_uri=tracking_uri,
             experiment=experiment,
