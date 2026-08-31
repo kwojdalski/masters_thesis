@@ -1,37 +1,19 @@
 ## From Microstructure Signals to Tradable Decisions
 <!-- [VERIFIED] -->
 
-The preceding sections motivate the use of LOB-derived variables as state
-descriptors, but they do not imply that those variables are automatically
-profitable trading signals. A spread, imbalance, microprice divergence, or
-intraday-time feature may describe the current liquidity environment without
-forecasting the next price change strongly enough to justify trading.
-
-This distinction is especially important for order-flow variables. Empirical
-microstructure studies often document contemporaneous relationships between book
-events and price changes. Such relationships show that order-book information is
-incorporated into prices, but they do not by themselves establish lagged
-predictability at the decision horizon available to a trading agent. For the
-present thesis, OFI and related features are therefore treated as compact
-summaries of current queue pressure. Whether lagged or rolling versions of those
-features help a policy choose profitable exposure is an empirical question.
-
-The same discipline applies to all candidate features. A variable is useful for
-the trading agent only if it contains information available before the action,
-survives transaction costs and spread effects, and improves performance on
-held-out data under a fixed evaluation protocol. The role of the literature is
-to justify which mechanisms are worth representing in the state; the later
-empirical chapters test whether those representations support tradable decisions
-under the simulation assumptions of this thesis.
+The preceding sections motivate LOB-derived variables as state descriptors,
+but describing the market is not the same as forecasting it — a feature
+earns its place in the state space only if it also survives transaction
+costs and improves held-out performance, the same discipline stated in the
+chapter overview.
 
 In the quantitative trading literature, predictive signals of this kind are
-commonly referred to as alphas: mathematical expressions over market data that
-encode a directional view on short-horizon returns [@Tulchinsky2019]. The
-microstructure features in this thesis's state space — order-flow imbalance,
-microprice divergence, spread regime, and book shape — occupy the same
-conceptual role. The distinction from the traditional alpha framework is that
-they are not used as standalone trading rules. Instead they serve as inputs to
-an RL policy that learns, through experience, how to combine and act on them
-optimally. The RL agent replaces the hand-coded combination rule with a learned
-function, and the evaluation discipline remains the same: out-of-sample
-performance under realistic cost assumptions.
+commonly referred to as alphas: mathematical expressions over market data
+that encode a directional view on short-horizon returns [@Tulchinsky2019].
+The microstructure features in this thesis's state space — order-flow
+imbalance, microprice divergence, spread regime, and book shape — occupy
+the same conceptual role, but are not used as standalone trading rules:
+they instead serve as inputs to an RL policy that learns, through
+experience, how to combine and act on them optimally, replacing the
+hand-coded combination rule with a learned function while keeping the same
+evaluation discipline of out-of-sample performance under realistic costs.

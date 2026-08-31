@@ -8,11 +8,9 @@ bar-level price summaries. Spread, imbalance, order-flow, fair-value, and
 intraday-regime features each correspond to a distinct mechanism discussed in
 the microstructure literature.
 
-Second, the reviewed evidence also limits the interpretation of these features.
-They are candidate state variables, not guaranteed trading signals. Their value
-depends on whether they provide information available before the agent acts and
-whether any resulting policy remains useful after transaction costs and
-out-of-sample evaluation.
+Second, the reviewed evidence also limits interpretation: these are
+candidate state variables, not guaranteed trading signals, tested
+empirically in later chapters.
 
 Third, the comparison with supervised and rule-based approaches motivates direct
 optimization of trading decisions. Forecasting models can be informative, but a

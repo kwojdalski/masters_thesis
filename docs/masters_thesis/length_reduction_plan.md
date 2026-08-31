@@ -11,12 +11,12 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **144 pages** (measured 2026-08-29, fresh render after item 28)
-Body word count (chapters 01-07): **30,878 words**
-Body page range: printed pages 8-108 (physical PDF pages 9-109), **101 body
-pages**; Bibliography begins on printed page 109
-words_per_page: ~306 (30,878 / 101 measured body pages)
-Cumulative body reduction from the complete pre-condensation draft: **7,723
+Current: **142 pages** (measured 2026-08-30, fresh render after item 32)
+Body word count (chapters 01-07): **30,405 words**
+Body page range: printed pages 8-106 (physical PDF pages 9-107), **99 body
+pages**; Bibliography begins on printed page 107
+words_per_page: ~307 (30,405 / 99 measured body pages)
+Cumulative body reduction from the complete pre-condensation draft: **8,196
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
 body table moved into the appendix. Session 6 moved a second body table into
@@ -30,7 +30,10 @@ and body 105 -> 103. Session 8 cut two within-chapter restated conclusions in
 the Results chapter, taking total pages 146 -> 144 and body 103 -> 102.
 Session 9 closed the last queued cross-chapter duplicate (item 19) and gutted
 a generic-filler section the user flagged directly, taking body 102 -> 101 at
-unchanged total (144).
+unchanged total (144). Session 10 cut a chapter-wide restated epistemic
+caveat across four Chapter 2 files (item 32), taking total pages 144 -> 142
+and body 101 -> 99 — the first genuine information-reduction cut (not pure
+deduplication) applied at the user's explicit request to shorten Chapter 2.
 
 Session 1 scope note: started with chapter 7 (closing material) rather than
 chapter-number order, because initial reconnaissance (word counts across all
@@ -48,10 +51,13 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 - [x] 01 Introduction — fully read and reviewed. The hypotheses and chapter
       roadmap are proportionate; the novelty/objectives material and the end of
       the introduction repeat the same scope and limitations (item 18).
-- [ ] 02 Literature Review — partially reviewed: `02-04` and `02-07` have now
-      both been read in full. `02-04` was cleared after item 10; `02-07` is a
-      confirmed breadth candidate (item 11). The remaining six files still need
-      a category-3 pass.
+- [x] 02 Literature Review — all 9 files fully read. `02-04` was cleared
+      after item 10; `02-07` is a confirmed breadth candidate (item 11,
+      awaiting go-ahead). A chapter-wide repeated epistemic caveat across
+      `02-01`, `02-02`, `02-03`, and `02-08` was cut (item 32) at the user's
+      explicit request to reduce information, not just duplication. `02-00`,
+      `02-05`, `02-06` remain tightly scoped from earlier reconnaissance — no
+      findings.
 - [ ] 03 Reinforcement Learning — `03-02-actor-critic-methods.qmd` fully read
       and now reviewed for both tables and category-3 breadth. Its redundant
       table was removed (item 12), and its repeated algorithm-selection material
@@ -143,6 +149,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 29 | 1 | 07-01 | Fresh pass on `07-00`, `07-01`, `07-05` (last touched in session 1; not re-scrutinized since). H1's summary paragraph is roughly 2x the length of its H2/H3 siblings in the same file, and the only one that re-cites a full battery of exact figures (TWAP/VWAP percentages, long/short split, profit factor, drawdown comparison) that `06-03` already presents and discusses in detail (tightened further by item 25). H2/H3's paragraphs are already properly compressed with no repeated figures. `07-00` and `07-05` re-checked and found proportionate: `07-00` is a 4-sentence roadmap, `07-05` restates the headline answer only briefly before adding genuinely new synthesis (methodological-contribution framing, explicit scope boundaries) not present in `07-01`. | ~115 est. | logged — awaiting go-ahead |
 | 30 | 2 | 05-01, 99-appendix | User asked for a fresh tables-to-appendix sweep. Found that item 4's old note — "`cell-feature-correlations` was kept because the prose references specific cells" — is stale: re-read the current text and the prose only ever cites the *aggregate* claim ("all absolute correlations are below 0.005"), never a single feature's specific value. The per-feature Pearson/Spearman breakdown is reproducibility detail, not argument-critical. Not applied; logged for a future session (full-thesis re-grep confirmed no other new table candidates exist). | ~40-60 est. | logged — awaiting go-ahead |
 | 31 | 2 | 06-02 | Reconsidered from session 6 (previously "too small to be worth the appendix-move churn"). The H4 code chunk generates three separate tables: summary stats, pass/fail criteria, and a per-trial breakdown (up to `n=5` rows). "Interpretation of H4 Results" only ever discusses what pass/fail verdicts mean in general, never a specific trial's number — the summary and criteria tables carry the load-bearing pass/fail verdict a reader needs; only the per-trial detail table would move. Still marginal at N=5 rows; logged rather than applied. | ~15-25 est. | logged — awaiting go-ahead |
+| 32 | 1/3 | 02-01, 02-02, 02-03, 02-08 | User explicitly asked to reduce information (not just dedupe) in the first chapters. Found the same epistemic caveat — "this microstructure regularity is descriptive, not a proven trading signal; profitability is tested empirically in later chapters" — restated roughly 10 times across the chapter, on top of `02-00` already stating the rule once for the whole chapter. Cut 3 restatements in `02-01` (two per-finding tags plus its closing paragraph), 4 in `02-02` (spread-decomposition tag, LOB-mechanics tag, OFI's caveat stated twice within 10 lines — footnote and the very next paragraph — collapsed to one, and a closing-paragraph tag), condensed `02-03` from 338 to ~140 words keeping only its one genuinely new idea (the "alphas" framing from quant finance), and trimmed `02-08`'s restatement to one clause. Kept mechanism-specific limitations that aren't the generic caveat (Kyle's lambda proxies missing the latent informed-trader information set; microprice being top-of-book-only). | -473 (02-01: 826->697; 02-02: 1160->1016; 02-03: 338->163; 02-08: 283->258) | applied (`beea69df`) |
 
 ## Session log
 
@@ -299,20 +306,36 @@ section and asked the same "too generic?" question — fixed both together
 succeeded: total PDF unchanged at 144 pages, body 102 -> 101 pages, body
 words 31,257 -> 30,878.
 
+**2026-08-30/31, session 10 (user asked to reduce information, first
+chapters):** User explicitly asked for a different kind of cut than sessions
+1-9 had been doing — reducing actual information content in early chapters,
+not just removing duplicate/padded text. Re-read `02-01`, `02-02`, `02-03`,
+and `02-08` fresh with that harsher mandate and found a chapter-wide pattern:
+the epistemic caveat "this regularity is descriptive, not a proven trading
+signal" restated roughly 10 times, on top of `02-00` already stating it once
+for the whole chapter. Presented full before/after diffs for review; user
+adjusted one diff (`02-03`'s replacement, to keep a transitional sentence
+rather than dropping straight into the alpha analogy) and approved each
+piece individually before applying (item 32). Also found and logged three
+more items without applying (29, 30, 31): `07-01`'s H1 summary re-citing
+figures `06-03` already covers, and two table-to-appendix candidates
+(feature-correlation table in `05-01`, H4's per-trial table in `06-02`).
+Fresh Quarto render succeeded: total PDF 144 -> 142 pages, body 101 -> 99
+pages, body words 30,878 -> 30,405.
+
 **Where this leaves the 80-page target:** every chapter has now had at least
-one full duplication/breadth pass, and every table-bearing file has had a
-dedicated tables pass. Items 11 and 18 are still awaiting go-ahead
-(~450-600 words, ~1.5 pages combined). Applying them would bring the body to
-roughly 99-100 pages — still ~19-20 pages above the 80-page target. The
-remaining gap is unlikely to close through more duplication/breadth findings
-of this kind on unreviewed material, since a genuinely thorough sweep has now
-been run across the whole document — session 9's finds (27, 28) came from the
-user directly questioning specific already-reviewed passages, not from fresh
-chapter reconnaissance, suggesting this mode (user points, Claude verifies
-and elaborates before cutting) may still have more to find in already-cleared
-chapters. Closing the full gap would need one of: sentence-level tightening
-across the board (`hemingway`, out of this skill's scope), a harder
-category-3 judgment call on already-reviewed material (re-opening chapters
-like 07 for a second, more aggressive pass — risky, given session 1's
-over-aggressive-cut lesson), or reconsidering whether 80 pages is the right
-target for this thesis's actual content.
+one full duplication/breadth pass, every table-bearing file a dedicated
+tables pass, and Chapter 2 a genuine information-reduction pass beyond pure
+deduplication. Items 11, 18, 29, 30, and 31 are still awaiting go-ahead
+(~635-810 words, ~2-2.5 pages combined). Applying them would bring the body
+to roughly 96-97 pages — still ~16-17 pages above the 80-page target.
+Session 10 shows the "reduce information, not just duplication" mandate
+(category 3, applied harder) still has real room in chapters not yet given
+that treatment — 03-02's theory sections, 02-04/02-07's remaining survey
+material beyond item 11, and 07-02's limitations chapter (already cut hard
+once in session 1, but not with this specific "restated caveat" lens) are
+the most promising next targets if the user wants to keep pushing toward 80
+rather than stopping at the duplication-only ceiling identified after
+session 9. The alternative paths remain: sentence-level tightening across
+the board (`hemingway`, out of this skill's scope), or reconsidering whether
+80 pages is the right target for this thesis's actual content.
