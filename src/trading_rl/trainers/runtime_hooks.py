@@ -7,6 +7,7 @@ from typing import Any, Protocol
 
 from logger import get_logger
 from trading_rl.callbacks.artifacts import ArtifactPaths
+from trading_rl.ipc import IpcServer
 
 logger = get_logger(__name__)
 
@@ -77,6 +78,10 @@ class TrainerRuntimeHooks:
         self._explainability_consecutive_failures = 0
         self._progression_history: dict[str, list[tuple[int, Any]]] = {}
         self._price_plots_logged: set[str] = set()
+        self._ipc: IpcServer | None = None
+        if getattr(getattr(trainer, "config", None), "ipc_enabled", False):
+            self._ipc = IpcServer(trainer)
+            self._ipc.start()
 
     def _tracker(self) -> RuntimeTracker | None:
         tracker = getattr(self.trainer, "callback", None)
@@ -181,6 +186,9 @@ class TrainerRuntimeHooks:
         otherwise be reclaimed only by garbage collection, which compounds
         across sequential in-process trials (#363, #366).
         """
+        if self._ipc is not None:
+            self._ipc.stop()
+            self._ipc = None
         if self._evaluation is not None:
             for ctx in self._evaluation.splits:
                 self._close_env_safely(ctx.eval_env)

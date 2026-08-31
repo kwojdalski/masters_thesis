@@ -16,6 +16,8 @@ from rich.text import Text
 from cli.commands import (
     ArtifactsCommand,
     ArtifactsParams,
+    AttachCommand,
+    AttachParams,
     CheckpointsCommand,
     CheckpointsParams,
     CollectResultsCommand,
@@ -34,6 +36,8 @@ from cli.commands import (
     FeatureResearchParams,
     PeekCommand,
     PeekParams,
+    PsCommand,
+    PsParams,
     ScenariosCommand,
     ScenariosParams,
     SineWaveParams,
@@ -137,6 +141,8 @@ checkpoints_cmd = CheckpointsCommand(console)
 experiments_cmd = ExperimentsCommand(console)
 scenarios_cmd = ScenariosCommand(console)
 artifacts_cmd = ArtifactsCommand(console)
+ps_cmd = PsCommand(console)
+attach_cmd = AttachCommand(console)
 
 
 @app.command(name="checkpoints")
@@ -164,6 +170,31 @@ def checkpoints(
             force=force,
             dry_run=dry_run,
         )
+    )
+
+
+@app.command(name="ps")
+def ps():
+    """List live trainer processes started with -o training.ipc_enabled=true."""
+    ps_cmd.execute(PsParams())
+
+
+@app.command(name="attach")
+def attach(
+    run_id: str = typer.Argument(..., help="run_id from `ps` (prefix accepted)"),
+    watch: bool = typer.Option(
+        False, "--watch", help="Live-refresh instead of printing once"
+    ),
+    interval: float = typer.Option(
+        1.0, "--interval", help="Seconds between refreshes with --watch"
+    ),
+    path: str | None = typer.Option(
+        None, "--path", help="Dotted attribute path to fetch instead of the status view"
+    ),
+):
+    """Inspect one live trainer's status view (or a specific attribute with --path)."""
+    attach_cmd.execute(
+        AttachParams(run_id=run_id, watch=watch, interval=interval, path=path)
     )
 
 
