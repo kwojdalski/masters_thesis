@@ -134,11 +134,95 @@ if rows:
     show_table_meta(_finished, audit=_audit)
 else:
     missing_data_notice(
-        "Experiment hyperparameters not found — run: uv run python "
-        "scripts/export_eval_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+        "Experiment hyperparameters not found — run: "
+        "`uv run python scripts/export_eval_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr`"
     )
 ```
+
+---
+
+# Baseline Algorithm Pseudocode {#sec-appendix-baseline-algorithms}
+
+```{=latex}
+\addcontentsline{loa}{section}{Baseline Algorithm Pseudocode}
+```
+
+Chapter 5.2 gives TD3's full training loop (Algorithm 2) since TD3 is this
+thesis's primary method. DDPG and PPO are baseline comparisons used in
+Chapter 6's algorithm comparison; their training loops are recorded here for
+reproducibility.
+
+```pseudocode
+#| html-line-number: true
+#| pdf-line-number: true
+
+\begin{algorithm}
+\caption{DDPG Training (follows Algorithm 0)}
+\begin{algorithmic}
+\REQUIRE Processed environments from Algorithm 0; DDPG hyperparameters
+\ENSURE Trained policy $\mu_\phi$, evaluation metrics
+\STATE Initialise actor $\mu_\phi$, critic $Q_\theta$, target networks $\mu_{\phi'}$, $Q_{\theta'}$, replay buffer $\mathcal{D}$
+\FOR{each step $t = 1, \ldots, \texttt{max\_steps}$}
+  \STATE $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right), \quad \epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
+  \STATE Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
+  \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
+  \STATE Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
+  \STATE Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
+  \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
+  \STATE Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'; \; \phi' \leftarrow \tau\phi + (1-\tau)\phi'$
+  \STATE Checkpoint and log metrics at configured intervals
+\ENDFOR
+\STATE Evaluate deterministic policy $\mu_\phi$ on test split
+\STATE Compute financial performance metrics from realised return series
+\end{algorithmic}
+\end{algorithm}
+```
+
+```pseudocode
+#| html-line-number: true
+#| pdf-line-number: true
+
+\begin{algorithm}
+\caption{PPO Training (follows Algorithm 0)}
+\begin{algorithmic}
+\REQUIRE Processed environments from Algorithm 0; PPO hyperparameters
+\ENSURE Trained policy $\pi_\theta$, evaluation metrics
+\STATE Initialise stochastic actor $\pi_\theta$ (TanhNormal), value network $V_\phi$
+\FOR{each batch iteration $k = 1, \ldots, \texttt{max\_steps} / \texttt{frames\_per\_batch}$}
+  \STATE Collect trajectory $\mathcal{T}_k$ of $\texttt{frames\_per\_batch}$ steps using $\pi_\theta$
+  \STATE Compute advantage estimates $\hat{A}_t$ via GAE using $V_\phi$ on $\mathcal{T}_k$
+  \FOR{each PPO epoch $j = 1, \ldots, K$}
+    \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
+    \STATE Compute probability ratio: $\rho_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
+    \STATE Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \operatorname{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
+    \STATE Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
+    \STATE Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
+    \STATE Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
+  \ENDFOR
+  \STATE Checkpoint and log metrics at configured intervals
+\ENDFOR
+\STATE Evaluate policy mode $\tanh(\mu_\theta(s))$ on test split
+\STATE Compute financial performance metrics from realised return series
+\end{algorithmic}
+\end{algorithm}
+```
+
+**For DDPG** (beyond the symbols already defined in Chapter 5.2 for TD3):
+
+- $\mu_\phi$ is the deterministic actor; $Q_\theta$ is DDPG's single critic
+- Primed symbols denote slowly updated target networks
+- $\mathcal{D}$ is the replay buffer; $\tau$ is the soft-update coefficient
+
+**For PPO:**
+
+- $\pi_\theta$ is the stochastic actor (TanhNormal distribution)
+- $V_\phi$ is the state value network
+- $\hat{A}_t$ are GAE advantage estimates
+- $\rho_t(\theta)$ is the probability ratio between new and old policies
+- $\epsilon$ is the clipping threshold
+- $c_1$, $c_2$ are the entropy and value loss coefficients
+- $K$ is the number of PPO epochs per batch
 
 ---
 
@@ -191,10 +275,11 @@ if _inv_path.exists():
     )
 else:
     missing_data_notice(
-        "raw_file_inventory.json not found — run: uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export, then: "
-        "uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+        "raw_file_inventory.json not found — run: "
+        "`uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --export`, then: "
+        "`uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
     )
 ```
 
@@ -294,10 +379,11 @@ if _feat_path.exists():
     feature_stats_table(pd.read_csv(_feat_path))
 else:
     missing_data_notice(
-        "feature_stats.csv not found — run: uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export, then: "
-        "uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+        "feature_stats.csv not found — run: "
+        "`uv run python src/cli.py peek dataset "
+        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export`, then: "
+        "`uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
     )
 ```
 
