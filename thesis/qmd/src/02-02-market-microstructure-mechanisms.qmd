@@ -24,9 +24,7 @@ This decomposition has a direct implication for trading signal design. A
 narrowing spread signals reduced adverse selection risk; a widening spread
 signals elevated informed activity. These measures, operationalized in Chapter 4
 as spread in basis points and the spread ratio, are therefore motivated as
-candidate state variables by this theoretical framework. Their relevance in the
-present thesis remains an empirical question, to be assessed later under the
-specific data and environment assumptions adopted here.
+candidate state variables by this theoretical framework.
 
 The price impact of informed trading was formalized through the lambda
 parameter, which measures the sensitivity of price changes to order flow [@Kyle1985]. In
@@ -54,9 +52,7 @@ This theoretical result motivates the multi-level features used in Chapter 4.
 The book is not a single price but a price schedule, and the shape of that
 profile — measured by depth ratios, slopes, and convexity features —
 may encode information about how informed the marginal liquidity provider
-expects the market to be at each quantity level. In this sense, the theory
-motivates examining multi-level book-shape features; it does not by itself
-establish which specification is most informative for the present application.
+expects the market to be at each quantity level.
 
 **Order flow and short-term price prediction.**
 The most direct empirical and theoretical treatment of the
@@ -70,20 +66,16 @@ average of 65% of short-term price variation (68% with a nonlinear
 correction). Importantly, the relationship is contemporaneous: OFI at time $t$
 is correlated with price changes at time $t$, not a lagged effect, which is
 consistent with the efficient incorporation of order book information into
-prices.^[This contemporaneous result does not by itself establish OFI as a
-predictive signal in the strict forecasting sense. Its relevance for the
-present thesis is narrower: OFI serves as a compact state descriptor of current
-queue pressure at the time the agent acts. If lagged or windowed OFI measures
-prove useful in the present setting, that is an empirical result of the later
-design and evaluation chapters rather than something established by the cited
-evidence alone.]
+prices.^[OFI's relevance for the present thesis is narrower than the
+contemporaneous result implies: it serves as a compact state descriptor of
+current queue pressure at the time the agent acts, not a validated
+forecasting signal.]
 
 The theoretical channel is straightforward: when buy-side pressure dominates
 (positive OFI), market makers raise quotes to attract sell-side flow and reduce
 inventory risk, mechanically pushing the mid-price upward. The OFI feature in
 the feature design is included primarily as a state variable summarizing current
-order-flow pressure, not because the literature alone proves standalone
-predictive power at the forecast horizon relevant to this thesis.
+order-flow pressure.
 
 **Fair value estimation from the order book.**
 The microprice is derived as the theoretically optimal estimate of the
@@ -112,9 +104,6 @@ microprice [@Stoikov2018] provides a theoretically optimal fair value estimate
 that conditions on the current queue imbalance.
 
 These mechanisms are not independent: they all reflect aspects of information
-aggregation through order flow. They therefore motivate the candidate feature
-families introduced in Chapter 4, including spread-based, order-flow,
-depth-shape, and fair-value signals. Whether that feature set captures the most
-informative aspects of the environment is not something the literature alone can
-settle; within this thesis, that question is addressed only through the later
-design and empirical evaluation chapters.
+aggregation through order flow, motivating the candidate feature families
+introduced in Chapter 4 — spread-based, order-flow, depth-shape, and
+fair-value signals.
