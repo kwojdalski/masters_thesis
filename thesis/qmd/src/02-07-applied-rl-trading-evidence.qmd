@@ -39,23 +39,17 @@ practical viability [@Moody2001].
 ### From Discrete to Continuous Action Spaces
 <!-- [VERIFIED] -->
 
-Early value-based approaches applied Q-learning with discrete buy/sell/hold
-actions to equity and futures markets [@Neuneier1998; @Lee2007]. These studies
-established that RL could learn profitable patterns from historical data, but
-also identified persistent problems: sparse rewards, delayed credit assignment,
-and out-of-sample performance degradation. More fundamentally, discrete action
-spaces force an artificial granularity on position sizing — a coarse grid
-loses control precision while a fine grid reintroduces the curse of
-dimensionality.
-
-The direct and recurrent reinforcement
-learning tradition was extended to foreign-exchange trading systems
-[@Gold2003; @Dempster2002]. Their relevance is that
-the trading policy maps market state directly into positions rather than into an
-intermediate price forecast. The evidence is also cautionary: performance varied
-substantially across currency pairs and depended on the choice of model and
-system parameters, making early direct-RL results better interpreted as
-feasibility evidence than as a robust trading edge.
+Early proof-of-concept studies established feasibility while surfacing
+problems this thesis's design responds to directly. Discrete Q-learning on
+equity and futures markets [@Neuneier1998; @Lee2007] learned profitable
+patterns but suffered sparse rewards, delayed credit assignment, and
+out-of-sample degradation; more fundamentally, discrete buy/sell/hold actions
+force an artificial granularity on position sizing — a coarse grid loses
+control precision, a fine grid reintroduces the curse of dimensionality.
+Extending direct/recurrent RL to foreign-exchange trading
+[@Gold2003; @Dempster2002] confirmed that mapping state directly into
+positions is viable, but performance varied substantially across currency
+pairs and system parameters — feasibility evidence, not a robust trading edge.
 
 ### Deep Reinforcement Learning Era
 <!-- [VERIFIED] -->
@@ -118,20 +112,16 @@ standardized evaluation protocols — multi-seed reporting, held-out test period
 not used for model selection, and explicit cost assumptions — performance
 claims are difficult to assess on their own terms.
 
-An ensemble stock-trading strategy built from PPO, A2C, and
-DDPG on Dow Jones constituents was evaluated [@Yang2020]. The study is relevant as an actor-critic
-comparison in a liquid equity universe, but it is not evidence about
-millisecond-level LOB trading; its state representation, trading frequency, and
-execution assumptions differ from the setting studied in the current work.
-
-AlphaStock, which combines a Sharpe-oriented RL
-objective with history-state and cross-asset attention networks, was proposed
-[@Wang2019AlphaStock]. Its contribution
-is mainly about representation and interpretability in stock selection: the
-attention mechanism gives a partial account of which asset characteristics drive
-portfolio construction. This supports the broader claim that state representation
-matters materially in RL trading, but it does not address order-book-driven
-single-asset exposure control.
+Two further studies mark boundary cases outside this thesis's LOB-level,
+single-asset scope. An ensemble PPO/A2C/DDPG strategy on Dow Jones
+constituents [@Yang2020] is a useful actor-critic comparison in a liquid
+equity universe, but its state representation, trading frequency, and
+execution assumptions differ from millisecond-level LOB trading. AlphaStock
+[@Wang2019AlphaStock] combines a Sharpe-oriented objective with history-state
+and cross-asset attention, contributing mainly through representation and
+interpretability in stock selection — supporting the claim that state
+representation matters materially in RL trading, but not addressing
+order-book-driven single-asset exposure control.
 
 A volatility-scaled deep RL trading strategy tested across
 50 liquid futures contracts spanning commodities, equity indices, fixed income,

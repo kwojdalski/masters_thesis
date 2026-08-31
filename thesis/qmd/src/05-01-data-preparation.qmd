@@ -264,10 +264,12 @@ if _corr_path.exists():
     feature_correlation_table(pd.read_csv(_corr_path))
 else:
     missing_data_notice(
-        "correlations.csv not found — run: uv run python src/cli.py peek dataset "
+        "correlations.csv not found — run: "
+        "`uv run python src/cli.py peek dataset "
         "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected "
-        "--corr --export, then: uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+        "--corr --export`, then: "
+        "`uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
     )
 ```
 
@@ -332,10 +334,12 @@ if _splits_path.exists():
     table_note(source="Author's own calculations based on DataBento Nasdaq MBP-10 data.")
 else:
     missing_data_notice(
-        "splits.json not found — run: uv run python src/cli.py peek dataset "
+        "splits.json not found — run: "
+        "`uv run python src/cli.py peek dataset "
         "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
-        "--skip 500 --export, then: uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected"
+        "--skip 500 --export`, then: "
+        "`uv run python scripts/export_peek_to_thesis.py "
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
     )
 ```
 

@@ -11,10 +11,12 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **142 pages** (measured 2026-08-30, fresh render after item 32)
-Body word count (chapters 01-07): **30,405 words**
-Body page range: printed pages 8-106 (physical PDF pages 9-107), **99 body
-pages**; Bibliography begins on printed page 107
+Current: **142 pages** (last rendered 2026-08-30, after item 32; not
+re-rendered since — item 11 below is word-count-tracked only until the next
+render)
+Body word count (chapters 01-07): **30,327 words** (30,405 - 78 from item 11)
+Body page range (as of last render): printed pages 8-106 (physical PDF pages
+9-107), **99 body pages**; Bibliography begins on printed page 107
 words_per_page: ~307 (30,405 / 99 measured body pages)
 Cumulative body reduction from the complete pre-condensation draft: **8,196
 words**. Session 2 alone removed 710 body words and reduced the measured body
@@ -52,8 +54,8 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
       roadmap are proportionate; the novelty/objectives material and the end of
       the introduction repeat the same scope and limitations (item 18).
 - [x] 02 Literature Review — all 9 files fully read. `02-04` was cleared
-      after item 10; `02-07` is a confirmed breadth candidate (item 11,
-      awaiting go-ahead). A chapter-wide repeated epistemic caveat across
+      after item 10; `02-07`'s breadth candidate was applied (item 11,
+      framing-only trim, -78 words). A chapter-wide repeated epistemic caveat across
       `02-01`, `02-02`, `02-03`, and `02-08` was cut (item 32) at the user's
       explicit request to reduce information, not just duplication. `02-00`,
       `02-05`, `02-06` remain tightly scoped from earlier reconnaissance — no
@@ -128,7 +130,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 8 | 3 | 05-01 (`sec-feature-normalization-and-causality-preservation`) | User flagged: full Welford's-algorithm derivation (2 numbered equations, itemized symbol definitions) for a 60-year-old, off-the-shelf online mean/variance algorithm — inconsistent with how the thesis treats other standard techniques (e.g. ReLU gets a one-line citation, no derivation, in 04-05-policy.qmd). Verified via grep that `eq-welford-mean`/`eq-welford-var` are never cross-referenced anywhere else in the thesis before cutting them. Also found while investigating: the kept equation (`eq-running-normalize`, cited later at line ~253 so it had to stay) redefined $\bar{x}_t$/$\sigma_t^2$/$\varepsilon$ that ch4's `eq-z-score` (04-02-state-space.qmd:147) already fully defines — trimmed to note the correspondence instead of re-itemizing. Causal-normalization reasoning (genuinely thesis-specific: why global normalization would leak future information) kept in full. | -115 (3812 -> 3697) | applied |
 | 9 | 3 | Whole thesis | User asked for a systematic sweep for the same over-derivation pattern. Inventoried all 35 numbered equations, cross-reference-counted each (`@eq-...` citations elsewhere), then read every zero/low-citation candidate to separate "thesis's own design, correctly proportionate" (eq-huber-loss, eq-target-actor-update, eq-obs-space, eq-action-space, eq-transaction-fee — all checked and cleared, one equation + few symbols + thesis-specific justification each) from genuine over-derivation. Two confirmed and applied: (a) `eq-tw-mean`/`eq-tw-var` (05-01) — two full equations for a time-weighted normalization variant the text itself says was never used in the main experiments ("Sensitivity analysis... a direction for future work"); compressed to one sentence. (b) `eq-microprice-ch2` (02-02, literature review) — genuine cross-chapter duplication, not just over-derivation: the identical formula with the same citation (@Stoikov2018) already exists in the appendix's Feature Inventory table (99-appendix.qmd:65), and ch4's own body just says "the microprice [@Stoikov2018] is the central construct" without re-deriving it. Cut the display equation and symbol list, kept the intuition-building prose (why microprice beats mid-price when queues are imbalanced — not duplicated anywhere), added a pointer to Appendix A for the exact formula. | -48 (05-01: 3697->3649) + -33 (02-02: 1193->1160) | applied |
 | 10 | 3 | 02-04-competing-modeling-approaches.qmd | Found during the item-9 sweep but dropped from the final report until the user asked to look for more instances. `eq-imitation-learning`: generic empirical-risk-minimization loss formula for imitation learning (one of several "competing approaches" surveyed, never this thesis's own method), 6-symbol itemized list, 0 cross-references anywhere. Same shape as items 8/9. Cut the equation, kept the surrounding prose describing behavior cloning in one clause. | -67 (1486 -> 1419) | applied |
-| 11 | 3 | 02-07-applied-rl-trading-evidence.qmd | Fully read. The ~15-20 individually-surveyed papers are closer to PhD-survey breadth than a representative master's-thesis sample, although the methodological criticism is good. Merge the early mixed-evidence cluster (Neuneier1998, Lee2007, Gold2003, Dempster2002) into one paragraph and combine the Yang2020/AlphaStock boundary cases into one paragraph explaining why bar-level/cross-asset evidence does not establish LOB-level performance. Keep Majidi2024, Kabbani2022, and FinRL2020 individually treated because they bear directly on the thesis design and closing synthesis. | ~230-300 est. | reviewed — awaiting go-ahead |
+| 11 | 3 | 02-07-applied-rl-trading-evidence.qmd | Merged the early mixed-evidence cluster (Neuneier1998, Lee2007, Gold2003, Dempster2002) into one paragraph and the Yang2020/AlphaStock boundary cases into one paragraph. Kept every citation and every distinct claim — only the per-paper framing sentences ("The study is relevant as...", "Their relevance is that...") were cut, restated once per cluster instead of once per paper. Actual saving (78 words) came in well under the original 230-300 estimate because the user confirmed a framing-only trim rather than cutting a paper's treatment down to citation-only. Majidi2024, Kabbani2022, and FinRL2020 kept individually treated as planned. | -78 (1568 -> 1490) | applied |
 | 12 | 1 | 03-02, 04-05 | Removed the nine-row algorithm-properties table from Chapter 3: its four preceding paragraphs already explain every comparison, and Chapter 4 retains the single implementation-level policy table. Added a cross-reference to `@tbl-policy-comparison`. | -153 body | applied |
 | 13 | 2 | 05-01, 99-appendix | See item 4a: moved the full feature-statistics table to the appendix while preserving all Chapter 5 conclusions. | included in 4a | applied |
 | 14 | 2 | 04-02 | Removed the six-row key-feature formula table because Appendix A already contains the same formulas plus parameters, citations, and inclusion status. Kept the complete feature-selection rationale inline. | -146 body | applied |
@@ -339,3 +341,12 @@ rather than stopping at the duplication-only ceiling identified after
 session 9. The alternative paths remain: sentence-level tightening across
 the board (`hemingway`, out of this skill's scope), or reconsidering whether
 80 pages is the right target for this thesis's actual content.
+
+**2026-08-31, session 11 (item 11):** User asked how item 11's cut would
+actually be phrased before approving. Presented a concrete before/after diff
+for both survey clusters in `02-07`, computed the exact word saving (78,
+versus the original 230-300 estimate), and explained the gap: the diff only
+trims per-paper framing sentences, keeping every citation and distinct claim,
+per the item's original scope ("keep Majidi2024, Kabbani2022, and FinRL2020
+individually treated"). User approved as-is. Applied; word count not yet
+re-rendered to a fresh page count this session.
