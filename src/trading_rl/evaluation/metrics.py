@@ -84,6 +84,12 @@ def aggregate_to_reporting_frequency(
 
 _NAN = float("nan")
 
+# Minimum |Δposition| between consecutive steps that counts as a discrete trade.
+# Continuous-action policies (TD3/DDPG/PPO) emit a slightly different value every
+# step, so an exact `diff != 0` test counts ~every step as a trade (897k "trades"
+# in 969k steps). 1e-2 = 1% of the [-1, 1] action range.
+_TRADE_EPS = 1e-2
+
 
 @dataclass
 class MetricReport:
@@ -105,10 +111,15 @@ class MetricReport:
     mean_return: float = _NAN  # per-bar mean return (μ)
     std_return: float = _NAN  # per-bar standard deviation (σ)
 
-    # Risk-adjusted ratios
+    # Risk-adjusted ratios.
+    # sharpe_ratio / sortino_ratio are PER BAR (μ/σ, no scaling) -- consistent
+    # with mean_return / std_return. The *_annualized variants are × √ppy_used --
+    # consistent with annualized_volatility. Pick one scale per table; don't mix.
     sharpe_ratio: float = _NAN
+    sharpe_ratio_annualized: float = _NAN
     sharpe_expost: float = _NAN  # sharpe_raw × √n_bars; t-stat interpretation
     sortino_ratio: float = _NAN
+    sortino_ratio_annualized: float = _NAN
     calmar_ratio: float = _NAN
     omega_ratio: float = _NAN
 
@@ -315,29 +326,43 @@ def _tail_risk(simple_returns: np.ndarray, alpha: float = 0.05) -> tuple[float, 
     return var, cvar
 
 
+def _step_position_delta(actions: np.ndarray) -> np.ndarray:
+    """Absolute change in position between consecutive steps.
+
+    1D: |diff|.  2D (one-hot / multi-asset weights): L1 change summed across
+    columns, so a static weight vector reports zero rather than ~2 per step.
+    """
+    if actions.ndim > 1:
+        return np.abs(np.diff(actions, axis=0)).sum(axis=1)
+    return np.abs(np.diff(actions))
+
+
+def _trade_mask(actions: np.ndarray) -> np.ndarray:
+    """Step boundaries where the position moved by more than _TRADE_EPS."""
+    if actions.size <= 1:
+        return np.zeros(0, dtype=bool)
+    return _step_position_delta(actions) > _TRADE_EPS
+
+
 def _turnover(actions: np.ndarray) -> float:
-    if actions.size == 0:
-        return np.nan
-    if actions.ndim == 1:
-        diffs = np.abs(np.diff(actions))
-        return float(np.mean(diffs)) if diffs.size else 0.0
-    diffs = np.abs(np.diff(actions, axis=0))
-    per_step = np.sum(diffs, axis=1)
+    if actions.size <= 1:
+        return np.nan if actions.size == 0 else 0.0
+    per_step = _step_position_delta(actions)
     return float(np.mean(per_step)) if per_step.size else 0.0
 
 
 def _holding_period(actions: np.ndarray) -> float:
     if actions.size == 0:
         return np.nan
-    if actions.ndim > 1:
-        actions = np.argmax(actions, axis=1)
-    actions = actions.reshape(-1)
     if actions.size <= 1:
         return float(actions.size)
-    change_points = np.where(np.diff(actions) != 0)[0]
-    boundaries = np.concatenate(([-1], change_points, [actions.size - 1]))
+    # Segment on trades (|Δ| > _TRADE_EPS), not on any change: a continuous
+    # policy nudging the position every step would otherwise report a holding
+    # period of ~1.
+    change_points = np.where(_trade_mask(actions))[0]
+    boundaries = np.concatenate(([-1], change_points, [len(actions) - 1]))
     lengths = np.diff(boundaries)
-    return float(np.mean(lengths)) if lengths.size else float(actions.size)
+    return float(np.mean(lengths)) if lengths.size else float(len(actions))
 
 
 def build_metric_report(
@@ -359,8 +384,12 @@ def build_metric_report(
         strategy_simple_returns, dtype=float
     )  # kept with NaNs for position-aligned benchmark pairing
     _orig_ppy = periods_per_year
+    # Raw per-step return series (NaNs dropped). Path/frequency metrics -- hit
+    # rate, drawdown, profit factor -- are computed on this; annualised ratios
+    # (Sharpe, Sortino, vol) use the compounded reporting bars below.
+    _r_finite = _r_orig[np.isfinite(_r_orig)]
     r_all, periods_per_year = aggregate_to_reporting_frequency(
-        _r_orig[np.isfinite(_r_orig)], periods_per_year
+        _r_finite, periods_per_year
     )
     r = r_all
     # ppy > 0 after aggregation; annualised metrics (vol, Sharpe, Sortino) use
@@ -388,17 +417,28 @@ def build_metric_report(
         if annual_vol >= _MIN_ANNUAL_VOL:
             sharpe = sharpe_raw(mu - rf_per_period, sigma)
             sortino = sortino_raw(mu - rf_per_period, _dd_raw)
+            sharpe_ann = sharpe_annualized(mu - rf_per_period, sigma, periods_per_year)
+            sortino_ann = sortino_annualized(
+                mu - rf_per_period, _dd_raw, periods_per_year
+            )
         else:
             sharpe = np.nan
             sortino = np.nan
+            sharpe_ann = np.nan
+            sortino_ann = np.nan
     else:
         annual_vol = np.nan
         _dd_raw = np.nan
         downside_dev_annualized = np.nan
         sharpe = np.nan
         sortino = np.nan
+        sharpe_ann = np.nan
+        sortino_ann = np.nan
 
-    equity = _equity_curve(r)
+    # Equity / drawdown on the raw per-step series: on the compounded bars a
+    # mildly-drifting session gives a monotone curve, so max_drawdown collapses
+    # to 0. total_return is unchanged (compounding is associative).
+    equity = _equity_curve(_r_finite)
     total_return = float(equity[-1] - 1.0)
     if _should_compute_annualized_growth(periods_per_year):
         years = max(r.size / periods_per_year, 1e-12)
@@ -418,10 +458,21 @@ def build_metric_report(
     skew = float(np.mean(((r - mu) / sigma) ** 3)) if sigma > 0 else np.nan
     kurt = float(np.mean(((r - mu) / sigma) ** 4) - 3) if sigma > 0 else np.nan
 
-    wins = r[r > 0]
-    losses = r[r < 0]
-    hit_rate = float(np.mean(r > 0))
-    lose_rate = float(np.mean(r < 0))
+    # Trade statistics on the raw per-step series (_r_finite), not the compounded
+    # reporting bars: at bar resolution a mildly-drifting session makes every bar
+    # the same sign, so hit_rate saturates at 0.0/1.0 and gross_loss / profit
+    # factor degenerate (experiment-audit 2026-08-31 #1). "Win" = the position,
+    # whatever its sign, made money that step -- the position side is already
+    # baked into the strategy return series upstream.
+    if _r_finite.size:
+        wins = _r_finite[_r_finite > 0]
+        losses = _r_finite[_r_finite < 0]
+        hit_rate = float(np.mean(_r_finite > 0))
+        lose_rate = float(np.mean(_r_finite < 0))
+        expectancy = float(np.mean(_r_finite))
+    else:
+        wins = losses = np.array([])
+        hit_rate = lose_rate = expectancy = np.nan
     gross_profit = float(np.sum(wins)) if wins.size else 0.0
     gross_loss = float(np.sum(np.abs(losses))) if losses.size else 0.0
     profit_factor = _safe_div(gross_profit, gross_loss)
@@ -429,7 +480,6 @@ def build_metric_report(
         float(np.mean(wins)) if wins.size else 0.0,
         abs(float(np.mean(losses))) if losses.size else 0.0,
     )
-    expectancy = float(mu)
 
     # Omega ratio at the risk-free threshold: E[max(r - rf, 0)] / E[max(rf - r, 0)]
     # Generalises profit_factor (equal to it when rf_per_period == 0).
@@ -450,18 +500,10 @@ def build_metric_report(
     pct_long = float(np.mean(actions_arr > 0)) if actions_arr.size > 0 else np.nan
     pct_short = float(np.mean(actions_arr < 0)) if actions_arr.size > 0 else np.nan
     pct_neutral = float(np.mean(actions_arr == 0.0)) if actions_arr.size > 0 else np.nan
-    if actions_arr.size > 1:
-        if actions_arr.ndim > 1:
-            # 2D actions (one-hot / multi-asset weights): count timestep-to-
-            # timestep changes (axis=0), summed across columns. np.diff's
-            # default axis=-1 would diff adjacent action columns instead —
-            # a static buy-and-hold weight would report ~2T trades.
-            diffs = np.abs(np.diff(actions_arr, axis=0)).sum(axis=1)
-            n_trades = float(np.sum(diffs != 0))
-        else:
-            n_trades = float(np.sum(np.diff(actions_arr) != 0))
-    else:
-        n_trades = 0.0
+    # A trade is a step where the position moved by more than _TRADE_EPS, not any
+    # nonzero change: a continuous policy nudges the position every step and would
+    # otherwise report ~T trades (experiment-audit 2026-08-31 #14).
+    n_trades = float(np.sum(_trade_mask(actions_arr))) if actions_arr.size > 1 else 0.0
 
     # Ex-post Sharpe: sharpe_raw × √n_bars — has t-statistic interpretation for H0: μ=0
     # Use the same _MIN_ANNUAL_VOL guard as sharpe_ratio for consistency
@@ -540,8 +582,10 @@ def build_metric_report(
         mean_return=mu,
         std_return=sigma,
         sharpe_ratio=sharpe,
+        sharpe_ratio_annualized=sharpe_ann,
         sharpe_expost=sharpe_expost_val,
         sortino_ratio=sortino,
+        sortino_ratio_annualized=sortino_ann,
         calmar_ratio=calmar,
         omega_ratio=omega_ratio,
         max_drawdown=max_dd,
