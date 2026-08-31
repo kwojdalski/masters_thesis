@@ -16,10 +16,10 @@
 
 % List of Appendices, structured like \listoffigures/\listoftables below.
 % Entries are registered per-appendix via \addcontentsline{lap}{section}{...}
-% in 99-appendix.qmd. Chained onto \listoftables (rather than exposed as a
-% separate Quarto option, since Pandoc's PDF template has no native "lap"
-% front-matter switch) so it appears immediately after the existing
-% List of Tables, on its own page.
+% in 99-appendix.qmd. Exposed as its own \listofappendices command (rather
+% than a Quarto front-matter option, since Pandoc's PDF template has no
+% native "lap" switch) so masters-thesis.qmd can call it explicitly wherever
+% it belongs in the back matter.
 %
 % Extension is "lap" (not "loa"): the algorithm package (loaded in
 % masters-thesis.qmd's header-includes for the pseudocode-block algorithms)
@@ -33,9 +33,16 @@
 
 % tocloft's own \listoffigures/\listoftables definitions are deferred via
 % \AtBeginDocument (see tocloft.sty), which runs after any ordinary preamble
-% \renewcommand -- so redefining these two commands here must ALSO be
-% deferred via \AtBeginDocument, registered after \usepackage{tocloft} above,
-% so this hook fires after tocloft's own and therefore wins.
+% \renewcommand -- so redefining these commands here must ALSO be deferred
+% via \AtBeginDocument, registered after \usepackage{tocloft} above, so this
+% hook fires after tocloft's own and therefore wins.
+%
+% WNE UW rule 15 specifies the back-matter "zestawienie spisow" order as
+% abbreviations, tables, figures, appendices-list, appendices-content. Each
+% of the three lists below is given a leading \cleardoublepage so
+% masters-thesis.qmd can call \listoftables, \listoffigures,
+% \listofappendices back-to-back in that order and have each start on its
+% own fresh page, matching the required sequence.
 \AtBeginDocument{%
   \let\oldlistoffigures\listoffigures
   \renewcommand{\listoffigures}{%
@@ -44,9 +51,13 @@
   }
   \let\oldlistoftables\listoftables
   \renewcommand{\listoftables}{%
-    \oldlistoftables
     \cleardoublepage
-    \listofappendices
+    \oldlistoftables
+  }
+  \let\oldlistofappendices\listofappendices
+  \renewcommand{\listofappendices}{%
+    \cleardoublepage
+    \oldlistofappendices
   }
 }
 \usepackage{amsmath}
