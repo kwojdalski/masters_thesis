@@ -50,7 +50,7 @@ $O(1)$ dictionary lookup instead of an $O(n)$ linear list scan, which
 would otherwise degrade step time quadratically over long evaluation
 episodes.
 
-## Simulation Assumptions
+## Simulation Assumptions {#sec-simulation-assumptions}
 
 The following assumptions govern the trading simulation throughout all
 experiments.
@@ -71,7 +71,10 @@ executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
 reward accounting, but it implies that reported backtest returns are an upper
 bound on achievable net performance. Real execution must cross the spread, and
 realized returns are further reduced by maker/taker fees, queue position, and
-partial fills.
+partial fills. Section 4.3 (@sec-execution-model-signal-friction) shows why this
+assumption is decisive for a microstructure feature set: the predictive content
+of the features is bounded by the very half-spread that mid-price execution
+declines to charge.
 
 **Zero latency.** Observations are assumed to be acted on immediately, with no
 transport, decision, or matching-engine delay between state observation and
