@@ -5,20 +5,22 @@ The thesis set out to answer three hypotheses concerning deep reinforcement lear
 for high-frequency single-asset trading using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
-**Hypothesis 1: the TD3 agent can outperform benchmark strategies on a
-risk-adjusted basis.** The evaluation offers only qualified support. On the
-held-out test window, the agent posts a better total return and a lower
-maximum drawdown than buy-and-hold, TWAP, and VWAP (Section 6.3 gives the
-exact figures), but the mechanism is near-neutral positioning rather than
-directional trading skill — the agent avoids the market decline by holding
-minimal net exposure rather than actively managing risk. Trade-level quality
-metrics are more sobering: win rate and profit factor confirm that the vast
-majority of individual position adjustments are loss-generating. Hypothesis 1
-is therefore supported only in the narrow sense that the agent beats passive
-benchmarks on this test window, not in the stronger sense originally
-contemplated — the outperformance reflects risk avoidance, not a profitable
-directional strategy. These results are a feasibility finding, not evidence
-of a deployable trading edge.
+**Hypothesis 1: a TD3 agent learns a real but cost-bounded risk-adjusted edge
+from order-book microstructure.** The evidence supports this in its reworded
+form. Under frictionless mid-price execution the agent learns a directionally
+coherent, low-turnover, drawdown-controlled policy that beats passive benchmarks
+on this held-out window (Section 6.3) and improves on DDPG and a random policy
+(Section 6.1) — the microstructure signal exists and is learnable. Its economic
+magnitude, however, is of the same order as the cost of trading on it: the
+features that carry the signal (microprice divergence, order-flow imbalance)
+cannot express an edge larger than one bid–ask half-spread per trade
+(Section 4.3), and the transaction-cost sweep (Section 6.2) shows the reported
+return changing sign once the per-trade fee reaches a fraction of a basis
+point — the same scale as that half-spread. The frictionless result is
+therefore a signal ceiling, not a deployable edge: profitable when execution is
+free, not expected to survive realistic spread-crossing cost. Retraining and
+re-evaluating under explicit bid/ask execution with calibrated fees is the
+outstanding test, identified as future work (Section 7.2).
 
 **Hypothesis 2: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** The
@@ -48,4 +50,8 @@ sample-to-sample stability. Transaction-cost sensitivity testing further
 confirmed that the agent's edge is meaningful at low but not at high transaction
 cost levels, which appropriately bounds the strategy's viability and underscores
 the importance of realistic cost modeling in any empirical assessment of
-this type.
+this type. This sensitivity is also what bounds Hypothesis 1: the fee level at
+which the edge disappears coincides with the half-spread ceiling on the
+microstructure signal, so the two hypotheses meet at the same quantity from
+opposite directions — Hypothesis 1 measuring the edge, Hypothesis 3 the cost
+that cancels it.

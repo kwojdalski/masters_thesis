@@ -1,40 +1,40 @@
 ## Limitations and Future Research {#sec-limitations-and-future-research}
 <!-- [PLACEHOLDER] -->
 
-### Execution Realism
+### Execution Realism {#sec-execution-realism}
 <!-- [PLACEHOLDER] -->
-<!-- TODO(thesis-writer): quantify this section from
-     docs/masters_thesis/experiment-audits/2026-08-31-h1-followup-frictionless-mechanism.md
-     once h1 is rerun under execution_price=bid_ask + a non-zero trading_fees
-     (in both train.yaml and evaluate.yaml -- the training reward shares the
-     same frictionless assumption, so re-scoring the existing checkpoint is
-     not sufficient; the agent must be retrained under real costs). Numbers
-     to cite as the mechanism, not just "frictions could matter":
-       - |microprice - mid| <= half-spread identically (verified on 100% of
-         2.4M AAPL rows) -- the feature set's maximum expressible edge equals
-         exactly what execution_price=mid deletes.
-       - measured cost/PnL ratio under mid-price execution: 10.3x (spread
-         cost 12.16 NLV vs gross PnL 1.18 NLV on the h1 TD3 test window).
-       - breakeven proportional fee: ~4.1e-6.
-       - the identical action path returns +2.27 under mid-price execution
-         vs an estimated ~-10.6 under bid_ask -- same signal, opposite sign.
-       - control: random_actions in the same frictionless env returns
-         -0.033%, so this is not free bid-ask-bounce harvesting available to
-         any policy; the signal is real, only the fill price is not. -->
 
-The central limitation of the empirical setup is its execution model: a
-mid-price-like proxy for portfolio valuation and reward computation, with zero
-market impact and zero latency. Live execution instead crosses the spread,
-pays maker/taker fees, faces queue priority and partial fills, and is exposed
-to latency-dependent adverse selection — frictions the transaction-cost
-sensitivity analysis already shows are binding, since the agent's edge
-persists only at low fee levels. At tick frequency, spread-crossing costs can
-be of similar magnitude to the price moves the agent attempts to capture, so a
-strategy profitable at mid-price may be flat or negative under realistic
-bid/ask execution. Reported performance should therefore be read as an upper
-bound on what a deployed version of this policy would achieve, and the most
-direct next step is re-evaluating the same agents under explicit bid/ask
-rules, calibrated fees, and slippage or market-impact models.
+The central limitation of the empirical setup is its execution model:
+mid-price-proxy valuation and reward computation, zero market impact, zero
+latency, and no baseline fee. For a microstructure strategy this assumption is
+close to the whole result. The microprice divergence that drives the agent's
+directional calls is a convex combination of the best bid and ask, so
+$|\text{microprice}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$
+holds identically — an exact algebraic bound, verified on 100% of the
+2.4-million-row AAPL sample. The largest per-tick edge the feature set can
+express is therefore exactly one half-spread, which is precisely what a
+spread-crossing fill would cost; mid-price execution deletes that liability and
+leaves the signal as pure profit. This is the mechanism behind the signal-ceiling
+framing of Hypothesis 1 (Section 4.3), not merely a statement that "frictions
+could matter".
+
+Order-of-magnitude figures on the exported Hypothesis 1 test window: the spread a
+crossing environment would have charged is roughly ten times the gross profit,
+and the breakeven proportional fee is on the order of $4 \times 10^{-6}$ —
+consistent with the Hypothesis 3 fee sweep turning negative between
+$1 \times 10^{-6}$ and $1 \times 10^{-5}$. Re-pricing the identical action path
+under bid/ask execution instead of the mid moves the total return from roughly
+$+2.3$ to roughly $-10.6$ in net-liquidation-value units: the same signal, the
+opposite sign. These figures are indicative rather than final — they come from
+re-pricing a fixed policy, not from retraining — and a control in which random
+actions run through the same frictionless environment returns $-0.033\%$,
+confirming that the frictionless profit is a real signal harvested for free
+rather than bid–ask bounce available to any high-turnover policy. The direct
+next step, and the most important single extension, is to **retrain** and
+re-evaluate the agents under an explicit bid/ask fill rule with calibrated
+maker/taker fees and a slippage or market-impact model; because the training
+reward shares the mid-price assumption, re-scoring the existing checkpoints is
+not sufficient.
 
 ### Evaluation Scope
 <!-- [PLACEHOLDER] -->

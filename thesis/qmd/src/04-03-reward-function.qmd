@@ -39,6 +39,43 @@ so that no look-ahead into future returns is required at each training step.
 The baseline reward requires refinement at high frequency. The Differential
 Sharpe Ratio addresses both requirements.
 
+### Execution Model and the Signal–Friction Decomposition {#sec-execution-model-signal-friction}
+
+@eq-reward-baseline separates into a **signal term**,
+$a_{t-1}\,(P_t - P_{t-1})/P_{t-1}$, and a **friction term**, $c\,|a_t - a_{t-1}|$
+(the proportional fee of @eq-transaction-fee). Throughout this thesis $P_t$ is the
+**mid-price**, not an executable bid or ask quote, in keeping with the mid-price
+execution assumption stated in @sec-simulation-assumptions. Baseline runs set
+$c = 0$, so a buy and a sell settle at the same mid, no spread is crossed, and
+the friction term vanishes; the reward is then the signal term alone.
+
+The features that carry the agent's directional signal — microprice, microprice
+divergence, order-flow imbalance, queue imbalance — are functions of
+top-of-book prices and sizes. The microprice is a convex combination of the best
+bid and ask, so its divergence from the mid satisfies
+$|\text{microprice}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$,
+the half-spread, at **every tick** (an exact algebraic bound, verified on the
+full sample; see @sec-limitations-and-future-research). Because that divergence
+is the one-step-ahead predictor of the mid move, the largest **per-tick** edge
+this class of features can express is exactly one half-spread — the same
+quantity a spread-crossing fill would cost. Mid-price execution waives that
+cost, so the frictionless reward measures a **signal ceiling**: the most that
+could be captured if execution were free, not what a strategy that crosses the
+spread would realise. (This is a per-tick, next-mid-move bound on the tradable
+edge, not a claim that the features lack predictive value; Chapter 2 attributes
+them genuine predictive content over longer horizons.)
+
+The transaction-cost sweep in @tbl-h3-transaction-costs varies $c$ and locates
+this ceiling against realistic cost: the reported edge is positive at zero fee
+and turns negative once the per-trade fee approaches a fraction of a basis
+point — the scale of the half-spread on these instruments. Hypothesis 1 is
+therefore an existence-and-magnitude claim (the signal is real, TD3 learns it,
+its size is of the order of one half-spread); Hypothesis 3 maps how performance
+responds as that cost is charged. The training reward uses the same mid-price
+valuation, so the learned policy is optimal for the frictionless objective;
+retraining under an explicit spread-crossing cost is left as future work
+(@sec-limitations-and-future-research).
+
 ### Why Raw Log-Return Is Insufficient
 
 The simplest reward is the single-step log-return:
