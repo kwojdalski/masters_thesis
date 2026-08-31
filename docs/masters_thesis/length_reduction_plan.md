@@ -14,7 +14,7 @@ real starting point for the 80-page target is the post-fix count, not 144.
 Current: **142 pages** (last rendered 2026-08-30, after item 32; not
 re-rendered since — item 11 below is word-count-tracked only until the next
 render)
-Body word count (chapters 01-07): **30,327 words** (30,405 - 78 from item 11)
+Body word count (chapters 01-07): **30,193 words** (30,405 - 78 from item 11 - 134 from item 18)
 Body page range (as of last render): printed pages 8-106 (physical PDF pages
 9-107), **99 body pages**; Bibliography begins on printed page 107
 words_per_page: ~307 (30,405 / 99 measured body pages)
@@ -52,7 +52,8 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 
 - [x] 01 Introduction — fully read and reviewed. The hypotheses and chapter
       roadmap are proportionate; the novelty/objectives material and the end of
-      the introduction repeat the same scope and limitations (item 18).
+      the introduction's repeated scope/limitations were condensed (item 18,
+      -134 words).
 - [x] 02 Literature Review — all 9 files fully read. `02-04` was cleared
       after item 10; `02-07`'s breadth candidate was applied (item 11,
       framing-only trim, -78 words). A chapter-wide repeated epistemic caveat across
@@ -137,7 +138,7 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 15 | 2 | 04-05 | Removed the generated actor-architecture table because the immediately preceding network equation gives every layer and activation, while Appendix B records the exported widths. | -144 body | applied |
 | 16 | 1/3 | 03-02 | Consolidated the repeated algorithm-selection material. The final 549-word PPO/DDPG/TD3 comparison is now a short bridge to Chapter 4's implementation table, and the selection rationale now states each constraint once. Retained all core equations, TD3's three mechanisms, the SAC scope rationale, the contextual-not-general-superiority caveat, and the market-design limitations. | -672 body (measured) | applied (`95ac3f99`) |
 | 17 | 1 | 03-02, 04-01, 04-05 | Gaussian exploration was explained generally in `04-01`, then re-derived separately for DDPG and TD3 in `04-05`; evaluation-time noise removal and TD3 target smoothing were each stated multiple times. Kept `eq-exploration-noise` as the authoritative equation, replaced the two policy subsections with one compact DDPG/TD3 comparison, retained the distinct target-smoothing parameters and purpose, and repaired Chapter 3's PPO cross-reference. | -400 body (measured) | applied |
-| 18 | 1/3 | 01-00, 01-01 | The introduction already states the TD3/HFT/LOB/continuous-control contribution, then "Novelty" states it again. The objectives list also restates the hypotheses, while the introduction's final three paragraphs preview execution and evaluation limitations treated fully in Chapters 5 and 7. Keep the hypotheses and one concise boundary paragraph; compress novelty and objectives around them. | ~220-300 est. | reviewed — awaiting go-ahead |
+| 18 | 1/3 | 01-00, 01-01 | Merged the introduction's three closing paragraphs (execution constraints, methodological-discipline framing, simulation-scope caveat) into one boundary paragraph pointing to Chapters 5/7 for detail (-83). Compressed "Novelty" to stop restating the intro's TD3/HFT/continuous-control claim, keeping only the genuinely new comparative claim vs. Q-learning/DQN/PPO bar-level studies (-23). Cut the two Objectives bullets that restated Hypotheses 1 and 2 verbatim, folding a one-clause pointer into the surviving bullets instead (-28). Hypotheses themselves untouched. Actual saving (134 words) came in under the 220-300 estimate, same pattern as item 11 — keeping every distinct claim costs less than a raw subsection-level estimate suggests. | -134 (441 -> 307 across both files) | applied |
 | 19 | 1 | 04-01, 05-01 | The blue-chip short-borrow justification appeared twice with slightly different benchmark rates (04-01: 25-75 bps range with a 50 bps worked example tied to the reward function's cost-symmetry term; 05-01: "below 0.5% per annum" ceiling in the asset-selection context). Kept 04-01's quantitative version as authoritative; condensed 05-01 to its own distinct content (why blue-chip liquidity was the selection criterion, the illiquid-instrument contrast) with a cross-reference to Section 4.1. | -80 | applied (`a34ca641`) |
 | 20 | 2 | 05-01, 99-appendix | User-directed re-review of tables specifically. `tbl-transformed-features` (12-row x 9-col AAPL example) forced its own dedicated landscape page purely for illustration; the row-selection window is hardcoded in `thesis_tables.py::lob_events_table()`, so shrinking it in place would have required a Python edit with uncertain page payoff (landscape is driven by column width, not row count). Moved the full table and its intro paragraph to a new listed appendix section (`#sec-appendix-transformed-features`); the body keeps the three interpretive claims (bid-refresh sign flip at event 12, microprice-deviation intuition, OFI spike) in one condensed paragraph pointing to the appendix table. | -2 body pages (107 -> 105); words -198 (32,392 -> 32,194); total PDF unchanged (148) since the appendix absorbed the page | applied (`75ad10de`) |
 | 21 | 1 | 04-03, 05-02, 07-03 | First full read of `04-03` (reward function), `04-04`, `04-06`, `04-07`, and `05-02` (all previously untouched by any session). Found a genuine methodological point restated in full 4 times: "training reward (DSR) is not the evaluation financial metric; conflating them (e.g. citing a high training DSR as evidence of held-out Sharpe) is invalid" appears in `04-03` (fullest, kept as authoritative), `05-02`'s "two output streams" implementation note, `07-03`'s practitioner-recommendation bullet, and a fourth copy at the end of `04-03` itself restating `07-02`'s "Algorithm and reward ablation" future-work item down to the same Sortino/drawdown-penalized alternatives. Kept 04-03's version, compressed 05-02 and 07-03 to their own distinct framing with a pointer to Section 4.3, and replaced 04-03's closing sentence with a plain forward pointer to Chapter 7. `04-04`, `04-06`, `04-07`, and the pseudocode in `05-02` were checked and found tightly scoped — no further findings. | -70 (05-02+07-03) | applied (`997e1e0e`) |
@@ -350,3 +351,12 @@ trims per-paper framing sentences, keeping every citation and distinct claim,
 per the item's original scope ("keep Majidi2024, Kabbani2022, and FinRL2020
 individually treated"). User approved as-is. Applied; word count not yet
 re-rendered to a fresh page count this session.
+
+Continuing the same session, applied item 18 (`01-00`, `01-01`): merged the
+introduction's three closing paragraphs into one boundary paragraph pointing
+to Chapters 5/7 for detail, compressed "Novelty" to stop restating the
+intro's TD3/HFT/continuous-control claim, and cut two Objectives bullets that
+restated Hypotheses 1 and 2 verbatim. User approved the full diff for all
+three sub-edits in one `ok`. Saved 134 words, again under estimate for the
+same reason as item 11. Body word count now 30,193 (30,405 baseline - 78 -
+134); not yet re-rendered to a fresh page count.
