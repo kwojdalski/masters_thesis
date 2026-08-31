@@ -298,8 +298,10 @@ if _splits_path.exists():
     out["rows"] = out["rows"].apply(lambda x: f"{int(x):,}")
     out["mean_delta_s"] = out["mean_delta_s"].apply(lambda s: fmt_duration(s, na=""))
     out["median_delta_s"] = out["median_delta_s"].apply(lambda s: fmt_duration(s, na=""))
-    out["first_timestamp"] = out["first_timestamp"].str[:23]
-    out["last_timestamp"] = out["last_timestamp"].str[:23]
+    # Trim to whole-second precision (YYYY-MM-DD HH:MM:SS); sub-second detail
+    # belongs in the Mean/Median Δt columns, not the range endpoints.
+    out["first_timestamp"] = out["first_timestamp"].str[:19]
+    out["last_timestamp"] = out["last_timestamp"].str[:19]
     out = out.rename(columns={
         "split": "Split",
         "rows": "Events",
