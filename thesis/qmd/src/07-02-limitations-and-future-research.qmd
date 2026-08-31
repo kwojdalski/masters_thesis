@@ -3,6 +3,24 @@
 
 ### Execution Realism
 <!-- [PLACEHOLDER] -->
+<!-- TODO(thesis-writer): quantify this section from
+     docs/masters_thesis/experiment-audits/2026-08-31-h1-followup-frictionless-mechanism.md
+     once h1 is rerun under execution_price=bid_ask + a non-zero trading_fees
+     (in both train.yaml and evaluate.yaml -- the training reward shares the
+     same frictionless assumption, so re-scoring the existing checkpoint is
+     not sufficient; the agent must be retrained under real costs). Numbers
+     to cite as the mechanism, not just "frictions could matter":
+       - |microprice - mid| <= half-spread identically (verified on 100% of
+         2.4M AAPL rows) -- the feature set's maximum expressible edge equals
+         exactly what execution_price=mid deletes.
+       - measured cost/PnL ratio under mid-price execution: 10.3x (spread
+         cost 12.16 NLV vs gross PnL 1.18 NLV on the h1 TD3 test window).
+       - breakeven proportional fee: ~4.1e-6.
+       - the identical action path returns +2.27 under mid-price execution
+         vs an estimated ~-10.6 under bid_ask -- same signal, opposite sign.
+       - control: random_actions in the same frictionless env returns
+         -0.033%, so this is not free bid-ask-bounce harvesting available to
+         any policy; the signal is real, only the fill price is not. -->
 
 The central limitation of the empirical setup is its execution model: a
 mid-price-like proxy for portfolio valuation and reward computation, with zero
