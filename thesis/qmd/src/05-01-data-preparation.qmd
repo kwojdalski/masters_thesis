@@ -155,6 +155,33 @@ pipeline is then applied independently to each training file and to the
 evaluation file. This per-security fitting ensures that the normalization
 statistics are computed exclusively from training-period observations, with no
 leakage from the held-out evaluation day.
+<!-- TODO(thesis-writer): this paragraph describes a mechanism the code does
+     not implement. Source:
+     docs/masters_thesis/experiment-audits/2026-08-31-h1-leakage-and-bias-sweep.md
+     findings 1 and 2. All ten h1 features use normalization_method: running
+     with reset_on_session_break: true, which routes transform() into
+     Feature._transform_session_aware (src/trading_rl/features/base.py:670-731).
+     That path installs a THROWAWAY RunningMeanStd per session and normalizes
+     with causal cumulative sums; the statistics from pipeline.fit(train) are
+     never consulted. Verified: transforming the AAPL evaluation day with a
+     pipeline fitted on TSLA gives bit-identical output to one fitted on AAPL
+     (max|diff| = 0.000e+00 on all ten features).
+     The causality guarantee still holds -- it is just a different and
+     stronger one: the evaluation day is normalized only by its own
+     expanding, strictly-causal within-session statistics, so training data
+     cannot contaminate it because it is not used at all. Confirmed
+     independently by a prefix-invariance test (transforming 200k vs 400k
+     rows gives max|diff| = 0.000e+00 over 196,491 overlapping rows).
+     Rewrite to describe expanding within-session normalization, and note
+     that the fit step is inert for this feature set.
+     Second correction, for the "per chronological split" claim at the
+     Feature Normalization section below: statistics reset per SESSION, not
+     per split, and validation/test are the two halves of one March 2 session
+     (src/trading_rl/data/preparation.py:543-548), so the test half's
+     statistics are warm-started by the validation half. Backward-looking, so
+     not look-ahead -- but validation and test are not independent samples
+     and should not be described as separated by the normalizer. -->
+
 
 ### Feature Normalization and Causality Preservation {#sec-feature-normalization-and-causality-preservation}
 
