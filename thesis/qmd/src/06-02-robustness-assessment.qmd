@@ -118,36 +118,17 @@ specification is reported separately in Hypothesis 2 above. Each axis holds all 
 design choices constant. The shared baseline across both Hypothesis 3 axes is the selected
 10-feature set with log return reward and zero transaction cost.
 
+### Reward Function Design
+
 ```{python}
-#| label: h3_sensitivity_tables
+#| label: tbl-h3-reward-design
 #| echo: false
 #| warning: false
+#| tbl-cap: "Hypothesis 3 reward-design sensitivity: test-split metrics for log-return vs. Differential Sharpe Ratio."
 
 import pandas as pd
-from IPython.display import Markdown, display
 from thesis_mlflow_results import load_scenario_metrics
 from thesis_tables import fmt_val, display_df, table_note
-
-_H3_AXES = [
-    {
-        "label": "Reward Function Design",
-        "col": "Variant",
-        "scenarios": [
-            ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)", True),
-            ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "Differential Sharpe (DSR)", False),
-        ],
-    },
-    {
-        "label": "Transaction Costs",
-        "col": "Fees",
-        "scenarios": [
-            ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "0 bp (baseline)", True),
-            ("pooled_td3_h3_fees_1e6",                                   "0.01 bp",         False),
-            ("pooled_td3_h3_fees_1e5",                                   "0.1 bp",          False),
-            ("pooled_td3_h3_fees_1e4",                                   "1 bp",            False),
-        ],
-    },
-]
 
 _H3_COLS = [
     ("sharpe_ratio",  "Sharpe",   ".3f"),
@@ -159,22 +140,58 @@ _H3_COLS = [
     ("turnover",      "Turnover", ".4f"),
 ]
 
-for axis in _H3_AXES:
-    rows = []
-    for exp, label, _ in axis["scenarios"]:
-        m = load_scenario_metrics(exp)
-        row = {axis["col"]: label}
-        for key, col, fmt in _H3_COLS:
-            row[col] = fmt_val(m.get(key), fmt)
-        rows.append(row)
-    df = pd.DataFrame(rows)
-    if df.iloc[:, 1:].isin(["—"]).all().all():
-        print(f"{axis['label']}: no results yet. Run: uv run thesis-experiments h3")
-    else:
-        display(Markdown(f"### {axis['label']}"))
-        display_df(df)
-        table_note(source="Author's own calculations.")
-        show_table_meta(finished, audit=_audit)
+_reward_scenarios = [
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)"),
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "Differential Sharpe (DSR)"),
+]
+
+rows = []
+for exp, label in _reward_scenarios:
+    m = load_scenario_metrics(exp)
+    row = {"Variant": label}
+    for key, col, fmt in _H3_COLS:
+        row[col] = fmt_val(m.get(key), fmt)
+    rows.append(row)
+df = pd.DataFrame(rows)
+
+if df.iloc[:, 1:].isin(["—"]).all().all():
+    print("No results yet. Run: uv run thesis-experiments h3")
+else:
+    display_df(df)
+    table_note(source="Author's own calculations.")
+    show_table_meta(finished, audit=_audit)
+```
+
+### Transaction Costs
+
+```{python}
+#| label: tbl-h3-transaction-costs
+#| echo: false
+#| warning: false
+#| tbl-cap: "Hypothesis 3 transaction-cost sensitivity: test-split metrics across fee levels."
+
+_fees_scenarios = [
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "0 bp (baseline)"),
+    ("pooled_td3_h3_fees_1e6",                                   "0.01 bp"),
+    ("pooled_td3_h3_fees_1e5",                                   "0.1 bp"),
+    ("pooled_td3_h3_fees_1e4",                                   "1 bp"),
+]
+
+rows = []
+for exp, label in _fees_scenarios:
+    m = load_scenario_metrics(exp)
+    row = {"Fees": label}
+    for key, col, fmt in _H3_COLS:
+        row[col] = fmt_val(m.get(key), fmt)
+    rows.append(row)
+df = pd.DataFrame(rows)
+
+if df.iloc[:, 1:].isin(["—"]).all().all():
+    print("No results yet. Run: uv run thesis-experiments h3")
+else:
+    display_df(df)
+    table_note(source="Author's own calculations.")
+    show_table_meta(finished, audit=_audit)
 ```
 
 The reward-design comparison shows that Differential Sharpe Ratio optimization
@@ -219,26 +236,31 @@ held-out test split. The key question is whether the distribution of trial
 outcomes shows systematic learning rather than random variation around zero.
 
 ```{python}
-#| label: h4_learning_progression
+#| label: h4_setup
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 4 learning progression: performance statistics across multiple short trials."
 
 import pandas as pd
-from IPython.display import Image, display
 from thesis_mlflow_results import load_h4_report
 from thesis_tables import display_df, table_note
 
 _H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5"
-
 h4_data = load_h4_report(_H4_SCENARIO)
+
+if not h4_data:
+    print("No Hypothesis 4 results available. Run: uv run thesis-experiments h4")
+```
+
+```{python}
+#| label: tbl-h4-summary
+#| echo: false
+#| warning: false
+#| tbl-cap: "Hypothesis 4 learning progression: summary statistics across multiple short trials."
 
 if h4_data:
     stats = h4_data.get("statistics", {})
-    criteria = h4_data.get("criteria", {})
     trials = h4_data.get("trials", [])
 
-    # Summary statistics table
     summary_rows = [
         ("N Trials", stats.get("n_trials", len(trials))),
         ("Mean Return", f"{stats.get('mean_return', 0):.2e}"),
@@ -254,9 +276,20 @@ if h4_data:
         summary_rows.append(("Return p-value (vs zero)", f"{p_str}{p_sig}"))
 
     summary_df = pd.DataFrame(summary_rows, columns=["Metric", "Value"])
-    display(summary_df)
+    display_df(summary_df)
+    table_note(source="Author's own calculations.")
+    show_table_meta(finished, audit=_audit)
+```
 
-    # Criteria table
+```{python}
+#| label: tbl-h4-criteria
+#| echo: false
+#| warning: false
+#| tbl-cap: "Hypothesis 4 learning criteria: pass/fail checks against the four learning-progression conditions."
+
+if h4_data:
+    criteria = h4_data.get("criteria", {})
+
     criteria_rows = [
         ("Positive mean return", criteria.get("positive_return", False)),
         ("Positive mean Sharpe", criteria.get("positive_sharpe", False)),
@@ -274,11 +307,20 @@ if h4_data:
     overall = criteria.get("overall", False)
     verdict = "[green]PASS[/green]" if overall else "[yellow]FAIL[/yellow]"
 
-    print(f"\n**Learning Criteria Check:** {criteria_met} met")
     display_df(criteria_df)
+    print(f"\n**Learning Criteria Check:** {criteria_met} met")
     print(f"**Overall Verdict:** {verdict}")
+    table_note(source="Author's own calculations.")
+```
 
-    # Individual trials table
+```{python}
+#| label: tbl-h4-trials
+#| echo: false
+#| warning: false
+#| tbl-cap: "Hypothesis 4 per-trial results across independent random seeds."
+
+if h4_data:
+    trials = h4_data.get("trials", [])
     if trials:
         trial_df = pd.DataFrame(trials)
         display_cols = ["trial", "total_return", "sharpe_ratio", "win_rate", "profit_factor", "vs_dummy_return"]
@@ -290,10 +332,8 @@ if h4_data:
             view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
             view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
             display_df(view)
-    table_note(source="Author's own calculations.")
-    show_table_meta(finished, audit=_audit)
-else:
-    print("No Hypothesis 4 results available. Run: uv run thesis-experiments h4")
+            table_note(source="Author's own calculations.")
+            show_table_meta(finished, audit=_audit)
 ```
 
 ### Interpretation of Hypothesis 4 Results
