@@ -1,13 +1,14 @@
-"""H3 sensitivity analysis report.
+"""Sensitivity-axis report.
 
 Reads results.json from each scenario's log directory and prints a
-side-by-side comparison table for every sensitivity axis defined in
-src/configs/h3_sensitivity.yaml.
+side-by-side comparison table for every sensitivity axis defined in the
+supplied config YAML. Used for the transaction-cost (H2) and reward-design
+(H4) axes; see src/configs/h2_transaction_cost.yaml and
+src/configs/h4_reward_design.yaml.
 
 Usage:
-    uv run python scripts/h3_sensitivity_report.py
-    uv run python scripts/h3_sensitivity_report.py --split val
-    uv run python scripts/h3_sensitivity_report.py --config src/configs/h3_sensitivity.yaml
+    uv run python scripts/sensitivity_report.py --config src/configs/h2_transaction_cost.yaml
+    uv run python scripts/sensitivity_report.py --config src/configs/h4_reward_design.yaml --split val
 """
 
 from __future__ import annotations
@@ -22,8 +23,6 @@ import yaml
 from rich.columns import Columns
 from rich.console import Console
 from rich.table import Table
-
-_DEFAULT_CONFIG = Path("src/configs/h3_sensitivity.yaml")
 
 _METRICS: list[tuple[str, str, str]] = [
     ("sharpe_ratio", "Sharpe", ".3f"),
@@ -99,13 +98,13 @@ def build_axis_table(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="H3 sensitivity analysis report")
+    parser = argparse.ArgumentParser(description="Sensitivity-axis report")
     parser.add_argument(
         "--config",
         "-c",
         type=Path,
-        default=_DEFAULT_CONFIG,
-        help=f"Path to sensitivity config YAML (default: {_DEFAULT_CONFIG})",
+        required=True,
+        help="Path to a sensitivity config YAML (an 'axes' list).",
     )
     parser.add_argument(
         "--split",
@@ -145,13 +144,14 @@ def main() -> None:
 
     if not tables:
         console.print(
-            "[yellow]No results found. Train the H3 scenarios first.[/yellow]"
+            "[yellow]No results found. Train the scenarios in the config first.[/yellow]"
         )
         sys.exit(0)
 
     console.print()
     console.print(
-        f"[bold]H3 Sensitivity Analysis[/bold]  [dim](split: {args.split})[/dim]"
+        f"[bold]Sensitivity Analysis[/bold]  "
+        f"[dim]({cfg_path.stem}, split: {args.split})[/dim]"
     )
     console.print()
     console.print(Columns(tables, equal=False, expand=False))

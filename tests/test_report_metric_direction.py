@@ -31,9 +31,9 @@ def h1():
 
 
 @pytest.fixture(scope="module")
-def h2():
+def h3():
     return _load_script_module(
-        "scripts/h2_feature_sensitivity_report.py", "h2_feature_sensitivity_report"
+        "scripts/h3_feature_sensitivity_report.py", "h3_feature_sensitivity_report"
     )
 
 
@@ -75,18 +75,18 @@ def test_h1_higher_is_better_metrics_unaffected(h1) -> None:
     assert "red" in h1.beats(0.9, 1.4, True)
 
 
-def test_h2_shallower_drawdown_delta_is_green(h2) -> None:
+def test_h3_shallower_drawdown_delta_is_green(h3) -> None:
     """A variant at -2% against a -10% baseline is an improvement."""
-    assert "green" in h2.fmt_delta("max_drawdown", -0.02, -0.10, ".2%")
+    assert "green" in h3.fmt_delta("max_drawdown", -0.02, -0.10, ".2%")
 
 
-def test_h2_deeper_drawdown_delta_is_red(h2) -> None:
-    assert "red" in h2.fmt_delta("max_drawdown", -0.20, -0.05, ".2%")
+def test_h3_deeper_drawdown_delta_is_red(h3) -> None:
+    assert "red" in h3.fmt_delta("max_drawdown", -0.20, -0.05, ".2%")
 
 
-def test_h2_sharpe_delta_direction_unaffected(h2) -> None:
-    assert "green" in h2.fmt_delta("sharpe_ratio", 1.4, 0.9, ".3f")
-    assert "red" in h2.fmt_delta("sharpe_ratio", 0.9, 1.4, ".3f")
+def test_h3_sharpe_delta_direction_unaffected(h3) -> None:
+    assert "green" in h3.fmt_delta("sharpe_ratio", 1.4, 0.9, ".3f")
+    assert "red" in h3.fmt_delta("sharpe_ratio", 0.9, 1.4, ".3f")
 
 
 def test_h1_benchmark_labels_have_no_duplicate_keys() -> None:

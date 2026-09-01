@@ -88,9 +88,9 @@ set of scenarios (see `src/masters_thesis/experiments.py`):
 | Hypothesis | Tests |
 | --- | --- |
 | `h1` | Whether TD3 outperforms DDPG, PPO, and a random-policy baseline |
-| `h2` | How the observation feature set affects TD3 performance |
-| `h3` | Whether the main result is robust to modelling choices (features, reward, transaction costs) |
-| `h4` | Whether TD3 learns consistently across independent short trials |
+| `h2` | How the transaction-cost assumption affects TD3 performance (fee sweep 0–1 bp) |
+| `h3` | How the observation feature set affects TD3 performance (minimal / selected / full) |
+| `h4` | How the reward function (log-return vs Differential Sharpe) changes the learned policy |
 
 <!--pytest.mark.skip-->
 ```bash

@@ -1,56 +1,37 @@
-Review **Hypothesis 3** (empirical performance is materially sensitive to feature specification, reward design, and transaction-cost assumptions) by reading only the relevant thesis sections and result files.
+Review **Hypothesis 3** (a broader microstructure-aware feature set improves out-of-sample performance relative to a simpler snapshot-based representation) by reading only the relevant thesis sections and result files.
 
 ## Step 1 — Read the thesis prose for H3
 
-Read these files:
-- `thesis/qmd/src/06-02-robustness-assessment.qmd` — read only the `## H3: Sensitivity Analysis` section (stop at `## H4`)
-- `thesis/qmd/src/07-01-summary-of-findings.qmd` — read only the H3 paragraph
+Read the H3 section inside:
+- `thesis/qmd/src/01-01-scope-and-objectives.qmd` (the formal H3 statement — item 3 of the hypothesis list)
+- `thesis/qmd/src/06-02-robustness-assessment.qmd` — read only the `## Hypothesis 3: Feature Specification Sensitivity` section (stop at `## Hypothesis 4`)
+- `thesis/qmd/src/07-01-summary-of-findings.qmd` — read only the Hypothesis 3 paragraph (stop at Hypothesis 4)
 
-## Step 2 — Read the result data for all H3 scenarios
+## Step 2 — Read the result data for the three H3 scenarios
 
-H3 covers two sensitivity axes: reward design and transaction costs.
+The H3 comparison uses three feature-set configurations. For each, read its thesis snapshot evaluation report:
 
-**Reward design axis:**
 ```bash
-# Log-return baseline
+# Minimal (3 features)
+cat thesis/qmd/results/pooled_td3_h3_features_minimal/latest_finished/evaluation_report.json
+# Selected (10 features) — the baseline
 cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/latest_finished/evaluation_report.json
-
-# Differential Sharpe Ratio (DSR)
-cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/latest_finished/evaluation_report.json
+# Full (33 features)
+cat thesis/qmd/results/pooled_td3_h3_features_full/latest_finished/evaluation_report.json
 ```
 
-**Transaction-cost axis:**
-```bash
-# 0.01 bp fees
-cat thesis/qmd/results/pooled_td3_h3_fees_1e6/latest_finished/evaluation_report.json
-
-# 0.1 bp fees
-cat thesis/qmd/results/pooled_td3_h3_fees_1e5/latest_finished/evaluation_report.json
-
-# 1 bp fees
-cat thesis/qmd/results/pooled_td3_h3_fees_1e4/latest_finished/evaluation_report.json
-```
-
-If any snapshot directory is missing, run:
-```bash
-ls thesis/qmd/results/
-```
-and note missing scenarios as gaps.
+The `td3_h3_features_*` directories keep their legacy names. If a snapshot directory is missing, run `ls thesis/qmd/results/` and note it as a gap.
 
 ## Step 3 — Cross-check numbers
 
-The H3 section cites specific values for each axis comparison. Verify each:
+The H3 section cites specific comparison values. Verify each against the JSON data.
 
-**Reward axis claims to check:**
-- DSR vs log-return: cumulative return ($2.28 \times 10^{-7}$ vs $1.29 \times 10^{-7}$)
-- DSR vs log-return: profit factor (5.70 vs 2.01)
-- DSR vs log-return: max drawdown ($-1.05 \times 10^{-7}$ vs $-1.93 \times 10^{-7}$)
-- DSR exposure shift: 49.8% long / 50.2% short vs 86.7% long
-
-**Transaction-cost claims to check:**
-- 0.01 bp: return still positive ($2.28 \times 10^{-7}$)
-- 0.1 bp: return turns negative ($-7.60 \times 10^{-7}$)
-- 1 bp: loss increases to ($-5.89 \times 10^{-6}$)
+Key metrics to compare across scenarios:
+- `total_return`
+- `sharpe_ratio`, `sortino_ratio`
+- `max_drawdown`
+- `win_rate`, `profit_factor`
+- `pct_long`, `pct_short`, `turnover`
 
 Flag any mismatch with: `MISMATCH: prose says X, data says Y`.
 
@@ -58,11 +39,11 @@ Flag any mismatch with: `MISMATCH: prose says X, data says Y`.
 
 Answer these questions explicitly:
 
-1. Does the **reward function change** (log-return → DSR) produce a materially different policy? Confirm the direction and magnitude.
-2. Is the **transaction-cost sensitivity** monotone (performance degrades as costs increase)? Is the zero-profit threshold between 0.01 bp and 0.1 bp?
-3. Does feature specification sensitivity (covered in H2) further reinforce H3, or is it handled separately?
-4. Does the prose correctly bound the economic claim — i.e., does it state that the agent's edge exists only at near-zero transaction costs?
-5. Is the H3 verdict ("supported") consistent with all three sensitivity axes?
+1. Does the **selected (10-feature) set outperform the minimal (3-feature) set** on total return and risk-adjusted metrics?
+2. Does the **full (33-feature) set outperform the selected set**? If not, does the prose correctly explain why (feature quality vs quantity)?
+3. Is the minimal-feature policy short-biased / less stable as the prose claims?
+4. Is the stated H3 verdict — "supported for minimal→selected transition, not for every broader set" — justified by the numbers?
+5. Are there any metrics where H3 goes in the wrong direction that the prose should acknowledge?
 
 ## Step 5 — Create GitHub issues for findings
 
@@ -93,31 +74,23 @@ Track the issue numbers created.
 ## H3 Review
 
 ### Data available
-- [x/missing] pooled_td3_hft_lob_state_space_pooled_streaming_selected (log-return baseline)
-- [x/missing] pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr (DSR)
-- [x/missing] pooled_td3_h3_fees_1e6 (0.01 bp)
-- [x/missing] pooled_td3_h3_fees_1e5 (0.1 bp)
-- [x/missing] pooled_td3_h3_fees_1e4 (1 bp)
+- [x/missing] pooled_td3_h3_features_minimal
+- [x/missing] pooled_td3_hft_lob_state_space_pooled_streaming_selected
+- [x/missing] pooled_td3_h3_features_full
 
-### Reward axis comparison (from data)
-| Metric       | Log-return | DSR  |
-|--------------|------------|------|
-| total_return | ...        | ...  |
-| profit_factor| ...        | ...  |
-| max_drawdown | ...        | ...  |
-| pct_long     | ...        | ...  |
-
-### Fee axis comparison (from data)
-| Metric       | 0 bp | 0.01 bp | 0.1 bp | 1 bp |
-|--------------|------|---------|--------|------|
-| total_return | ...  | ...     | ...    | ...  |
+### Comparison table (from data)
+| Metric       | Minimal | Selected | Full |
+|--------------|---------|----------|------|
+| total_return | ...     | ...      | ...  |
+| sharpe_ratio | ...     | ...      | ...  |
+| ...          |         |          |      |
 
 ### Number verification
-| Claim | Prose value | Data value | Status |
-|-------|-------------|------------|--------|
+| Metric | Scenario | Prose value | Data value | Status |
+|--------|----------|-------------|------------|--------|
 
 ### Verdict assessment
-[Is H3 supported as stated? Is the cost-sensitivity bound accurately characterized?]
+[Is H3 supported as stated? What nuance is missing?]
 
 ### Gaps and recommendations
 - [List issues created: #N, #N, ...]

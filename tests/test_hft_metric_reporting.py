@@ -34,12 +34,10 @@ def test_hft_cli_metric_lists_exclude_cagr_and_calmar() -> None:
         assert "calmar_ratio" not in keys
 
 
-def test_h3_report_metrics_exclude_cagr() -> None:
-    h3 = _load_script_module(
-        "scripts/h3_sensitivity_report.py", "h3_sensitivity_report"
-    )
+def test_sensitivity_report_metrics_exclude_cagr() -> None:
+    sens = _load_script_module("scripts/sensitivity_report.py", "sensitivity_report")
 
-    metric_keys = {key for key, _, _ in h3._METRICS}
+    metric_keys = {key for key, _, _ in sens._METRICS}
 
     assert "annualized_return_cagr" not in metric_keys
 

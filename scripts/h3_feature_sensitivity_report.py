@@ -1,10 +1,10 @@
-"""H2 feature sensitivity report.
+"""H3 feature sensitivity report.
 
 Compares out-of-sample performance across three feature-specification levels
 (minimal, selected, full) to evaluate whether richer microstructure features
 improve TD3 performance.
 
-H2: Extending the state representation from basic snapshot features to a
+H3: Extending the state representation from basic snapshot features to a
 broader microstructure-aware feature set leads to improved out-of-sample
 performance under identical training and evaluation conditions.
 
@@ -13,9 +13,9 @@ that each hold a results.json, metrics are aggregated as mean ± std across
 seeds. A single results.json in log_dir itself is treated as a single seed.
 
 Usage:
-    uv run python scripts/h2_feature_sensitivity_report.py
-    uv run python scripts/h2_feature_sensitivity_report.py --split val
-    uv run python scripts/h2_feature_sensitivity_report.py --config src/configs/h2_feature_sensitivity.yaml
+    uv run python scripts/h3_feature_sensitivity_report.py
+    uv run python scripts/h3_feature_sensitivity_report.py --split val
+    uv run python scripts/h3_feature_sensitivity_report.py --config src/configs/h3_feature_sensitivity.yaml
 """
 
 from __future__ import annotations
@@ -31,7 +31,7 @@ import yaml
 from rich.console import Console
 from rich.table import Table
 
-_DEFAULT_CONFIG = Path("src/configs/h2_feature_sensitivity.yaml")
+_DEFAULT_CONFIG = Path("src/configs/h3_feature_sensitivity.yaml")
 
 _METRICS: list[tuple[str, str, str]] = [
     ("sharpe_ratio", "Sharpe", ".3f"),
@@ -163,7 +163,7 @@ def build_report_table(
             break
 
     t = Table(
-        title="H2 Feature Specification Sensitivity",
+        title="H3 Feature Specification Sensitivity",
         show_header=True,
         header_style="bold",
     )
@@ -215,7 +215,7 @@ def build_report_table(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="H2 feature sensitivity report")
+    parser = argparse.ArgumentParser(description="H3 feature sensitivity report")
     parser.add_argument("--config", "-c", type=Path, default=_DEFAULT_CONFIG)
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
     parser.add_argument(
@@ -245,17 +245,17 @@ def main() -> None:
 
     console.print()
     console.print(
-        f"[bold]H2 Feature Sensitivity Report[/bold]  [dim](split: {split})[/dim]"
+        f"[bold]H3 Feature Sensitivity Report[/bold]  [dim](split: {split})[/dim]"
     )
     console.print(
-        "[dim]H2: More microstructure features → stronger out-of-sample performance.[/dim]"
+        "[dim]H3: More microstructure features → stronger out-of-sample performance.[/dim]"
     )
     console.print()
 
     table = build_report_table(scenarios, split, console)
     if table is None:
         console.print(
-            "[yellow]No results found. Run `cli.py train` for each H2 scenario first:[/yellow]"
+            "[yellow]No results found. Run `cli.py train` for each H3 scenario first:[/yellow]"
         )
         for sc in scenarios:
             console.print(

@@ -14,8 +14,7 @@ Examples
     uv run thesis-experiments h1
     uv run thesis-experiments h2 --skip-train
     uv run thesis-experiments h3 --parallel
-    uv run thesis-experiments h4 --trials 5 --steps 200000
-    uv run thesis-experiments h4 --parallel --max-parallel 3
+    uv run thesis-experiments h4 --skip-train
     uv run thesis-experiments all
     uv run thesis-experiments h2 --max-train-seconds 300
     uv run thesis-experiments h1 -o training.max_steps=50000
@@ -28,8 +27,6 @@ from __future__ import annotations
 
 import concurrent.futures
 import os
-import random
-import shlex
 import shutil
 import subprocess
 import sys
@@ -69,34 +66,35 @@ _H1_SCENARIOS = [
     "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr",
 ]
 
+# Transaction-cost sensitivity: the 0 bp baseline plus the fee ladder. The
+# scenario directories keep their legacy ``_h3_`` tokens (opaque IDs); the
+# hypothesis they now serve is H2.
 _H2_SCENARIOS = [
+    "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # 0 bp baseline
+    "pooled/td3_h3_fees_1e6",
+    "pooled/td3_h3_fees_1e5",
+    "pooled/td3_h3_fees_1e4",
+]
+
+# Feature specification: minimal / selected / full state representations, holding
+# algorithm, reward, and cost fixed.
+_H3_SCENARIOS = [
     "pooled/td3_h3_features_minimal",
     "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # shared baseline
     "pooled/td3_h3_features_full",
 ]
 
-# Deduplicate while preserving first-occurrence order — baseline appears in
-# multiple axes (feature, reward, transaction-cost) and is trained only once.
-_H3_SCENARIOS = list(
-    dict.fromkeys(
-        [
-            "pooled/td3_h3_features_minimal",
-            "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # baseline
-            "pooled/td3_h3_features_full",
-            "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
-            "pooled/td3_h3_fees_1e6",
-            "pooled/td3_h3_fees_1e5",
-            "pooled/td3_h3_fees_1e4",
-        ]
-    )
-)
-
-_H4_SCENARIO = "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+# Reward-function design: log-return baseline vs Differential Sharpe Ratio.
+_H4_SCENARIOS = [
+    "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # log-return baseline
+    "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",  # DSR
+]
 
 _SCENARIOS: dict[str, list[str]] = {
     "h1": _H1_SCENARIOS,
     "h2": _H2_SCENARIOS,
     "h3": _H3_SCENARIOS,
+    "h4": _H4_SCENARIOS,
 }
 
 _EVAL_ONLY: dict[str, list[str]] = {
@@ -107,12 +105,17 @@ _EVAL_ONLY: dict[str, list[str]] = {
     "h1": ["metrics", "benchmarks", "plots", "stats"],
     "h2": ["metrics", "plots"],
     "h3": ["metrics", "plots"],
+    "h4": ["metrics", "plots"],
 }
 
-_REPORT_SCRIPTS: dict[str, str] = {
-    "h1": "h1_performance_report.py",
-    "h2": "h2_feature_sensitivity_report.py",
-    "h3": "h3_sensitivity_report.py",
+# Values are argv tails for scripts/<name>; _run_report splices in the
+# --results-root flag. The two sensitivity axes share one generic script with a
+# per-axis --config.
+_REPORT_SCRIPTS: dict[str, list[str]] = {
+    "h1": ["h1_performance_report.py"],
+    "h2": ["sensitivity_report.py", "--config", "src/configs/h2_transaction_cost.yaml"],
+    "h3": ["h3_feature_sensitivity_report.py"],
+    "h4": ["sensitivity_report.py", "--config", "src/configs/h4_reward_design.yaml"],
 }
 
 
@@ -185,7 +188,7 @@ class RunArgs:
     # Concurrent scenario subprocesses under --parallel. Each one independently
     # loads its own copy of the val split for the periodic-eval env (~666 MB as
     # a DataFrame for the pooled data) on top of its replay buffer and torch
-    # runtime, so running all of them at once (7 for H3) exhausts memory (#517).
+    # runtime, so running all of them at once (4 for H2) exhausts memory (#517).
     max_parallel: int = 2
     experiment_set: ExperimentSet = field(
         default_factory=lambda: _load_experiment_set("full")
@@ -462,7 +465,8 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
 
 
 def _run_report(hypothesis: str, args: RunArgs) -> None:
-    script = _REPO_ROOT / "scripts" / _REPORT_SCRIPTS[hypothesis]
+    script_args = _REPORT_SCRIPTS[hypothesis]
+    script = _REPO_ROOT / "scripts" / script_args[0]
     _con.print(f"\n[bold cyan]=== {hypothesis.upper()}: Report ===[/bold cyan]")
     _run_simple(
         [
@@ -470,6 +474,7 @@ def _run_report(hypothesis: str, args: RunArgs) -> None:
             "run",
             "python",
             str(script),
+            *script_args[1:],
             "--results-root",
             str(args.experiment_set.output_root),
         ]
@@ -543,153 +548,6 @@ def run_hypothesis(hypothesis: str, args: RunArgs) -> None:
         _con.print(
             f"[dim]=== {hypothesis.upper()}: skipping evaluate, report, and export (--skip-eval) ===[/dim]"
         )
-
-
-def run_h4(
-    scenario: str,
-    trials: int,
-    steps: int,
-    args: RunArgs,
-) -> None:
-    """Run the H4 multi-trial learning-progression workflow."""
-    args.experiment_set.output_root.mkdir(parents=True, exist_ok=True)
-
-    if not args.skip_guardrails:
-        _check_guardrails([scenario], args)
-
-    scenario_dir = args.experiment_set.output_root / _scenario_name(scenario)
-    # Directory the post-training evaluate call reads its checkpoint from.
-    # Sequential mode keeps the pre-existing behaviour of all trials sharing
-    # one log_dir (each trial's checkpoint overwrites the last, so only the
-    # final trial's checkpoint survives to be evaluated). Parallel mode gives
-    # each trial its own log_dir -- concurrent writes to one checkpoint path
-    # would corrupt it -- so it points at the last trial's own directory to
-    # match that same "evaluate the final trial" behaviour.
-    eval_log_dir = scenario_dir
-
-    if not args.skip_train:
-        _con.print(
-            f"\n[bold cyan]=== H4: Training {trials} trials "
-            f"(max_steps={steps}) ===[/bold cyan]"
-        )
-        base_train_overrides = [
-            f"training.max_steps={steps}",
-            "evaluation.eval_fraction=0.05",
-            "training.temp_eval.max_steps=5000",
-            "evaluation.skip_final_eval=true",
-            *(["training.skip_guardrails=true"] if args.skip_guardrails else []),
-            *args.overrides,
-            # After args.overrides so the dedicated flag wins over a bare -o,
-            # matching run_hypothesis/_train_all's precedence; still ahead of
-            # EXTRA_TRAIN_ARGS, which stays the final escape hatch. Caps each
-            # trial's wall-clock time on top of the --steps cap above.
-            *(
-                [f"training.max_train_seconds={args.max_train_seconds}"]
-                if args.max_train_seconds
-                else []
-            ),
-            *shlex.split(os.environ.get("EXTRA_TRAIN_ARGS", "")),
-        ]
-
-        if args.parallel:
-            # Each trial runs as its own single-trial subprocess (rather than
-            # one `--trials N` process looping in-process) so trials actually
-            # overlap. Seeds are assigned base_seed + trial_index, mirroring
-            # run_multiple_experiments' own per-trial seeding, since each
-            # subprocess otherwise starts its own independent trial_number=0.
-            base_seed = random.randint(1, 100_000)  # noqa: S311
-            jobs = []
-            for trial in range(trials):
-                trial_dir = scenario_dir / f"trial_{trial}"
-                trial_overrides = [
-                    f"logging.log_dir={trial_dir}",
-                    f"seed={base_seed + trial}",
-                    *base_train_overrides,
-                ]
-                cmd = [
-                    *_CLI,
-                    "train",
-                    "-c",
-                    scenario,
-                    *_override_flags(trial_overrides),
-                ]
-                if args.verbose:
-                    cmd.append("--verbose")
-                jobs.append((cmd, trial_dir / f"trial_{trial}_train.log"))
-            _run_parallel_jobs("H4 trial", jobs, max_workers=args.max_parallel)
-            eval_log_dir = scenario_dir / f"trial_{trials - 1}"
-        else:
-            train_overrides = [
-                f"logging.log_dir={scenario_dir}",
-                *base_train_overrides,
-            ]
-            cmd = [
-                *_CLI,
-                "train",
-                "-c",
-                scenario,
-                "--trials",
-                str(trials),
-                *_override_flags(train_overrides),
-            ]
-            if args.verbose:
-                cmd.append("--verbose")
-            _run_tee(cmd, _log_file(scenario, "train", args))
-
-    if args.skip_eval:
-        _con.print(
-            "[dim]=== H4: skipping evaluate, report, and export (--skip-eval) ===[/dim]"
-        )
-        return
-
-    _con.print(f"\n[bold cyan]=== H4: Evaluating {trials} trials ===[/bold cyan]")
-    eval_overrides = [
-        f"logging.log_dir={eval_log_dir}",
-        f"training.max_steps={steps}",
-        *args.overrides,
-        *shlex.split(os.environ.get("EXTRA_EVAL_ARGS", "")),
-    ]
-    eval_cmd = [
-        *_CLI,
-        "evaluate",
-        "-c",
-        scenario,
-        # See _evaluate_all: without --per-symbol this scenario's val/test
-        # splits are skipped and the train split is reported in their place.
-        "--per-symbol",
-        *_override_flags(eval_overrides),
-    ]
-    if args.verbose:
-        eval_cmd.append("--verbose")
-    _run_tee(eval_cmd, _log_file(scenario, "eval", args))
-
-    _con.print("\n[bold cyan]=== H4: Learning progression report ===[/bold cyan]")
-    _run_simple(
-        [
-            "uv",
-            "run",
-            "python",
-            str(_REPO_ROOT / "scripts" / "h4_learning_progression_report.py"),
-            "--scenario",
-            scenario,
-            "--n-trials",
-            str(trials),
-            "--max-steps",
-            str(steps),
-            "--output-dir",
-            str(args.experiment_set.output_root / _scenario_name(scenario)),
-            *(
-                []
-                if args.experiment_set.export_to_thesis
-                else ["--experiment-dir", str(args.experiment_set.output_root)]
-            ),
-            *([] if args.experiment_set.export_to_thesis else ["--no-export"]),
-        ]
-    )
-
-    if args.experiment_set.export_to_thesis:
-        _con.print("\n[bold cyan]=== H4: Export to thesis ===[/bold cyan]")
-        _export_all([scenario])
 
 
 # ---------------------------------------------------------------------------
@@ -829,10 +687,11 @@ def h2(
     debug: _DebugSet = False,
     max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
-    """Test how the observation feature set affects TD3 performance.
+    """Test how the transaction-cost assumption affects TD3 performance.
 
-    Compares minimal, selected, and full feature specifications while holding
-    the learning algorithm and the remaining experiment design fixed.
+    Sweeps proportional fee levels from 0 bp to 1 bp on the shared baseline,
+    holding the algorithm, feature set, and reward fixed, then reports where
+    the learned edge changes sign.
     """
     run_hypothesis(
         "h2",
@@ -870,10 +729,10 @@ def h3(
     debug: _DebugSet = False,
     max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
-    """Test whether the main result is robust to modelling choices.
+    """Test how the observation feature set affects TD3 performance.
 
-    Runs sensitivity analyses across feature specifications, reward variants,
-    and transaction-cost assumptions, then produces the H3 robustness report.
+    Compares minimal, selected, and full feature specifications while holding
+    the learning algorithm, reward, and transaction cost fixed.
     """
     run_hypothesis(
         "h3",
@@ -898,67 +757,27 @@ def h3(
 
 @app.command()
 def h4(
-    scenario: Annotated[
-        str | None,
-        typer.Option(
-            "--scenario", envvar="SCENARIO", help="Scenario configuration name."
-        ),
-    ] = None,
-    trials: Annotated[
-        int | None,
-        typer.Option(
-            "--trials", envvar="N_TRIALS", min=1, help="Number of independent trials."
-        ),
-    ] = None,
-    steps: Annotated[
-        int | None,
-        typer.Option(
-            "--steps",
-            envvar="STEPS",
-            min=1,
-            help="Maximum training steps per trial.",
-        ),
-    ] = None,
     skip_train: _SkipTrain = False,
     skip_eval: _SkipEval = False,
-    parallel: Annotated[
-        bool, typer.Option("--parallel", help="Run trials concurrently.")
-    ] = False,
-    max_parallel: Annotated[
-        int,
-        typer.Option(
-            "--max-parallel",
-            min=1,
-            metavar="N",
-            help="Max concurrent trials under [bold]--parallel[/bold] (default: 2). "
-            "Each holds its own copy of the val split, so raise with care.",
-        ),
-    ] = 2,
+    parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
     verbose: _Verbose = False,
     skip_guardrails: _SkipGuardrails = False,
     overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
     set_name: _SetName = "full",
     debug: _DebugSet = False,
     max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
-    """Test whether TD3 learns consistently across independent short trials.
+    """Test how the reward function changes the learned policy.
 
-    Runs repeated seeds with a bounded training budget, evaluates the resulting
-    checkpoints, and compares their learning progression with the baseline.
+    Compares the log-return baseline against the Differential Sharpe Ratio
+    reward on an otherwise identical configuration, then reports the effect on
+    performance and policy behaviour.
     """
-    experiment_set = _load_experiment_set(_resolve_set_name(set_name, debug))
-    h4_config = experiment_set.hypotheses.get("h4", {})
-    if not isinstance(h4_config, dict):
-        raise typer.BadParameter(
-            f"Experiment set {experiment_set.name!r} must define h4 as a mapping"
-        )
-    resolved_scenario = scenario or str(h4_config.get("scenario", _H4_SCENARIO))
-    resolved_trials = trials or int(h4_config.get("trials", 5))
-    resolved_steps = steps or int(h4_config.get("steps", 200_000))
-    run_h4(
-        resolved_scenario,
-        resolved_trials,
-        resolved_steps,
+    run_hypothesis(
+        "h4",
         _apply_experiment_set(
             RunArgs(
                 skip_train=skip_train,
@@ -968,6 +787,8 @@ def h4(
                 verbose=verbose,
                 skip_guardrails=skip_guardrails,
                 overrides=overrides or [],
+                dev=dev,
+                dev_steps=dev_steps,
                 max_train_seconds=max_train_seconds,
             ),
             set_name,
@@ -991,7 +812,7 @@ def run_all(
     debug: _DebugSet = False,
     max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
-    """Run [bold]H1[/bold], [bold]H2[/bold], and [bold]H3[/bold] in sequence."""
+    """Run [bold]H1[/bold] through [bold]H4[/bold] in sequence."""
     args = _apply_experiment_set(
         RunArgs(
             skip_train=skip_train,
@@ -1008,7 +829,7 @@ def run_all(
         set_name,
         debug,
     )
-    for hyp in ("h1", "h2", "h3"):
+    for hyp in ("h1", "h2", "h3", "h4"):
         run_hypothesis(hyp, args)
     _con.print("\n[bold green]All done.[/bold green]")
 

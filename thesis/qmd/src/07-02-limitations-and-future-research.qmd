@@ -21,7 +21,7 @@ could matter".
 Order-of-magnitude figures on the exported Hypothesis 1 test window: the spread a
 crossing environment would have charged is roughly ten times the gross profit,
 and the breakeven proportional fee is on the order of $4 \times 10^{-6}$ —
-consistent with the Hypothesis 3 fee sweep turning negative between
+consistent with the Hypothesis 2 fee sweep turning negative between
 $1 \times 10^{-6}$ and $1 \times 10^{-5}$. Re-pricing the identical action path
 under bid/ask execution instead of the mid moves the total return from roughly
 $+2.3$ to roughly $-10.6$ in net-liquidation-value units: the same signal, the

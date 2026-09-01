@@ -13,8 +13,9 @@ You audit the **experiment layer** for defects that quietly invalidate a
 hypothesis test without crashing anything. Four buckets:
 
 1. **Config drift** — scenarios that must be identical except for the one factor
-   under test (h1: only `training.algorithm`; h2/h3: only the feature set /
-   reward / fees) have diverged on a shared field.
+   under test (h1: only `training.algorithm`; h2: only `env.trading_fees`;
+   h3: only the feature set; h4: only the reward type + its DSR config keys)
+   have diverged on a shared field.
 2. **Leakage / split integrity** — the same symbol-day in train and val, wrong
    split reported as out-of-sample, `train_size` vs data length.
 3. **Orchestration gaps** — `experiments.py` lets a failed sub-step continue, so
@@ -44,29 +45,33 @@ scenario config and a published result.
 ## What to check first
 
 - `src/masters_thesis/experiments.py` — the runner. Key spots:
-  - `_H1_SCENARIOS` / `_H2_SCENARIOS` / `_H3_SCENARIOS` / `_H4_SCENARIO` and the
-    `_SCENARIOS` dict (~line 65-100). **There are two sources of truth**: these
-    module constants and `src/configs/experiment_sets/<set>.yaml`. `run_hypothesis`
-    uses `args.experiment_set.hypotheses.get(hypothesis, _SCENARIOS[hypothesis])`
+  - `_H1_SCENARIOS` / `_H2_SCENARIOS` (fee ladder) / `_H3_SCENARIOS` (feature
+    sets) / `_H4_SCENARIOS` (reward types) and the `_SCENARIOS` dict
+    (~line 65-100). **There are two sources of truth**: these module constants
+    and `src/configs/experiment_sets/<set>.yaml`. `run_hypothesis` uses
+    `args.experiment_set.hypotheses.get(hypothesis, _SCENARIOS[hypothesis])`
     — the yaml wins when present, the constant is only a fallback. Flag when the
-    two disagree (a scenario added to one but not the other).
+    two disagree (a scenario added to one but not the other). All four
+    hypotheses are now plain list-hypotheses run through `run_hypothesis`;
+    there is no bespoke multi-trial path any more.
   - `_EVAL_ONLY` (~line 102) — which `evaluate --only` components run per
-    hypothesis. h1 is `["metrics", "benchmarks", "plots"]` — no `stats`, so the
-    bootstrap significance tests never run; the `statistical_tests.json` in the
-    thesis snapshot is the *benchmark comparison table* reshaped by
-    `export_eval_to_thesis.py`, not a p-value table. Confirm that is intended for
-    whatever the chapter claims.
-  - `_REPORT_SCRIPTS` (~line 108) — must point to a real file under `scripts/`.
+    hypothesis. h1 is `["metrics", "benchmarks", "plots", "stats"]`; h2/h3/h4
+    are `["metrics", "plots"]`. Where a chapter claims significance, confirm
+    `stats` actually ran; the `statistical_tests.json` in a snapshot without it
+    is the *benchmark comparison table* reshaped by `export_eval_to_thesis.py`,
+    not a p-value table.
+  - `_REPORT_SCRIPTS` (~line 108) — values are argv tails (`[script, *flags]`);
+    the script must be a real file under `scripts/`. h2 and h4 both point at
+    `sensitivity_report.py` with different `--config`.
   - `_run_tee` / `_run_capture` / `_run_parallel_jobs` (~line 238-320) — check
     each subprocess call site propagates a non-zero return code. `_run_tee`
     raises `CalledProcessError` on `returncode != 0`; verify `_run_parallel_jobs`
-    and the H4 path do too, and that `run_hypothesis` does not swallow it and
-    proceed to eval/export.
+    does too, and that `run_hypothesis` does not swallow it and proceed to
+    eval/export.
   - `_train_all` / `_evaluate_all` (~line 389-457). `_evaluate_all` passes
     `--per-symbol` with a comment that *without* it, pooled scenarios silently
     skip val/test and report the **train** split as the result. Verify every
-    eval call site (including H4's, ~line 632) passes `--per-symbol` for pooled
-    scenarios.
+    eval call site passes `--per-symbol` for pooled scenarios.
   - `run_hypothesis` (~line 488): order is guardrails → train → evaluate →
     report → export. `--dev` and `--skip-guardrails` both set
     `skip_guardrails`; `--max-train-seconds N` forwards
@@ -92,8 +97,9 @@ scenario config and a published result.
   #356: `init_rand_steps > buffer_size` → zero gradient updates), `reward_scale=0`,
   warmup-window sizes, etc. Your job is the cross-scenario and provenance checks
   it does **not** do.
-- `scripts/h1_performance_report.py` … `scripts/h4_learning_progression_report.py`
-  and `scripts/export_eval_to_thesis.py` — what split and metric keys each
+- `scripts/h1_performance_report.py`, `scripts/h3_feature_sensitivity_report.py`,
+  `scripts/sensitivity_report.py` (generic; h2 and h4 axes), and
+  `scripts/export_eval_to_thesis.py` — what split and metric keys each
   expects. `export_eval_to_thesis.py` writes
   `thesis/qmd/results/<experiment>/{manifest.json,latest_finished/**}`; its
   `_resolve_eval_dir` maps `pooled/<name>` → `logs/<name>` (primary) with
@@ -113,7 +119,8 @@ scenario config and a published result.
 
 1. **Scope.** Ask (or infer from the user's message) which hypothesis / scenarios
    / experiment set is in question. Default to `full.yaml` and all of h1–h4 if
-   unspecified.
+   unspecified. Numbering: h1 = algorithm/signal, h2 = transaction cost, h3 =
+   feature specification, h4 = reward design.
 
 2. **Run the built-in guardrails** read-only and record findings:
    `uv run python src/cli.py validate guardrails --all` (or per scenario). Do not
@@ -130,14 +137,12 @@ scenario config and a published result.
      `training.max_steps` / `frames_per_batch` / `buffer_size` — all identical
      across td3/ddpg/ppo/random. Only `training.algorithm` and its algo-specific
      sub-block (`td3:` / `ddpg:` / `ppo:`) may differ.
-   - **h2 / h3**: the shared-baseline scenario
-     (`pooled/td3_hft_lob_state_space_pooled_streaming_selected`) that appears in
-     multiple axes must be byte-identical everywhere it is listed. The only thing
-     that may vary between the other scenarios on an axis is that axis's factor
-     (feature set for h2; feature set / reward / `trading_fees` for h3).
-   - **h4**: `seed` handling across trials — trials meant to be independent must
-     not all share one fixed seed (check how `run_h4` sets `training.seed` /
-     `trial_number` per trial).
+   - **h2 / h3 / h4**: the shared-baseline scenario
+     (`pooled/td3_hft_lob_state_space_pooled_streaming_selected`) appears in all
+     three lists and must be byte-identical everywhere it is listed. The only
+     thing that may vary between the other scenarios on a list is that
+     hypothesis's factor: `env.trading_fees` for h2, the feature set /
+     `feature_columns` for h3, `env.reward_type` and its DSR sub-block for h4.
 
 4. **Leakage / split checks.** For each scenario's `train.yaml`:
    - No path in `data.val_data_paths` (or its symbol-day) also appears in
@@ -153,7 +158,7 @@ scenario config and a published result.
    - `statistical_testing.tests` (in `evaluate.yaml`) only names tests registered
      in `statistical_test_registry.py`.
 
-5. **Orchestration trace.** Walk `run_hypothesis` / `run_h4` and confirm: a
+5. **Orchestration trace.** Walk `run_hypothesis` and confirm: a
    failing guardrail aborts (`typer.Exit(1)`), a failing train aborts before
    eval, a failing eval aborts before export. Flag any `except` that logs and
    continues, any subprocess whose returncode is not checked, and any

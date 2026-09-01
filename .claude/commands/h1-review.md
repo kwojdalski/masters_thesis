@@ -6,9 +6,9 @@ Read these files:
 - `thesis/qmd/src/01-01-scope-and-objectives.qmd` (the formal H1 statement)
 - `thesis/qmd/src/04-03-reward-function.qmd` (the "Execution Model and the Signal–Friction Decomposition" subsection)
 - `thesis/qmd/src/06-00-results.qmd` (the H1 algorithm-comparison verdict)
-- `thesis/qmd/src/06-02-robustness-assessment.qmd` (the transaction-cost sweep — now part of the H1 test)
+- `thesis/qmd/src/06-02-robustness-assessment.qmd` (the `## Hypothesis 2: Transaction-Cost Sensitivity` section — the fee sweep is the decisive test of the reworded H1)
 - `thesis/qmd/src/06-03-performance-evaluation.qmd`
-- `thesis/qmd/src/07-01-summary-of-findings.qmd` (H1 paragraph only — stop before H2)
+- `thesis/qmd/src/07-01-summary-of-findings.qmd` (H1 paragraph only — stop before Hypothesis 2)
 
 ## Step 2 — Read the result data
 
@@ -49,8 +49,8 @@ Answer these questions explicitly:
 3. Is the outperformance from **active trading** or from **positioning** (near-neutral in a down/up market)?
 4. Is **every H1 performance figure labelled** frictionless / mid-price / zero-fee?
 5. Does the prose state `|microprice − mid| ≤ half-spread` and tie the frictionless number to it as a **signal ceiling**, not just "frictions could matter"?
-6. Does the fee sweep in 06-02 show the edge shrinking/flipping at a fraction of a basis point, and is that presented as the test of the reworded H1?
-7. Is **H1 (existence + magnitude of the signal) kept distinct from H3 (sensitivity envelope)**?
+6. Does the fee sweep in 06-02 (`## Hypothesis 2`) show the edge shrinking/flipping at a fraction of a basis point, and is that presented as the test of the reworded H1?
+7. Is **H1 (existence + magnitude of the signal) kept distinct from H2 (cost-sensitivity envelope)**?
 8. Is the final H1 verdict in 07-01 (`supported as reworded` / `not`) consistent with the data?
 
 ## Step 5 — Create GitHub issues for findings

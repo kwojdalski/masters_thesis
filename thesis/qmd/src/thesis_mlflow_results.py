@@ -1287,31 +1287,6 @@ def find_observation_sample(
 
 
 # ---------------------------------------------------------------------------
-# H4 learning report loader
-# ---------------------------------------------------------------------------
-
-
-def load_h4_report(scenario_name: str) -> dict[str, Any]:
-    """Load the H4 learning report JSON for a given scenario.
-
-    Looks for ``thesis/qmd/results/<scenario_name>/latest_finished/h4_learning_report.json``.
-    Returns an empty dict when the file is missing or unparseable.
-    """
-    path = (
-        thesis_results_root()
-        / scenario_name
-        / "latest_finished"
-        / "h4_learning_report.json"
-    )
-    if path.exists():
-        try:
-            return json.loads(path.read_text())
-        except Exception as exc:
-            _log_fallback(f"reading h4_learning_report.json for {scenario_name!r}", exc)
-    return {}
-
-
-# ---------------------------------------------------------------------------
 # Experiment specification row builder (appendix table)
 # ---------------------------------------------------------------------------
 

@@ -132,7 +132,7 @@ else:
             "All figures use mid-price execution with zero transaction cost and "
             "represent a signal ceiling, not net-of-cost performance; "
             "transaction-cost sensitivity is in Section 6.2 "
-            "(@tbl-h3-transaction-costs). The displayed values predate the "
+            "(@tbl-h2-transaction-costs). The displayed values predate the "
             "execution-realism audit and a re-export under the corrected "
             "evaluation pipeline is pending (Section 7.2)."
         ),
