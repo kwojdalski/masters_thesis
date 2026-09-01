@@ -509,13 +509,23 @@ else:
 
 The diagram below shows the feature pipeline design that ensures no information
 from the validation or test splits leaks into the fitted normalization
-parameters.
+parameters. Only the training split reaches the fitting step; all three splits
+are then transformed using the statistics estimated from it.
 
-![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="3.5in" fig-pos="H"}
+![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="4.7in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
 :::
+
+The figure shows the leakage-prevention path only. The full pipeline --
+including the prepared-data and feature caches and their compatibility keys,
+the per-day and chronological branches, per-symbol memory-mapped output, HFT
+post-processing, and the timestamp de-duplication applied after concatenation
+across symbols -- is maintained as a Mermaid source file at
+`docs/diagrams/data_pipeline.mmd` in the project repository
+[@Wojdalski2026]. It is too information-dense to reproduce at print
+resolution.
 
 ---
 
