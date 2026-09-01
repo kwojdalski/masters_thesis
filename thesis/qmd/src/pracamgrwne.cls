@@ -48,24 +48,29 @@
 %
 % WNE UW rule 15 specifies the back-matter "zestawienie spisow" order as
 % abbreviations, tables, figures, appendices-list, appendices-content. Each
-% of the three lists below is given a leading \cleardoublepage so
-% masters-thesis.qmd can call \listoftables, \listoffigures,
-% \listofappendices back-to-back in that order and have each start on its
-% own fresh page, matching the required sequence.
+% of the three lists below starts with a \clearpage so masters-thesis.qmd can
+% call \listoftables, \listoffigures, \listofappendices back-to-back in that
+% order and have each begin on its own page. \clearpage, not
+% \cleardoublepage: the document is twoside, so \cleardoublepage inserts a
+% blank verso to force a recto opening, which put an empty page before each
+% list. The rest of the document breaks sections with \newpage / \pagebreak
+% and never forces recto openings, and rule 15 asks for the list of lists to
+% be handled like the table of contents, which is not forced to a recto
+% either -- so a plain page break is what matches.
 \AtBeginDocument{%
   \let\oldlistoffigures\listoffigures
   \renewcommand{\listoffigures}{%
-    \cleardoublepage
+    \clearpage
     \oldlistoffigures
   }
   \let\oldlistoftables\listoftables
   \renewcommand{\listoftables}{%
-    \cleardoublepage
+    \clearpage
     \oldlistoftables
   }
   \let\oldlistofappendices\listofappendices
   \renewcommand{\listofappendices}{%
-    \cleardoublepage
+    \clearpage
     \oldlistofappendices
   }
 }
