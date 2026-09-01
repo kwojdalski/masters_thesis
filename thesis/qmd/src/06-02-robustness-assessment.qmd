@@ -101,6 +101,15 @@ a formal bound on the return expressible by the feature set or policy (Section
 4.3, @sec-execution-model-signal-friction). The evidence supports a positive
 result under frictionless execution, not a cost-independent or deployable edge.
 
+The price-taking assumption makes this ladder a spread-crossing analysis as
+well. An agent that does not move the book pays half the quoted spread on each
+unit of position change, which enters the reward with the same form and sign as
+the proportional fee, and the same magnitude when $c = s/2$. Pricing the spread
+explicitly would restate the sweep rather than add to it. The equivalence holds
+for a constant spread. Because the half-spread widens exactly when order-flow
+imbalance is most extreme, and the policy is most active then, a fixed $c$ is
+the optimistic case.
+
 The break between 0.01 and 0.1 basis points is not just a sign flip in the
 reported return; it is the point at which the policy stops trading altogether,
 which admits a more direct mechanical explanation. The minimum price increment
