@@ -45,6 +45,7 @@ Key results in `statistical_tests.json` to check:
 Answer these questions explicitly:
 
 1. Does the agent outperform passive benchmarks on **total return** under the frictionless setup? By how much?
+1b. Do the three learners separate from Random, and does the prose avoid claiming a **ranking among** TD3/DDPG/PPO? (DDPG has edged TD3 on return; PPO leads on per-bar Sharpe. Any "TD3 outperforms DDPG/PPO" wording is a defect.)
 2. Does the agent outperform on **risk-adjusted return** (Sharpe/Sortino)? Are these computable?
 3. Is the outperformance from **active trading** or from **positioning** (near-neutral in a down/up market)?
 4. Is **every H1 performance figure labelled** frictionless / mid-price / zero-fee?

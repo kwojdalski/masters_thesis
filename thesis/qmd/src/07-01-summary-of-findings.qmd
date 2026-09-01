@@ -9,9 +9,11 @@ section summarizes the empirical evidence for each.
 from order-book microstructure.** The evidence supports this in its reworded
 form. Under frictionless mid-price execution the agent learns a directionally
 coherent, low-turnover, drawdown-controlled policy that beats passive benchmarks
-on this held-out window (Section 6.3) and improves on DDPG and a random policy
-(Section 6.1) — the microstructure signal exists and is learnable. Its economic
-magnitude, however, is of the same order as the cost of trading on it: the
+on this held-out window (Section 6.3), and TD3, DDPG, and PPO all separate
+cleanly from a random policy while remaining indistinguishable from one another
+(Section 6.1) — the microstructure signal exists, is learnable, and is not an
+artifact of a single algorithm's inductive bias. Its economic magnitude,
+however, is of the same order as the cost of trading on it: the
 features that carry the signal (microprice divergence, order-flow imbalance)
 cannot express an edge larger than one bid–ask half-spread per trade
 (Section 4.3), and the transaction-cost sweep (Section 6.2) shows the reported

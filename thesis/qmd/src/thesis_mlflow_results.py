@@ -1088,6 +1088,67 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
     return {}
 
 
+def load_scenario_per_symbol_metrics(
+    scenario_name: str, *, split: str = "test"
+) -> dict[str, dict[str, Any]]:
+    """Return ``{SYMBOL: metrics}`` for one split, without averaging.
+
+    ``load_scenario_metrics`` collapses the per-symbol entries into a single
+    unweighted mean, which hides two things the results chapter needs: how far
+    the instruments disagree, and that a symbol's cumulative return scales with
+    how many ticks its evaluation window contained. This returns the entries
+    intact so a table can report them side by side. ``n_steps`` is folded into
+    each metrics dict so callers can normalise per decision.
+
+    Reads the same sources as ``load_scenario_metrics`` in the same order.
+    Returns an empty dict when the scenario has no per-symbol entries (a pooled
+    run, or results not yet exported).
+    """
+
+    def _extract(results: dict) -> dict[str, dict[str, Any]]:
+        _, per_symbol = _results_split_entries(results, split)
+        out: dict[str, dict[str, Any]] = {}
+        for key, entry in per_symbol.items():
+            # "test_AAPL" and "test__AAPL" both yield "AAPL".
+            symbol = key[len(split) :].lstrip("_")
+            metrics = dict(entry.get("metrics") or {})
+            if entry.get("n_steps") is not None:
+                metrics.setdefault("n_steps", entry["n_steps"])
+            out[symbol] = metrics
+        return dict(sorted(out.items()))
+
+    snap_path = (
+        thesis_results_root()
+        / scenario_name
+        / "latest_finished"
+        / "evaluation_report.json"
+    )
+    if snap_path.exists():
+        try:
+            data = json.loads(snap_path.read_text())
+            if isinstance(data, dict) and data:
+                found = _extract(data)
+                if found:
+                    return found
+        except Exception as exc:
+            _log_fallback(f"reading per-symbol snapshot for {scenario_name!r}", exc)
+
+    logs_root = _repo_root() / _EXPERIMENT_OUTPUT_DIR
+    parts = scenario_name.split("_", 1)
+    log_name = parts[1] if len(parts) == 2 else scenario_name
+    for candidate in (log_name, scenario_name):
+        results_path = logs_root / candidate / "results.json"
+        if results_path.exists():
+            try:
+                found = _extract(_load_results_json_tolerant(results_path))
+                if found:
+                    return found
+            except Exception as exc:
+                _log_fallback(f"reading per-symbol results.json at {results_path}", exc)
+
+    return {}
+
+
 def load_experiment_hyperparams(experiment_name: str) -> dict[str, Any]:
     """Load training hyperparameters from the static export snapshot.
 

@@ -11,7 +11,7 @@ from masters_thesis import experiments
 @pytest.mark.parametrize(
     ("command", "description"),
     [
-        ("h1", "TD3 outperforms DDPG, PPO, and a random-policy baseline"),
+        ("h1", "continuous-control agents beat a random-policy baseline"),
         ("h2", "transaction-cost assumption affects TD3 performance"),
         ("h3", "observation feature set affects TD3 performance"),
         ("h4", "reward function changes the learned policy"),
