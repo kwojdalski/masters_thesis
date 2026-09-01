@@ -15,9 +15,11 @@ the market maker faces two types of order flow: uninformed liquidity traders,
 whose trades are uncorrelated with future price changes, and informed traders,
 who possess private information about fundamental value. Setting a positive
 spread allows the market maker to profit from uninformed flow and recoup losses
-on informed flow. The spread therefore decomposes into an adverse selection
-component (compensation for information risk) and an inventory or order
-processing component.
+on informed flow. Their contribution is to show that this adverse-selection
+channel alone is sufficient to generate a positive spread, in a model that
+assumes away inventory and order-processing costs entirely. Spreads observed in
+real markets are conventionally decomposed further, adding inventory-holding and
+order-processing components to the adverse-selection component isolated here.
 
 This decomposition has a direct implication for trading signal design. A
 narrowing spread signals reduced adverse selection risk; a widening spread
@@ -27,11 +29,15 @@ candidate state variables by this theoretical framework.
 
 The price impact of informed trading was formalized through the lambda
 parameter, which measures the sensitivity of price changes to order flow [@Kyle1985]. In
-Kyle's continuous-time model, the informed trader optimally splits their order
-to minimize price impact, and the market maker sets prices to break even against
-order flow. The resulting relationship between order imbalance and price change
-is linear, with slope $\lambda$ that depends on the ratio of informed to
-uninformed volume. The order flow features in Chapter 4 (OFI and signed trade
+Kyle's continuous-time model, the informed trader splits their order over time to
+maximize expected trading profit, trading gradually so that each trade reveals as
+little as possible while remaining camouflaged by noise-trader flow, and the
+market maker sets prices to break even against order flow. The resulting
+relationship between order imbalance and price change is linear, with slope
+$\lambda = \sqrt{\Sigma_0}/(2\sigma_u)$: the ratio of the standard deviation of
+fundamental-value uncertainty to that of uninformed order flow, so price impact
+rises with information asymmetry and falls as noise trading supplies more
+camouflage. The order flow features in Chapter 4 (OFI and signed trade
 flow) can be understood as empirical proxies for Kyle's order imbalance
 variable, with the bid-ask slope features measuring the depth analogue of
 $\lambda$ across levels of the order book. The limitation is that these proxies
@@ -43,9 +49,11 @@ The theory of the open limit order book as a competitive
 equilibrium was developed, showing that a full LOB can sustain itself as a market mechanism
 under adverse selection [@Glosten1994]. The key insight is that the price schedule embedded in
 the LOB (the sequence of bid and ask quotes at increasing depths) reflects the
-cumulative information content of orders at each quantity level. Deeper levels of
-the book attract less informed order flow but carry higher execution uncertainty
-for those posting limit orders.
+cumulative information content of orders at each quantity level. Because an order
+resting at depth executes only against a larger incoming trade, and larger trades
+are more likely to be information-driven, the price schedule must slope upward:
+deeper levels are compensated for bearing more adverse selection per unit, not
+less, alongside the uncertainty of whether they execute at all.
 
 This theoretical result motivates the multi-level features used in Chapter 4.
 The book is not a single price but a price schedule. The shape of that
