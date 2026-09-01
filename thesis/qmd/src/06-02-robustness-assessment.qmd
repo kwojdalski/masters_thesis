@@ -45,8 +45,8 @@ from thesis_tables import fmt_val, display_df, table_note
 _SENS_COLS = [
     ("sharpe_ratio",  "Sharpe",   ".3f"),
     ("sortino_ratio", "Sortino",  ".3f"),
-    ("total_return",  "Return",   ".2e"),
-    ("max_drawdown",  "Max DD",   ".2e"),
+    ("total_return",  "Return",   ".2%"),
+    ("max_drawdown",  "Max DD",   ".2%"),
     ("win_rate",      "Win Rate", ".2%"),
     ("profit_factor", "PF",       ".3f"),
     ("turnover",      "Turnover", ".4f"),
@@ -158,12 +158,12 @@ _FEATURE_SCENARIOS = [
 _FEATURE_COLS = [
     ("sharpe_ratio",          "Sharpe",   ".3f"),
     ("sortino_ratio",         "Sortino",  ".3f"),
-    ("total_return",          "Return",   ".2e"),
-    ("max_drawdown",          "Max DD",   ".2e"),
+    ("total_return",          "Return",   ".2%"),
+    ("max_drawdown",          "Max DD",   ".2%"),
     ("win_rate",              "Win Rate", ".2%"),
     ("profit_factor",         "PF",       ".3f"),
     ("turnover",              "Turnover", ".4f"),
-    ("annualized_volatility", "Ann. Vol", ".3f"),
+    ("annualized_volatility", "Ann. Vol", ".4f"),
 ]
 
 _HIGHER_BETTER = {
@@ -202,7 +202,7 @@ $5.3 \times 10^{-6}$ with zero position changes and sits fully long for the
 entire evaluation; the full 33-feature arm records turnover of
 $4.7 \times 10^{-5}$, also with zero position changes, and sits fully short.
 Both are saturated at an action bound, and their near-zero returns
-($-0.017\%$ and $+0.017\%$) are the drift of a held position rather than the
+($-0.02\%$ and $+0.02\%$) are the drift of a held position rather than the
 outcome of any learned decision.
 
 The failures are therefore not evidence that three features carry too little
