@@ -1,60 +1,59 @@
-## Implications and Recommendations for Practitioners {#sec-implications-and-recommendations}
-<!-- [PLACEHOLDER] -->
+## Implications for Trading-System Design {#sec-implications-and-recommendations}
 
-The empirical findings carry implications for deep RL trading systems on
-limit order book data beyond the specific experiments studied here, and
-translate directly into recommendations for practitioners building similar
-systems.
+Four findings from the experiments generalise beyond the specific
+configurations tested, in the sense that they concern the design of the
+learning problem rather than the particular agent trained here.
 
-**Get the state representation right before tuning the algorithm.** Feature
-specification had an outsized effect on whether training succeeded at all. Of
-three feature sets run under an identical budget and architecture, only the
-curated ten-feature set converged to a trading policy; both a three-feature
-subset and a thirty-three-feature superset saturated at a fixed position and
-never trained (Section 6.3). This comparison does not establish that a richer
-state improves returns -- two of the three arms did not optimize -- but it does
-show that a poorly chosen state can block learning outright, which no amount of
-algorithm tuning recovers. The microstructure literature reviewed in Chapter 2
-motivates which quantities belong in the state (order-flow imbalance, spread
-regime, book shape, temporal encoding); a thorough feature validation
-(correlation structure, stationarity, and predictive content on held-out data)
-is better time spent than hyperparameter search over a state space that is
-either impoverished or padded with noise.
+**State specification dominated algorithm choice.** Feature specification
+determined whether training succeeded at all. Of three feature sets run under
+an identical budget and architecture, only the curated ten-feature set
+converged to a trading policy; both a three-feature subset and a
+thirty-three-feature superset saturated at a fixed position and never trained
+(Section 6.3). Because two of the three arms did not optimise, this does not
+establish that a richer state improves returns. It does show that a poorly
+chosen state can block learning outright, which no amount of algorithm tuning
+recovers. The microstructure literature reviewed in Chapter 2 motivates which
+quantities belong in the state: order-flow imbalance, spread regime, book
+shape, and temporal encoding.
 
-**Continuous-action actor-critic methods suit position-sizing tasks.** The
-continuous action space let the agent express varying directional conviction
-through position size rather than binary buy/sell decisions, which matters
-when the economically correct position magnitude varies with signal
-strength. A discrete-action grid either loses this precision or reintroduces
-the curse of dimensionality. TD3's stability mechanisms (clipped double
-Q-learning, delayed policy updates, target policy smoothing) proved
-important in this noisy reward environment. Without them, value
-overestimation would likely have driven the policy toward unreliable actions
-during early training.
+**The choice among continuous-control algorithms mattered less than the
+selection rationale implied.** TD3 was chosen for its three stability
+mechanisms, namely clipped double Q-learning, delayed policy updates, and
+target policy smoothing (@sec-td3-lineage). On this data those mechanisms
+produced no measurable advantage. TD3 and DDPG, which has none of them, are
+indistinguishable on cumulative return, and PPO separates from neither
+(Section 6.1). All three separate cleanly from a random policy. The comparison
+therefore locates the learnable signal in the state representation and the
+reward rather than in the choice among continuous-control algorithms, at least
+at this training budget and on this window. The continuous action space itself
+remains motivated on design grounds, since the economically correct position
+magnitude varies with signal strength (Section 4.1), but no discrete-action
+baseline was trained here to test that argument empirically.
 
-**Enforce a strict chronological evaluation protocol from the start.** Any
-lookahead (features computed from future data, normalization fit on the
-full dataset, non-sequential splits) produces a materially optimistic
-out-of-sample assessment. In high-frequency settings, where signal decay is
-measured in seconds, even mild lookahead can manufacture the appearance of a
-viable strategy from a leakage artifact. Normalization should be fit on the
-training split only and applied frozen, or implemented as a strictly causal
-online transformation that resets at session boundaries. This is a minimum
-requirement for the results to be meaningful, not an optional refinement.
+**Chronological evaluation discipline is a precondition, not a refinement.**
+Any lookahead, whether features computed from future data, normalisation fit
+on the full dataset, or non-sequential splits, produces a materially
+optimistic out-of-sample assessment. In high-frequency settings, where signal
+decay is measured in seconds, even mild lookahead can manufacture the
+appearance of a viable strategy from a leakage artefact. Two constructions
+avoid it: fitting the normalisation on the training split alone and applying
+it frozen, or computing it as a strictly causal online transformation. This
+thesis uses the second, with statistics maintained per symbol and reset at
+session boundaries, and verifies the property directly rather than asserting
+it (Section 5.1).
 
-**Keep reward optimization and financial evaluation strictly separate.** A
+**Reward optimisation and financial evaluation measure different things.** A
 shaped reward such as the Differential Sharpe Ratio is a training objective,
-not a performance report (Section 4.3). Conflating a high training DSR with
-held-out Sharpe performance is a common source of overoptimistic claims in the
-literature, and the most consistent failure mode to avoid.
+not a performance report (Section 4.3). Treating a high training DSR as
+evidence of held-out Sharpe performance conflates the two, and the separation
+is maintained throughout the evaluation reported in Chapter 6.
 
-**Treat transaction-cost sensitivity as a go/no-go criterion.** The
+**Transaction-cost sensitivity bounds what the result can support.** The
 execution model used here is a mid-price proxy and is optimistic relative to
-executable bid/ask prices. Spread-crossing costs are of similar magnitude
-to the price moves the agent targets, and the demonstrated edge does not
-survive at high cost levels, as the sensitivity analysis shows. Before
-treating any result as evidence of a deployable strategy, practitioners
-should run the same evaluation across a range of cost levels (from zero to
-the realistic spread-plus-fee regime of the target venue). They should then check whether
-risk-adjusted return degrades gracefully or collapses abruptly. An edge that
-survives only at zero cost is not a tradeable strategy.
+executable bid and ask prices. Spread-crossing costs are of similar magnitude
+to the price moves the agent targets, and the measured edge changes sign once
+the per-trade fee reaches a fraction of a basis point (Section 6.2). Whether
+risk-adjusted return degrades gradually or collapses abruptly across a range
+of cost levels is therefore the quantity that determines how far a frictionless
+result can be read economically. An edge present only at zero cost bounds the
+claim to feasibility rather than tradability.
