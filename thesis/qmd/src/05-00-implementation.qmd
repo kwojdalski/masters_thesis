@@ -64,7 +64,10 @@ used here (defined in Chapter 5.1)^[All six instruments (AAPL, MSFT, TSLA,
 META, AMZN, and AVGO) are highly liquid Nasdaq-listed blue-chips with tight
 spreads, deep displayed depth, and continuous two-sided quoting. This ensures
 that simulated agent trades represent a negligible fraction of resting book
-volume at any level.]
+volume at any level.] That size argument covers price impact from order size;
+it does not cover whether the agent's own trading feeds back into the
+order-flow features it conditions on. Section 7.2
+(@sec-execution-realism) returns to this.
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
@@ -80,7 +83,8 @@ declines to charge.
 transport, decision, or matching-engine delay between state observation and
 execution. This is appropriate for a study focused on strategy learning rather
 than low-latency execution engineering. In production HFT systems, such delays
-can invalidate short-lived signals.
+can invalidate short-lived signals; Section 7.2 (@sec-execution-realism)
+quantifies this against the dataset's event cadence.
 
 **Bounded continuous exposure.** Position constraints are enforced via the
 continuous action interval $[-1, 1]$, preventing unbounded leverage.

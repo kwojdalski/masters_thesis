@@ -224,9 +224,12 @@ zero transaction cost), holding the algorithm and data fixed.
 #| warning: false
 #| tbl-cap: "Hypothesis 4 reward-design sensitivity: test-split metrics for log-return vs. Differential Sharpe Ratio."
 
+# Both arms are clones of the H1 configuration differing only in reward_type
+# and its scaling, trained at a matched 500k-step budget, so the reward
+# objective is the single varying factor.
 _reward_scenarios = [
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)"),
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "Differential Sharpe (DSR)"),
+    ("pooled_td3_h4_reward_logreturn", "Log Return (baseline)"),
+    ("pooled_td3_h4_reward_dsr",       "Differential Sharpe (DSR)"),
 ]
 
 rows = []
@@ -246,20 +249,51 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
-The reward-design comparison shows that Differential Sharpe Ratio optimization
-changes the learned policy in an economically meaningful direction. Relative to
-the log-return baseline, the DSR run increases cumulative return from
-$1.29 \times 10^{-7}$ to $2.28 \times 10^{-7}$, improves profit factor from
-2.01 to 5.70, and reduces maximum drawdown from $-1.93 \times 10^{-7}$ to
-$-1.05 \times 10^{-7}$. The DSR policy is also more balanced in exposure,
-moving from an 86.7% long policy under log-return reward to an approximately
-neutral 49.8% long and 50.2% short distribution. This supports Hypothesis 4:
-the reward objective materially affects both performance and policy behavior.
+The comparison cannot be read as a like-for-like performance result, because
+the log-return arm did not produce a functioning policy. Across all six
+instruments its turnover is between $7.8 \times 10^{-6}$ and
+$2.1 \times 10^{-5}$, against $0.48$ to $0.58$ for the DSR arm, and it holds a
+fully long position ($\text{pct\_long} = 1.0$) for the entire evaluation on
+every instrument. The policy is saturated at the upper bound of the action
+interval and does not respond to the state; its returns, between $-0.22\%$ and
+$+0.26\%$, are the passive drift of a held long position rather than the result
+of any learned decision.^[The two arms differ only in `reward_type` and its
+scaling: the log-return arm applies `reward_scale: 10000.0` to per-step log
+returns of order $10^{-6}$, while the Differential Sharpe arm uses
+`reward_scale: 1.0` with $\eta = 0.01$, the reward being self-normalizing by
+construction. Alternative reward scalings were tried for the log-return
+objective during development and did not resolve the saturation. A systematic
+scale sweep was not part of the reported experimental package, so the scaling
+remains a plausible but not fully isolated contributor.]
 
-Overall, the robustness evidence is strongest for transaction-cost sensitivity,
-feature specification, and reward-design sensitivity. It is not yet strong
-evidence of robustness across market regimes, longer samples, alternative
-chronological splits, or repeated random seeds.
+Two observations support reading this as an optimization failure rather than a
+learned preference for passive exposure. First, a saturated policy would be
+expected to sit at a neutral position if it had learned that trading is
+unprofitable, not at a bound. Second, the same degenerate behaviour appears in
+an independent scenario that also uses the log-return reward, the
+minimal-feature arm of Hypothesis 3, which saturates at the *opposite* bound
+(fully short) rather than converging to any intermediate exposure. A single
+frozen run could be attributed to seed or budget; the same collapse in two
+separate scenarios sharing one reward specification points at the reward
+configuration itself.
+
+Hypothesis 4 is therefore not settled by this run. What can be said is narrower
+than a performance comparison: under an identical configuration and a matched
+500,000-step budget, the Differential Sharpe reward produced a policy that
+trades and takes both sides of the market, while the log-return reward produced
+one that did not train, and the alternative scalings tried during development
+did not change that outcome. Establishing whether the log-return objective is
+genuinely unsuitable in this setting, or remains recoverable under a
+configuration not yet explored, requires a systematic sweep over reward scaling
+and learning rate that is left to future work
+(@sec-limitations-and-future-research).
+
+Overall, the robustness evidence is strongest for transaction-cost sensitivity
+and feature specification. Reward design is inconclusive on the present
+evidence, for the reason given above: the log-return arm did not train, so the
+comparison does not isolate the effect of the reward objective. The results are
+not yet strong evidence of robustness across market regimes, longer samples,
+alternative chronological splits, or repeated random seeds.
 
 Seed-level robustness was spot-checked outside the formal hypotheses: a small
 number of independent short-budget TD3 trials with different random seeds, using
