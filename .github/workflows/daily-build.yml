@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
-      AUDIT_PLOTS: "1"
+      # AUDIT_PLOTS: "1"   # temporarily off: suppresses the "commit .. | exported .." provenance note under tables and figures
       THESIS_DEBUG_ASSETS: "1"
       PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
       MPLBACKEND: Agg
