@@ -250,30 +250,34 @@ slopes, queue depletion rates, VPIN, and rolling order-flow statistics.
 ### Feature–Return Correlations {#sec-feature-return-correlations}
 
 @tbl-feature-correlations reports Pearson and Spearman rank correlations between
-each engineered feature and the one-step-ahead log mid-price return, computed on
-the training split. Both measures capture strictly pairwise, marginal dependence:
-Pearson detects linear association, while Spearman detects any monotone
-relationship, including non-linear but rank-preserving ones.
+each engineered feature and the one-step-ahead log mid-price return, computed
+over the full streamed training set (six instruments, three sessions, roughly
+18.7 million event pairs). Pearson detects linear association; Spearman detects
+any monotone relationship, including non-linear but rank-preserving ones.
 
-All absolute correlations are below 0.005. Neither measure identifies any feature
-whose marginal distribution is reliably aligned with the direction of the next
-price move. This is expected in a microstructure context: each feature captures
-a local structural signal (order-flow pressure, depth asymmetry, queue imbalance)
-that is informative about the trading environment but not predictive of short-term
-returns in isolation. Predictive value, if any, arises from the joint, non-linear
-interaction among multiple features simultaneously observed at the same timestep.
+The top-of-book imbalance features carry a modest but genuine marginal signal.
+Best-level order-count imbalance has a Spearman correlation of $0.26$ with the
+next mid-price move, and best-level book pressure, queue-weighted-midpoint
+divergence, and instantaneous OFI each sit near $0.17$. These values are stable
+across all six instruments (per-symbol Spearman between $0.14$ and $0.33$ for
+order-count imbalance) and carry the sign expected when queue imbalance predicts
+which side of the book depletes first, the mechanism set out in Chapter 2
+[@Cont2014; @Stoikov2018]. The matching Pearson correlations are smaller
+($\le 0.16$), so the relationship is monotone rather than linear. Every other
+feature -- fair-value level, spread regime, book convexity, trade intensity,
+order-flow autocorrelation, and time encodings -- has $|r| < 0.02$ on both
+measures in isolation.
 
-Linear models cannot exploit this joint non-linear structure. This category
-includes logistic regression, ridge regression, and any other predictor that
-combines features through a weighted sum. The near-zero Pearson and Spearman correlations confirm that
-linearly combining even the full feature vector is unlikely to yield a useful
-directional signal. This directly motivates the use of a deep neural network as
-the function approximator inside the RL policy. The network can, in principle, learn
-arbitrary non-linear mappings from the feature vector to action-value estimates,
-capturing the higher-order interactions that linear models cannot represent.
-
-The full per-feature Pearson and Spearman breakdown is reported in Appendix,
-Table @tbl-feature-correlations.
+Two things follow for the choice of function approximator. First, even the
+strongest single feature accounts for under seven per cent of the rank variance
+in the next return ($0.26^2$), so no feature is a standalone rule; a usable edge
+has to come from combining them. Second, a linear predictor -- logistic or ridge
+regression, or any weighted sum of features -- would capture only the linear
+component of the imbalance features and would impose one additive, monotone
+response per feature across every market regime. The policy instead needs the
+non-linear shape of the imbalance response and its interaction with spread,
+depth, and order-flow state, which is what a neural-network approximator can
+represent. The full per-feature breakdown is in Appendix, @tbl-feature-correlations.
 
 ### Feature and Price Column Separation
 
@@ -351,9 +355,11 @@ else:
 
 ### Feature Statistics {#sec-feature-statistics}
 
-Across the engineered features, means close to zero and standard deviations
-near one confirm that causal running normalisation operates as intended. The
-main exception is the heavy-tailed OFI family: rare aggressive orders produce
-pre-clipping z-scores of $\pm 290$ or more, but the environment bounds the
-values received by the policy to $[-5, 5]$. The full distributional breakdown
-is reported in Appendix, @tbl-feature-stats.
+For most engineered features, means near zero and standard deviations near one
+confirm that causal running normalisation operates as intended. The order-flow
+and book-shape features are markedly heavy-tailed: rare aggressive orders drive
+pre-clipping z-scores beyond $\pm 500$ and push excess kurtosis into the
+thousands for the OFI family, but the environment bounds the values received by
+the policy to $[-5, 5]$. The full distributional breakdown, computed over the
+complete streamed training set (six instruments, three sessions, roughly 18.7
+million events), is reported in Appendix, @tbl-feature-stats.
