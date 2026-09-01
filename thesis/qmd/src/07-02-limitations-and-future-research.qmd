@@ -69,13 +69,15 @@ is traded by more than one participant; both are left for future work.
 ### Evaluation Scope
 <!-- [PLACEHOLDER] -->
 
-The most important constraint on interpreting the results is the three-day
-evaluation window: train, validation, and test splits all derive from the
-same three consecutive sessions (February 25-27, 2026), sharing one
-volatility regime, spread environment, and intraday seasonality. What this
-thesis calls "out-of-sample" performance is therefore within-window
-out-of-sample. The test split was withheld from training, but the agent has
-never encountered a different trading day, market condition, or instrument.
+The most important constraint on interpreting the results is the width of the
+evaluation window. The agent trains on three consecutive sessions (February
+25-27, 2026) and is evaluated on a single held-out session (March 2, 2026),
+divided chronologically into a validation half and a test half. The test split
+is therefore genuinely out-of-sample with respect to training, drawn from a day
+the agent never saw. It is not independent of the validation split, which
+precedes it within the same session, and a single session supplies only one
+volatility regime, spread environment, and intraday seasonality. The agent has
+never encountered a different week, market condition, or instrument.
 This is a necessary but not sufficient condition for practical utility: the
 results establish that the learning problem is tractable in this window, not
 that the policy generalizes beyond it. The comparisons are also based on a

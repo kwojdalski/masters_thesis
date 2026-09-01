@@ -112,8 +112,9 @@ modeling, transaction cost sensitivity, and evaluation discipline.
 
 A Twin Delayed DDPG (TD3) agent trains on tick-level order-book snapshots from
 six Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO) over three
-consecutive trading sessions in February 2026, evaluated against benchmark
-strategies under explicit simulation assumptions. Under frictionless mid-price
+consecutive trading sessions in February 2026 and is evaluated on a fourth,
+held-out session against benchmark strategies under explicit simulation
+assumptions. Under frictionless mid-price
 execution it achieves positive held-out returns with low drawdown and a high
 profit factor. The return turns negative once a fee of a fraction of a basis
 point is charged, and fixed-path bid/ask repricing reverses its sign. The
