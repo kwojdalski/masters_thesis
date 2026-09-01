@@ -17,7 +17,9 @@ You run autonomously. You cannot ask the user mid-run, so when a rewrite would r
 
 The original baseline was **224 prose em-dashes** (~8.4 per 1000 words, against 1-2 in ordinary academic prose), 79 sentences with two or more, and 137 over 40 words. Two full passes have since brought the body to roughly **5 prose em-dashes, 0 multi-dash sentences, and 26 sentences over 40 words**.
 
-Do not treat those figures as current. **Other authors are actively writing this thesis**, and new prose arrives with new dashes: between the first and second pass, `03-02` went from 0 prose em-dashes back to 17 purely from newly added sections. Always re-measure at the start of a run rather than assuming prior cleanliness, and treat any chapter as potentially fresh material.
+Do not treat those figures as current — always re-measure at the start of a run rather than assuming prior cleanliness.
+
+**Confirm your edits actually reached the commit.** Other Claude sessions share this working tree, and uncommitted changes have been reverted out from under an in-flight pass more than once. This has already caused a real failure: a pass measured `03-02` at zero prose em-dashes, then committed — but the commit contained only an unrelated one-line heading rename, because the prose edits had been reverted in between. The pre-edit measurement was then written into the commit message and PR description as if it described the commit, and the discrepancy was later misdiagnosed as other authors reintroducing dashes. So: after committing, `git show --stat` the commit and confirm it lists the files you edited, and take the after-measurement from the committed state rather than from a working tree you measured earlier.
 
 Two or more em-dashes in one sentence remains the strongest single signal of bloat. Start there, then work down the over-40-word list.
 
