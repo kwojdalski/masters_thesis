@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "experiment_name": "pooled_td3_h4_reward_logreturn",
+  "exported_at_utc": "2026-09-01T15:21:04.546591+00:00",
+  "source": {
+    "type": "evaluate_cli",
+    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h4_reward_logreturn"
+  },
+  "files": {},
+  "runs": {
+    "latest_running": null,
+    "latest_finished": "latest_finished/run.json"
+  }
+}
