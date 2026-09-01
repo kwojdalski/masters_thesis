@@ -781,6 +781,18 @@ def comparison_table_html(
         st = f' style="{style}"' if style else ""
         return f"<td{rs}{st}>{val}</td>"
 
+    # The metric columns hold numbers and must right-align. A <colgroup> is the
+    # reliable lever: the pandoc LaTeX writer bakes column alignment from the
+    # colspec and ignores a cell's own alignment (see tablealign.lua), and the
+    # rowspan on the label column makes the delta rows ragged, which defeats
+    # tablealign.lua's per-cell column scan. The inline text-align covers HTML.
+    colgroup = (
+        "<colgroup>"
+        + '<col style="text-align:left"/>'
+        + '<col style="text-align:right"/>' * len(cols)
+        + "</colgroup>"
+    )
+
     hdr = (
         "<thead><tr>"
         + _th(index_col, rowspan=2)
@@ -793,17 +805,23 @@ def comparison_table_html(
         body += (
             "<tr>"
             + _td(row.get(index_col, ""), rowspan=2)
-            + "".join(_td(row.get(label, "—")) for _, label, _ in cols)
+            + "".join(
+                _td(row.get(label, "—"), style="text-align:right")
+                for _, label, _ in cols
+            )
             + "</tr>"
         )
         body += (
             "<tr style='color:#666;font-size:0.9em'>"
-            + "".join(_td(row.get(f"Δ {label}", "")) for _, label, _ in cols)
+            + "".join(
+                _td(row.get(f"Δ {label}", ""), style="text-align:right")
+                for _, label, _ in cols
+            )
             + "</tr>"
         )
     body += "</tbody>"
 
-    return HTML(f'<table border="1" class="dataframe">{hdr}{body}</table>')
+    return HTML(f'<table border="1" class="dataframe">{colgroup}{hdr}{body}</table>')
 
 
 def build_comparison_rows(
