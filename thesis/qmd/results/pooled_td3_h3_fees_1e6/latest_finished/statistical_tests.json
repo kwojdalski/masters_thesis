@@ -1,0 +1,62 @@
+{
+  "benchmark_comparison_table": [
+    {
+      "strategy": "Strategy",
+      "total_return": 0.001485382752882236,
+      "sharpe_ratio": 0.03180884251578713,
+      "sortino_ratio": 0.04801431279891203,
+      "max_drawdown": -0.0024047033844784016,
+      "win_rate": 0.07333807946678222,
+      "profit_factor": 1.0129956707785654,
+      "expectancy_per_period": 1.533844518261966e-08,
+      "annualized_volatility": 0.17104440654818143,
+      "return_skewness": 0.22556041941753882,
+      "return_kurtosis": 0.34190495963324574,
+      "pct_long": 1.0,
+      "pct_short": 0.0,
+      "alpha": null,
+      "beta": null,
+      "information_ratio": null,
+      "tracking_error": null
+    },
+    {
+      "strategy": "buy_and_hold",
+      "total_return": 0.0014864992001897281,
+      "sharpe_ratio": 0.03164238060172331,
+      "sortino_ratio": 0.04756667632019664,
+      "max_drawdown": -0.0024047042026031917,
+      "win_rate": 0.061018767862485945,
+      "profit_factor": 1.0130054439225045,
+      "expectancy_per_period": 1.5349947644722134e-08,
+      "annualized_volatility": 0.17207819225079765,
+      "return_skewness": 0.1999325035433837,
+      "return_kurtosis": 0.3910794104505442,
+      "pct_long": 1.0,
+      "pct_short": 0.0,
+      "alpha": 0.04263756346901282,
+      "beta": 0.9920108247693028,
+      "information_ratio": -0.42304223659258156,
+      "tracking_error": 0.010882011242195328
+    },
+    {
+      "strategy": "random_actions",
+      "total_return": -0.0008246158643290258,
+      "sharpe_ratio": -0.12583916701732978,
+      "sortino_ratio": -0.1613234910780681,
+      "max_drawdown": -0.001024166930920667,
+      "win_rate": 0.059801281456031204,
+      "profit_factor": 0.9522254668551468,
+      "expectancy_per_period": -8.510825955928831e-09,
+      "annualized_volatility": 0.02396862740556317,
+      "return_skewness": -0.010044040884059646,
+      "return_kurtosis": -0.18131281316314007,
+      "pct_long": null,
+      "pct_short": null,
+      "alpha": 6.608687104409284,
+      "beta": 0.21375148021086837,
+      "information_ratio": 53.394783935497706,
+      "tracking_error": 0.17200315623631413
+    }
+  ],
+  "__source_split__": "test"
+}

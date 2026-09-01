@@ -52,11 +52,14 @@ _SENS_COLS = [
     ("turnover",      "Turnover", ".4f"),
 ]
 
+# The 0 bp arm is the H1 agent itself; each fee arm differs from it only by
+# env.trading_fees, so the ladder measures the cost sensitivity of the policy
+# Chapter 6.1 actually reports.
 _fees_scenarios = [
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "0 bp (baseline)"),
-    ("pooled_td3_h3_fees_1e6",                                   "0.01 bp"),
-    ("pooled_td3_h3_fees_1e5",                                   "0.1 bp"),
-    ("pooled_td3_h3_fees_1e4",                                   "1 bp"),
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "0 bp (H1 agent)"),
+    ("pooled_td3_h2_fees_1e6_dsr",                                   "0.01 bp"),
+    ("pooled_td3_h2_fees_1e5_dsr",                                   "0.1 bp"),
+    ("pooled_td3_h2_fees_1e4_dsr",                                   "1 bp"),
 ]
 
 rows = []

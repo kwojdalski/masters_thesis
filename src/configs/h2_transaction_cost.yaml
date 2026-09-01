@@ -6,31 +6,31 @@
 #
 # One sensitivity axis: the shared 0 bp baseline plus the fee ladder. Every
 # variant points to a log_dir produced by `cli.py train --scenario <scenario>`.
-# The scenario directories keep their legacy `_h3_` tokens (opaque IDs).
+# The 0 bp arm is the H1 agent; each fee arm differs from it by env.trading_fees alone.
 #
 # Run order to reproduce:
-#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected  # baseline
-#   uv run python src/cli.py train --scenario pooled/td3_h3_fees_1e6
-#   uv run python src/cli.py train --scenario pooled/td3_h3_fees_1e5
-#   uv run python src/cli.py train --scenario pooled/td3_h3_fees_1e4
+#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr  # 0 bp = the H1 agent
+#   uv run python src/cli.py train --scenario pooled/td3_h2_fees_1e6_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h2_fees_1e5_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h2_fees_1e4_dsr
 
 axes:
   - name: transaction_costs
     label: "Transaction Costs"
     scenarios:
       - label: "0 bp"
-        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr
         fees: 0.0
         baseline: true
       - label: "0.01 bp"
-        log_dir: logs/td3_h3_fees_1e6
+        log_dir: logs/td3_h2_fees_1e6_dsr
         fees: 0.000001
         baseline: false
       - label: "0.1 bp"
-        log_dir: logs/td3_h3_fees_1e5
+        log_dir: logs/td3_h2_fees_1e5_dsr
         fees: 0.00001
         baseline: false
       - label: "1 bp"
-        log_dir: logs/td3_h3_fees_1e4
+        log_dir: logs/td3_h2_fees_1e4_dsr
         fees: 0.0001
         baseline: false

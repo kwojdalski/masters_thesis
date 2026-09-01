@@ -66,14 +66,20 @@ _H1_SCENARIOS = [
     "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr",
 ]
 
-# Transaction-cost sensitivity: the 0 bp baseline plus the fee ladder. The
-# scenario directories keep their legacy ``_h3_`` tokens (opaque IDs); the
-# hypothesis they now serve is H2.
+# Transaction-cost sensitivity. The 0 bp arm is the H1 agent itself, and each
+# fee arm differs from it by `env.trading_fees` alone.
+#
+# The previous ladder was built on `td3_hft_lob_state_space_pooled_streaming_selected`
+# (log-return reward, `train_size: 50000`). That agent holds a near-constant
+# position -- turnover 5.5e-04 against the H1 agent's 0.43 -- so a per-trade fee
+# had nothing to act on and the ladder was inert at every fee level and every
+# training budget. It also meant the sweep did not measure the cost sensitivity
+# of the agent H1 actually reports. Both are fixed by sweeping the H1 agent.
 _H2_SCENARIOS = [
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # 0 bp baseline
-    "pooled/td3_h3_fees_1e6",
-    "pooled/td3_h3_fees_1e5",
-    "pooled/td3_h3_fees_1e4",
+    "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",  # 0 bp = the H1 agent
+    "pooled/td3_h2_fees_1e6_dsr",
+    "pooled/td3_h2_fees_1e5_dsr",
+    "pooled/td3_h2_fees_1e4_dsr",
 ]
 
 # Feature specification: minimal / selected / full state representations, holding

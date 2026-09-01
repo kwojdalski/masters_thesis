@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "experiment_name": "pooled_td3_h3_features_minimal",
-  "exported_at_utc": "2026-06-03T10:44:20.111890+00:00",
+  "exported_at_utc": "2026-09-01T08:36:20.445835+00:00",
   "source": {
     "type": "evaluate_cli",
-    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_h3_features_minimal"
+    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_minimal"
   },
   "files": {},
   "runs": {

@@ -1,17 +1,18 @@
 {
   "run_id": null,
   "run_name": "pooled_td3_h3_features_full",
-  "status": "FINISHED",
-  "start_time": "2026-06-03T10:44:20.933534+00:00",
-  "end_time": "2026-06-03T10:44:20.933534+00:00",
+  "status": "EXPORTED",
+  "start_time": null,
+  "end_time": "2026-09-01T08:36:05.767228+00:00",
   "artifact_uri": null,
   "experiment_name": "pooled_td3_h3_features_full",
   "experiment_id": null,
   "source": {
     "type": "evaluate_cli",
-    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_h3_features_full",
-    "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/pooled_td3_h3_features_full/results.json",
-    "exported_at_utc": "2026-06-03T10:44:20.933534+00:00"
+    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_full",
+    "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_full/results.json",
+    "results_file_mtime_utc": "2026-09-01T08:36:05.767228+00:00",
+    "exported_at_utc": "2026-09-01T08:36:29.624041+00:00"
   },
   "files": {
     "params": "params.json",
@@ -20,26 +21,67 @@
     "statistical_tests": "statistical_tests.json",
     "hyperparams": "hyperparams.json"
   },
-  "evaluation_plots": {
-    "rewards": "plots/rewards.png",
-    "positions": "plots/positions.png",
-    "portfolio_value": "plots/portfolio_value.png"
-  },
+  "evaluation_plots": {},
   "per_symbol_results": {
-    "train": {
-      "split": "train",
-      "final_reward": 3.765020437640487e-07,
-      "n_steps": 49999
+    "val_AAPL": {
+      "split": "val_AAPL",
+      "final_reward": 0.5942115783691406,
+      "n_steps": 96921
     },
-    "val": {
-      "split": "val",
-      "final_reward": -1.565576468465224e-07,
-      "n_steps": 49999
+    "test_AAPL": {
+      "split": "test_AAPL",
+      "final_reward": -14.800572395324707,
+      "n_steps": 96921
     },
-    "test": {
-      "split": "test",
-      "final_reward": -2.93692181685401e-07,
-      "n_steps": 49999
+    "val_AMZN": {
+      "split": "val_AMZN",
+      "final_reward": -99.0296630859375,
+      "n_steps": 112842
+    },
+    "test_AMZN": {
+      "split": "test_AMZN",
+      "final_reward": 12.616645812988281,
+      "n_steps": 112842
+    },
+    "val_AVGO": {
+      "split": "val_AVGO",
+      "final_reward": 34.68995666503906,
+      "n_steps": 21969
+    },
+    "test_AVGO": {
+      "split": "test_AVGO",
+      "final_reward": -25.689212799072266,
+      "n_steps": 21969
+    },
+    "val_META": {
+      "split": "val_META",
+      "final_reward": -142.56646728515625,
+      "n_steps": 13667
+    },
+    "test_META": {
+      "split": "test_META",
+      "final_reward": 23.060150146484375,
+      "n_steps": 13667
+    },
+    "val_MSFT": {
+      "split": "val_MSFT",
+      "final_reward": -75.09126281738281,
+      "n_steps": 38031
+    },
+    "test_MSFT": {
+      "split": "test_MSFT",
+      "final_reward": 20.21951675415039,
+      "n_steps": 38031
+    },
+    "val_TSLA": {
+      "split": "val_TSLA",
+      "final_reward": -107.72172546386719,
+      "n_steps": 83910
+    },
+    "test_TSLA": {
+      "split": "test_TSLA",
+      "final_reward": -3.6511435508728027,
+      "n_steps": 83910
     }
   }
 }
