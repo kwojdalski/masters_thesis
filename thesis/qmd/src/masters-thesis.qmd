@@ -64,6 +64,11 @@ format:
         icon: file-pdf
 bibliography: ../../bibliography/library.bib
 csl: ../../bibliography/apa.csl
+# The appendix feature table renders its Citation column as literal LaTeX text
+# rather than Pandoc @keys, so sources appearing only there never reach the
+# reference list. Most are also cited by key in Chapter 4.2; these two are not.
+nocite: |
+  @Foucault2005, @Abergel2016
 filters:
   - pseudocode
   - tablenote.lua

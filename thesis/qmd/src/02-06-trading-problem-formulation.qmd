@@ -2,7 +2,8 @@
 
 The finance literature reviewed here relies on RL concepts with specific
 consequences for trading. Chapter 3 provides their formal definitions, equations,
-and algorithm taxonomies.
+and algorithm taxonomies; the standard reference for the framework itself is
+@SuttonBarto2018.
 
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
@@ -44,7 +45,7 @@ and algorithm taxonomies.
 
 \end{tikzpicture}
 
-{\raggedright\noindent\footnotesize\itshape\textbf{Source:} author's own elaboration, based on Sutton \& Barto (2018).\par}
+{\raggedright\noindent\footnotesize\itshape\textbf{Source:} author's own elaboration, based on Sutton \& Barto (2018), 2nd ed.\par}
 \end{figure}
 ```
 
