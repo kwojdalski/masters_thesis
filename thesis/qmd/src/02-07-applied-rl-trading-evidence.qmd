@@ -37,8 +37,11 @@ a stringent test of practical viability.
 Early proof-of-concept studies established feasibility while surfacing
 problems this thesis's design responds to directly. Discrete Q-learning on
 equity and futures markets [@Neuneier1998; @Lee2007] learned profitable
-patterns but suffered sparse rewards, delayed credit assignment, and
-out-of-sample degradation; more fundamentally, discrete buy/sell/hold actions
+patterns, but the multi-agent formulation of @Lee2007 rewards each agent only
+on the profit its completed trade eventually realises, and its training was
+halted early once profit rates began to degrade — concrete instances of the
+sparse-reward, delayed-credit, and overfitting problems that recur in this
+literature; more fundamentally, discrete buy/sell/hold actions
 force an artificial granularity on position sizing. A coarse grid loses
 control precision, and a fine grid reintroduces the curse of dimensionality.
 Extending direct/recurrent RL to foreign-exchange trading
@@ -153,7 +156,8 @@ algorithm choice.
 
 **Reward specification.**
 Reward shaping is one of the central design choices
-in DRL trading [@Millea2021]. Misspecified rewards can lead to metric gaming, excessive
+in DRL trading, as a critical survey of cryptocurrency DRL systems
+documents [@Millea2021]. Misspecified rewards can lead to metric gaming, excessive
 turnover, ignoring tail risks, or misalignment with actual investor preferences.
 The Differential Sharpe Ratio [@Moody1998] addresses some of these concerns by
 targeting risk-adjusted return directly, but does not fully resolve the tension
