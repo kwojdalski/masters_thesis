@@ -31,6 +31,15 @@
 \usepackage{tocloft}
 \newlistof{appendices}{lap}{List of Appendices}
 
+% tocloft's \newlistof hard-codes \Huge\bfseries for a new list's title font,
+% even in article mode (no chapters) where tocloft's own \listoffigures and
+% \listoftables titles are set to \Large\bfseries. Left as-is the "List of
+% Appendices" heading prints two size steps larger than "List of Figures" and
+% "List of Tables". Match it to \cftloftitlefont so all three lists -- and the
+% table of contents, also \Large -- share one heading size, as WNE UW rule 15
+% requires (the list of lists is treated like the table of contents).
+\renewcommand{\cftlaptitlefont}{\cftloftitlefont}
+
 % tocloft's own \listoffigures/\listoftables definitions are deferred via
 % \AtBeginDocument (see tocloft.sty), which runs after any ordinary preamble
 % \renewcommand -- so redefining these commands here must ALSO be deferred
