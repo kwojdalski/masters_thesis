@@ -23,110 +23,26 @@ _audit = audit_plots_enabled()
 ```
 
 
-## Hypothesis 2: Feature Specification Sensitivity
+## Hypothesis 2: Transaction-Cost Sensitivity
 <!-- [PLACEHOLDER] -->
 
-This section compares three feature-specification levels under otherwise
-identical conditions (same algorithm, data, reward, and transaction cost) to
-assess whether richer microstructure-aware state representations improve
-out-of-sample performance.
-
-::: {.content-visible when-format="pdf"}
-```{=latex}
-\begin{landscape}
-```
-:::
+This section varies the proportional transaction cost while holding the
+algorithm, feature set, and reward fixed, on a baseline with the selected
+10-feature set, log-return reward, and zero fee. It serves two purposes: it
+locates the fee level at which the learned edge disappears, and it is the
+decisive test of the reworded Hypothesis 1.
 
 ```{python}
-#| label: h2_feature_comparison
+#| label: tbl-h2-transaction-costs
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 2 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
-
-from thesis_mlflow_results import load_scenario_metrics
-from thesis_tables import build_comparison_rows, comparison_table_html
-
-_H2_SCENARIOS = [
-    ("pooled_td3_h3_features_minimal",                           "Minimal (3 features)",   False),
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "Selected (10 features)", True),
-    ("pooled_td3_h3_features_full",                              "Full (33 features)",     False),
-]
-
-_H2_COLS = [
-    ("sharpe_ratio",          "Sharpe",   ".3f"),
-    ("sortino_ratio",         "Sortino",  ".3f"),
-    ("total_return",          "Return",   ".2e"),
-    ("max_drawdown",          "Max DD",   ".2e"),
-    ("win_rate",              "Win Rate", ".2%"),
-    ("profit_factor",         "PF",       ".3f"),
-    ("turnover",              "Turnover", ".4f"),
-    ("annualized_volatility", "Ann. Vol", ".3f"),
-]
-
-_HIGHER_BETTER = {
-    "sharpe_ratio": True, "sortino_ratio": True, "total_return": True,
-    "max_drawdown": False, "win_rate": True, "profit_factor": True, "annualized_volatility": False,
-}
-
-scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label, is_base in _H2_SCENARIOS]
-rows = build_comparison_rows(scenario_metrics, _H2_COLS, index_col="Feature Set", higher_better=_HIGHER_BETTER)
-
-if all(row.get("Sharpe", "—") == "—" for row in rows):
-    print("No Hypothesis 2 results available. Run: uv run thesis-experiments h2")
-else:
-    display(comparison_table_html(rows, _H2_COLS, index_col="Feature Set"))
-    show_table_meta(finished, audit=_audit)
-```
-
-::: {.table-note}
-**Source:** Author's own calculations.
-**Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
-:::
-
-::: {.content-visible when-format="pdf"}
-```{=latex}
-\end{landscape}
-```
-:::
-
-The feature comparison supports a qualified version of Hypothesis 2. The minimal
-three-feature representation produces a negative cumulative return
-($-3.45 \times 10^{-8}$), a profit factor below one, and a short-biased policy
-that spends 77.2% of the evaluation window short. The selected 10-feature
-microstructure representation improves the result to a positive cumulative
-return ($1.29 \times 10^{-7}$), a profit factor of 2.01, and a materially
-stronger Sortino ratio under the same data and evaluation protocol.
-
-The full 33-feature representation does not improve further. It remains
-positive on cumulative return ($2.68 \times 10^{-8}$), but underperforms the
-selected representation on return, drawdown, profit factor, and turnover. This
-suggests that the benefit comes from adding relevant microstructure information,
-not from maximizing feature count. For this thesis, Hypothesis 2 is therefore supported
-for the transition from a minimal snapshot representation to the selected
-microstructure-aware state, but not for the claim that every broader feature set
-is better.
-
-## Hypothesis 3: Sensitivity Analysis
-<!-- [PLACEHOLDER] -->
-
-Hypothesis 3 varies reward design and transaction costs while holding all other
-design choices fixed. Both axes share a baseline with the selected 10-feature set,
-log-return reward, and zero transaction cost. Hypothesis 2 tests feature
-specification separately.
-
-### Reward Function Design
-
-```{python}
-#| label: tbl-h3-reward-design
-#| echo: false
-#| warning: false
-#| tbl-cap: "Hypothesis 3 reward-design sensitivity: test-split metrics for log-return vs. Differential Sharpe Ratio."
+#| tbl-cap: "Hypothesis 2 transaction-cost sensitivity: test-split metrics across fee levels."
 
 import pandas as pd
 from thesis_mlflow_results import load_scenario_metrics
 from thesis_tables import fmt_val, display_df, table_note
 
-_H3_COLS = [
+_SENS_COLS = [
     ("sharpe_ratio",  "Sharpe",   ".3f"),
     ("sortino_ratio", "Sortino",  ".3f"),
     ("total_return",  "Return",   ".2e"),
@@ -135,36 +51,6 @@ _H3_COLS = [
     ("profit_factor", "PF",       ".3f"),
     ("turnover",      "Turnover", ".4f"),
 ]
-
-_reward_scenarios = [
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)"),
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "Differential Sharpe (DSR)"),
-]
-
-rows = []
-for exp, label in _reward_scenarios:
-    m = load_scenario_metrics(exp)
-    row = {"Variant": label}
-    for key, col, fmt in _H3_COLS:
-        row[col] = fmt_val(m.get(key), fmt)
-    rows.append(row)
-df = pd.DataFrame(rows)
-
-if df.iloc[:, 1:].isin(["—"]).all().all():
-    print("No results yet. Run: uv run thesis-experiments h3")
-else:
-    display_df(df)
-    table_note(source="Author's own calculations.")
-    show_table_meta(finished, audit=_audit)
-```
-
-### Transaction Costs
-
-```{python}
-#| label: tbl-h3-transaction-costs
-#| echo: false
-#| warning: false
-#| tbl-cap: "Hypothesis 3 transaction-cost sensitivity: test-split metrics across fee levels."
 
 _fees_scenarios = [
     ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "0 bp (baseline)"),
@@ -177,29 +63,18 @@ rows = []
 for exp, label in _fees_scenarios:
     m = load_scenario_metrics(exp)
     row = {"Fees": label}
-    for key, col, fmt in _H3_COLS:
+    for key, col, fmt in _SENS_COLS:
         row[col] = fmt_val(m.get(key), fmt)
     rows.append(row)
 df = pd.DataFrame(rows)
 
 if df.iloc[:, 1:].isin(["—"]).all().all():
-    print("No results yet. Run: uv run thesis-experiments h3")
+    print("No results yet. Run: uv run thesis-experiments h2")
 else:
     display_df(df)
     table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 ```
-
-The reward-design comparison shows that Differential Sharpe Ratio optimization
-changes the learned policy in an economically meaningful direction. Relative to
-the log-return baseline, the DSR run increases cumulative return from
-$1.29 \times 10^{-7}$ to $2.28 \times 10^{-7}$, improves profit factor from
-2.01 to 5.70, and reduces maximum drawdown from $-1.93 \times 10^{-7}$ to
-$-1.05 \times 10^{-7}$. The DSR policy is also more balanced in exposure,
-moving from an 86.7% long policy under log-return reward to an approximately
-neutral 49.8% long and 50.2% short distribution. This supports the reward-design
-part of Hypothesis 3: the reward objective materially affects both performance and policy
-behavior.
 
 The transaction-cost comparison is where the reworded Hypothesis 1 is decided.
 Hypothesis 1 claims the learned edge is real but of the same order of magnitude
@@ -216,149 +91,149 @@ is positive but approximately one half-spread per trade, captured under
 frictionless execution and eliminated by realistic spread-crossing cost. That is
 the evidential content of Hypothesis 1 as reworded.
 
-For Hypothesis 3 the same table carries a distinct conclusion: empirical
+For Hypothesis 2 itself, the same table carries a distinct conclusion: empirical
 performance is materially sensitive to the transaction-cost assumption — a
 parameter often left implicit — and the fact that the sign changes within one
 order of magnitude of fee is why robustness analysis is a precondition for any
-economic claim here. Hypothesis 1 says how large the edge is; Hypothesis 3 says
-how fast the reported result moves when a modelling assumption is varied.
+economic claim here. Hypothesis 1 says how large the edge is; Hypothesis 2 says
+how fast the reported result moves when this assumption is varied.
 
-Overall, the robustness evidence is strongest for feature specification,
-reward-design sensitivity, and transaction-cost sensitivity. It is not yet
-strong evidence of robustness across market regimes, longer samples, alternative
-chronological splits, or repeated random seeds.
+## Hypothesis 3: Feature Specification Sensitivity
+<!-- [PLACEHOLDER] -->
 
-## Hypothesis 4: Learning Progression Check
+This section compares three feature-specification levels under otherwise
+identical conditions (same algorithm, data, reward, and transaction cost) to
+assess whether richer microstructure-aware state representations improve
+out-of-sample performance.
 
-Hypothesis 4 tests whether the algorithm learns rather than merely appearing
-competent because of favorable initialization or dataset quirks. Multiple
-200,000-step trials measure whether it reliably outperforms a dummy strategy.
-
-### Experimental Design
-
-The Hypothesis 4 experiment runs $N$ independent trials of the baseline TD3 configuration
-(selected 10 features, DSR reward, zero fees) with limited training steps.
-Each trial is initialized with a different random seed and evaluated on the same
-held-out test split. The key question is whether the distribution of trial
-outcomes shows systematic learning rather than random variation around zero.
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\begin{landscape}
+```
+:::
 
 ```{python}
-#| label: h4_setup
+#| label: h3_feature_comparison
 #| echo: false
 #| warning: false
+#| tbl-cap: "Hypothesis 3 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
 
-import pandas as pd
-from thesis_mlflow_results import load_h4_report
-from thesis_tables import display_df, table_note
+from thesis_tables import build_comparison_rows, comparison_table_html
 
-_H4_SCENARIO = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr_h4_n5"
-h4_data = load_h4_report(_H4_SCENARIO)
+_FEATURE_SCENARIOS = [
+    ("pooled_td3_h3_features_minimal",                           "Minimal (3 features)",   False),
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "Selected (10 features)", True),
+    ("pooled_td3_h3_features_full",                              "Full (33 features)",     False),
+]
 
-if not h4_data:
-    print("No Hypothesis 4 results available. Run: uv run thesis-experiments h4")
+_FEATURE_COLS = [
+    ("sharpe_ratio",          "Sharpe",   ".3f"),
+    ("sortino_ratio",         "Sortino",  ".3f"),
+    ("total_return",          "Return",   ".2e"),
+    ("max_drawdown",          "Max DD",   ".2e"),
+    ("win_rate",              "Win Rate", ".2%"),
+    ("profit_factor",         "PF",       ".3f"),
+    ("turnover",              "Turnover", ".4f"),
+    ("annualized_volatility", "Ann. Vol", ".3f"),
+]
+
+_HIGHER_BETTER = {
+    "sharpe_ratio": True, "sortino_ratio": True, "total_return": True,
+    "max_drawdown": False, "win_rate": True, "profit_factor": True, "annualized_volatility": False,
+}
+
+scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label, is_base in _FEATURE_SCENARIOS]
+rows = build_comparison_rows(scenario_metrics, _FEATURE_COLS, index_col="Feature Set", higher_better=_HIGHER_BETTER)
+
+if all(row.get("Sharpe", "—") == "—" for row in rows):
+    print("No Hypothesis 3 results available. Run: uv run thesis-experiments h3")
+else:
+    display(comparison_table_html(rows, _FEATURE_COLS, index_col="Feature Set"))
+    show_table_meta(finished, audit=_audit)
 ```
 
+::: {.table-note}
+**Source:** Author's own calculations.
+**Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
+:::
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\end{landscape}
+```
+:::
+
+The feature comparison supports a qualified version of Hypothesis 3. The minimal
+three-feature representation produces a negative cumulative return
+($-3.45 \times 10^{-8}$), a profit factor below one, and a short-biased policy
+that spends 77.2% of the evaluation window short. The selected 10-feature
+microstructure representation improves the result to a positive cumulative
+return ($1.29 \times 10^{-7}$), a profit factor of 2.01, and a materially
+stronger Sortino ratio under the same data and evaluation protocol.
+
+The full 33-feature representation does not improve further. It remains
+positive on cumulative return ($2.68 \times 10^{-8}$), but underperforms the
+selected representation on return, drawdown, profit factor, and turnover. This
+suggests that the benefit comes from adding relevant microstructure information,
+not from maximizing feature count. For this thesis, Hypothesis 3 is therefore supported
+for the transition from a minimal snapshot representation to the selected
+microstructure-aware state, but not for the claim that every broader feature set
+is better.
+
+## Hypothesis 4: Reward Function Design
+<!-- [PLACEHOLDER] -->
+
+This section compares the log-return baseline against the Differential Sharpe
+Ratio reward on an otherwise identical configuration (selected 10-feature set,
+zero transaction cost), holding the algorithm and data fixed.
+
 ```{python}
-#| label: tbl-h4-summary
+#| label: tbl-h4-reward-design
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 4 learning progression: summary statistics across multiple short trials."
+#| tbl-cap: "Hypothesis 4 reward-design sensitivity: test-split metrics for log-return vs. Differential Sharpe Ratio."
 
-if h4_data:
-    stats = h4_data.get("statistics", {})
-    trials = h4_data.get("trials", [])
+_reward_scenarios = [
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected",     "Log Return (baseline)"),
+    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr", "Differential Sharpe (DSR)"),
+]
 
-    summary_rows = [
-        ("N Trials", stats.get("n_trials", len(trials))),
-        ("Mean Return", f"{stats.get('mean_return', 0):.2e}"),
-        ("Std Return", f"{stats.get('std_return', 0):.2e}"),
-        ("Mean Sharpe Ratio", f"{stats.get('mean_sharpe', 0):.3f}"),
-        ("Mean Win Rate", f"{stats.get('mean_win_rate', 0):.1%}"),
-    ]
+rows = []
+for exp, label in _reward_scenarios:
+    m = load_scenario_metrics(exp)
+    row = {"Variant": label}
+    for key, col, fmt in _SENS_COLS:
+        row[col] = fmt_val(m.get(key), fmt)
+    rows.append(row)
+df = pd.DataFrame(rows)
 
-    if "p_value_return" in stats:
-        p_val = stats.get("p_value_return", 1)
-        p_str = f"{p_val:.4f}"
-        p_sig = "*" if p_val < 0.05 else ""
-        summary_rows.append(("Return p-value (vs zero)", f"{p_str}{p_sig}"))
-
-    summary_df = pd.DataFrame(summary_rows, columns=["Metric", "Value"])
-    display_df(summary_df)
+if df.iloc[:, 1:].isin(["—"]).all().all():
+    print("No results yet. Run: uv run thesis-experiments h4")
+else:
+    display_df(df)
     table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 ```
 
-```{python}
-#| label: tbl-h4-criteria
-#| echo: false
-#| warning: false
-#| tbl-cap: "Hypothesis 4 learning criteria: pass/fail checks against the four learning-progression conditions."
+The reward-design comparison shows that Differential Sharpe Ratio optimization
+changes the learned policy in an economically meaningful direction. Relative to
+the log-return baseline, the DSR run increases cumulative return from
+$1.29 \times 10^{-7}$ to $2.28 \times 10^{-7}$, improves profit factor from
+2.01 to 5.70, and reduces maximum drawdown from $-1.93 \times 10^{-7}$ to
+$-1.05 \times 10^{-7}$. The DSR policy is also more balanced in exposure,
+moving from an 86.7% long policy under log-return reward to an approximately
+neutral 49.8% long and 50.2% short distribution. This supports Hypothesis 4:
+the reward objective materially affects both performance and policy behavior.
 
-if h4_data:
-    criteria = h4_data.get("criteria", {})
+Overall, the robustness evidence is strongest for transaction-cost sensitivity,
+feature specification, and reward-design sensitivity. It is not yet strong
+evidence of robustness across market regimes, longer samples, alternative
+chronological splits, or repeated random seeds.
 
-    criteria_rows = [
-        ("Positive mean return", criteria.get("positive_return", False)),
-        ("Positive mean Sharpe", criteria.get("positive_sharpe", False)),
-        ("Significant return (p<0.05)", criteria.get("significant_return", False)),
-        ("Win rate > 50%", criteria.get("win_rate_above_baseline", False)),
-    ]
-
-    criteria_display = [
-        (label, "[green]PASS[/green]" if passed else "[red]FAIL[/red]")
-        for label, passed in criteria_rows
-    ]
-    criteria_df = pd.DataFrame(criteria_display, columns=["Criterion", "Status"])
-
-    criteria_met = criteria.get("criteria_met", "0/0")
-    overall = criteria.get("overall", False)
-    verdict = "[green]PASS[/green]" if overall else "[yellow]FAIL[/yellow]"
-
-    display_df(criteria_df)
-    print(f"\n**Learning Criteria Check:** {criteria_met} met")
-    print(f"**Overall Verdict:** {verdict}")
-    table_note(source="Author's own calculations.")
-```
-
-```{python}
-#| label: tbl-h4-trials
-#| echo: false
-#| warning: false
-#| tbl-cap: "Hypothesis 4 per-trial results across independent random seeds."
-
-if h4_data:
-    trials = h4_data.get("trials", [])
-    if trials:
-        trial_df = pd.DataFrame(trials)
-        display_cols = ["trial", "total_return", "sharpe_ratio", "win_rate", "profit_factor", "vs_dummy_return"]
-        if all(c in trial_df.columns for c in display_cols):
-            view = trial_df[display_cols].copy()
-            view["vs_dummy_return"] = view["vs_dummy_return"].apply(
-                lambda x: f"{x:.2e}" if isinstance(x, (int, float)) else x
-            )
-            view["win_rate"] = view["win_rate"].apply(lambda x: f"{x:.1%}")
-            view.columns = ["Trial", "Return", "Sharpe", "Win Rate", "Profit Factor", "vs Dummy"]
-            display_df(view)
-            table_note(source="Author's own calculations.")
-            show_table_meta(finished, audit=_audit)
-```
-
-### Interpretation of Hypothesis 4 Results
-
-The Hypothesis 4 design complements the single-run evidence reported in Hypotheses 1-3 by
-directly testing learning capability. A positive result here would mean that the
-algorithm, when given a relatively short training budget (200k steps versus
-several million in the main experiments), consistently produces policies that
-outperform a random baseline. This addresses the concern that the reported
-Hypotheses 1-3 edge might reflect favorable initialization rather than genuine learning.
-
-A negative result — where the agent fails to demonstrate statistically
-significant improvement across trials — would not invalidate Hypotheses 1-3, but it would
-temper the interpretation. It would suggest that the observed performance
-requires either longer training, more favorable initialization conditions, or
-that the learned edge is smaller than the single-run results imply.
-
-For the current experimental package, Hypothesis 4 provides the seed-level robustness
-check identified as a gap in the robustness matrix above. When combined with the
-Hypotheses 2 and 3 sensitivities, it offers a more complete picture of whether the
-TD3 agent's performance is structural or artifact-dependent.
+Seed-level robustness was spot-checked outside the formal hypotheses: a small
+number of independent short-budget TD3 trials with different random seeds, using
+the baseline configuration, were run to confirm that the reported performance
+reflects systematic learning rather than a single favourable initialisation. A
+full multi-seed study at the training budget used in the main experiments was
+not carried out, so single-run variance remains a limitation (Section 6.1;
+@sec-execution-realism).

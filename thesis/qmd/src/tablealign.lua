@@ -9,10 +9,11 @@ rather than a formal requirement: digits line up by magnitude and columns of
 figures become visually comparable.
 
 Before this filter the thesis was inconsistent about it. Tables emitted by
-thesis_tables.comparison_table_html (H2) right-aligned their values, while
-those emitted by thesis_tables.display_df (H1, H3, H4, split sizes, raw-file
-inventory) inherited pandas' default left alignment — the same chapter
-presenting the same kind of figures two different ways.
+thesis_tables.comparison_table_html (the H3 feature comparison) right-aligned
+their values, while those emitted by thesis_tables.display_df (H1, the H2 cost
+and H4 reward comparisons, split sizes, raw-file inventory) inherited pandas'
+default left alignment — the same chapter presenting the same kind of figures
+two different ways.
 
 Alignment mechanism — the LaTeX writer bakes column alignment into the
 tabular preamble from each column's colspec, and (for ordinary cells in

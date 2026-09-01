@@ -13,7 +13,9 @@ empirical chapters.
 
 ### Hypothesis
 
-The research is based on the following hypotheses:
+The research is based on the following hypotheses, ordered so that each builds on
+the previous one; together they make the case that robustness analysis is a
+precondition for any credible economic claim:
 
 1. A TD3 agent trained on order-book-derived high-frequency features learns a
    genuine, learnable out-of-sample risk-adjusted edge from limit-order-book
@@ -21,14 +23,18 @@ The research is based on the following hypotheses:
    as the transaction cost required to trade on it: it is realised under
    frictionless mid-price execution and is not expected to survive realistic
    spread-crossing costs.
-2. Within the order-book-based trading framework studied here,
-   extending the state representation from basic snapshot features to a broader
+2. The empirical performance of the agent is materially sensitive to the
+   transaction-cost assumption: the learned edge is positive under zero fee but
+   changes sign once the per-trade cost reaches a fraction of a basis point —
+   the scale of the bid-ask half-spread on these instruments.
+3. Within the order-book-based trading framework studied here, extending the
+   state representation from basic snapshot features to a broader
    microstructure-aware feature set leads to improved out-of-sample performance
    under identical training and evaluation conditions.
-3. The empirical performance of reinforcement learning trading agents is
-   materially sensitive to feature specification, reward design, and
-   transaction-cost assumptions, which makes robustness analysis necessary for
-   credible conclusions.
+4. The reward objective materially shapes the learned policy: replacing a
+   log-return reward with a Differential Sharpe Ratio reward changes both
+   out-of-sample performance and the policy's directional exposure, under
+   otherwise identical training and evaluation conditions.
 
 ### Objectives of the Research
 
@@ -45,12 +51,12 @@ data. The research objectives are structured in three interconnected phases:
    - Assess agent performance on out-of-sample data against selected
      benchmarks with established and novel risk-return metrics, operationalizing
      the frictionless-execution component of Hypothesis 1 (its transaction-cost
-     bound is operationalized under Hypothesis 3)
+     bound is operationalized under Hypothesis 2)
    - Analyze robustness under varying market conditions
 
 3. **Analysis and Implications**
    - Compare alternative order-book-derived feature sets within a common
-     training and evaluation framework, operationalizing Hypothesis 2
+     training and evaluation framework, operationalizing Hypothesis 3
    - Assess the practical relevance and limitations of the approach under
      simplified execution assumptions
    - Identify the binding constraints on out-of-sample performance —
