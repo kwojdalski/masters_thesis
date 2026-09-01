@@ -109,10 +109,18 @@ half-spread as a ceiling on the expressible edge rather than the edge the agent
 actually realizes on a given trade: the policy stops scalping before the fee
 mathematically exceeds the largest possible tick-driven move, not only after.
 This is a plausible reading of the current fee-ladder run, not a confirmed
-mechanism -- it is drawn from a single representative instrument at a training
-budget shorter than the primary Hypothesis 1 agent's, and the per-instrument
-breakdown needed to test its central prediction (that higher-priced instruments
-should stop trading at comparably lower fee levels) has not yet been examined.
+mechanism, and the per-instrument breakdown does not fully support it. If the
+break-even fee were set independently per instrument, turnover should collapse
+first for the highest-priced instruments and last for the lowest-priced ones.
+Instead, turnover collapses to zero for all six instruments simultaneously,
+between the same two fee levels. This is consistent with how the policy is
+trained: one network is shared across all six instruments, and the input
+features are z-score normalized per symbol before the policy ever sees them, so
+the model has no access to an instrument's absolute price level and cannot
+condition its trading threshold on it. The tick-size arithmetic explains why a
+break exists somewhere in this fee range at all; it does not explain, and on
+this evidence cannot explain, why the six instruments break together rather
+than in sequence.
 
 For Hypothesis 2 itself, the same table carries a distinct conclusion: empirical
 performance is materially sensitive to the transaction-cost assumption (a
