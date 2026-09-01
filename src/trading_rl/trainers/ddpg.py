@@ -130,108 +130,50 @@ class DDPGTrainer(BaseTrainer):
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
     ) -> None:
-        """Perform optimization steps on sampled batches.
+        # Shared skeleton (BaseTrainer); DDPG supplies _update_critics and
+        # _update_actor_and_targets. _should_update_actor defaults to every step.
+        self._run_offpolicy_optimization_step(batch_idx, max_length, buffer_len)
 
-        Args:
-            batch_idx: Current batch index
-            max_length: Maximum episode length in buffer
-            buffer_len: Current replay buffer size
-        """
-        for j in range(self.config.optim_steps_per_batch):
-            # Sample from replay buffer
-            sample = self.replay_buffer.sample(self.config.sample_size)
-            current_step = self._global_optimization_step(
-                batch_idx, j, self.config.optim_steps_per_batch
+    def _update_critics(self, sample) -> tuple[Any, float] | None:
+        """One critic gradient step. Returns (loss_vals, value_loss) or None on skip."""
+        try:
+            loss_vals = self.ddpg_loss(sample)
+            self.successful_batches += 1
+            self._consecutive_skips = 0
+        except RuntimeError as e:
+            if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                self._record_skipped_batch("tensor shape error", exc=e)
+                return None
+            raise
+
+        self.optimizer_value.zero_grad()
+        loss_vals["loss_value"].backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.ddpg_loss.value_network_params.values(True, True),
+                self.config.max_grad_norm,
             )
+        self.optimizer_value.step()
+        self.ddpg_loss.value_network_params.to_module(self.value_net)
 
-            if (
-                torch.isnan(sample["next", "reward"]).any()
-                or torch.isinf(sample["next", "reward"]).any()
-            ):
-                self._record_skipped_batch("nan/inf in reward")
-                continue
+        value_loss = loss_vals["loss_value"].item()
+        self.logs["loss_value"].append(value_loss)
+        return loss_vals, value_loss
 
-            # Ensure done and terminated have consistent shapes
-            done = sample["next", "done"]
-            terminated = sample["next", "terminated"]
-            if done.shape != terminated.shape:
-                self._record_skipped_batch(
-                    "done/terminated shape mismatch "
-                    f"done={done.shape} terminated={terminated.shape}"
-                )
-                continue
-
-            # Compute losses with error handling
-            try:
-                loss_vals = self.ddpg_loss(sample)
-                self.successful_batches += 1
-                self._consecutive_skips = 0
-            except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(
-                    e
-                ):
-                    self._record_skipped_batch("tensor shape error", exc=e)
-                    continue
-                else:
-                    raise
-
-            # Optimize value network
-            self.optimizer_value.zero_grad()
-            loss_vals["loss_value"].backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    self.ddpg_loss.value_network_params.values(True, True),
-                    self.config.max_grad_norm,
-                )
-            self.optimizer_value.step()
-
-            # Sync functional value params back to the value module
-            self.ddpg_loss.value_network_params.to_module(self.value_net)
-
-            # Optimize actor against the updated critic.
-            loss_vals_actor = self.ddpg_loss(sample)
-            self.optimizer_actor.zero_grad()
-            loss_vals_actor["loss_actor"].backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    self.ddpg_loss.actor_network_params.values(True, True),
-                    self.config.max_grad_norm,
-                )
-            self.optimizer_actor.step()
-
-            # Sync functional actor params back to the actor module used by the collector/evaluator
-            self.ddpg_loss.actor_network_params.to_module(self.actor)
-
-            # Update target networks
-            self.updater.step()
-
-            # Log losses
-            actor_loss = loss_vals_actor["loss_actor"].item()
-            value_loss = loss_vals["loss_value"].item()
-            self.logs["loss_value"].append(value_loss)
-            self.logs["loss_actor"].append(actor_loss)
-
-            # Log to callback if provided
-            if (
-                hasattr(self, "callback")
-                and self.callback
-                and hasattr(self.callback, "log_training_step")
-            ):
-                self.callback.log_training_step(current_step, actor_loss, value_loss)
-
-            # Periodic logging and evaluation
-            if self._should_log_step(current_step):
-                self._log_progress(
-                    max_length,
-                    buffer_len,
-                    loss_vals_actor,
-                    actor_loss=actor_loss,
-                    value_loss=value_loss,
-                )
-
-            # Periodic evaluation
-            if self._should_eval_step(current_step):
-                self._evaluate()
+    def _update_actor_and_targets(self, sample) -> tuple[float, dict | None]:
+        """Actor gradient step against the freshly updated critic, then target sync."""
+        loss_vals_actor = self.ddpg_loss(sample)
+        self.optimizer_actor.zero_grad()
+        loss_vals_actor["loss_actor"].backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.ddpg_loss.actor_network_params.values(True, True),
+                self.config.max_grad_norm,
+            )
+        self.optimizer_actor.step()
+        self.ddpg_loss.actor_network_params.to_module(self.actor)
+        self.updater.step()
+        return loss_vals_actor["loss_actor"].item(), None
 
     def _compute_exploration_ratio(self) -> float:
         return self.config.td3.exploration_noise_std

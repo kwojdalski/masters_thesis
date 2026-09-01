@@ -140,127 +140,94 @@ class SACTrainer(BaseTrainer):
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
     ) -> None:
-        """Perform SAC optimization: critic update → actor update → alpha update.
+        # Shared skeleton (BaseTrainer). SAC folds its 3 updates
+        # (critic → actor → temperature) into the two hooks below; the target
+        # sync and the alpha/entropy log entries live in _update_actor_and_targets.
+        self._run_offpolicy_optimization_step(batch_idx, max_length, buffer_len)
 
-        Three separate forward passes avoid computation-graph conflicts between
-        the critic, actor, and temperature objectives.
+    def _update_critics(self, sample) -> tuple[Any, float] | None:
+        """One Q-value gradient step. Returns (loss_vals, value_loss) or None on skip."""
+        try:
+            loss_vals = self.sac_loss(sample)
+            self.successful_batches += 1
+            self._consecutive_skips = 0
+        except RuntimeError as e:
+            if "All input tensors" in str(e) and "must share a unique shape" in str(e):
+                self._record_skipped_batch("tensor shape error", exc=e)
+                return None
+            raise
 
-        Args:
-            batch_idx: Current batch index
-            max_length: Maximum episode length in buffer
-            buffer_len: Current replay buffer size
-        """
-        for j in range(self.config.optim_steps_per_batch):
-            sample = self.replay_buffer.sample(self.config.sample_size)
-            current_step = self._global_optimization_step(
-                batch_idx, j, self.config.optim_steps_per_batch
+        self.optimizer_value.zero_grad()
+        loss_vals["loss_qvalue"].backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.sac_loss.qvalue_network_params.values(True, True),
+                self.config.max_grad_norm,
             )
+        self.optimizer_value.step()
+        self.sac_loss.qvalue_network_params.to_module(self.value_net)
 
-            if (
-                torch.isnan(sample["next", "reward"]).any()
-                or torch.isinf(sample["next", "reward"]).any()
-            ):
-                self._record_skipped_batch("nan/inf in reward")
-                continue
+        value_loss = loss_vals["loss_qvalue"].item()
+        self.logs["loss_value"].append(value_loss)
+        return loss_vals, value_loss
 
-            done = sample["next", "done"]
-            terminated = sample["next", "terminated"]
-            if done.shape != terminated.shape:
-                self._record_skipped_batch(
-                    f"done/terminated shape mismatch done={done.shape} terminated={terminated.shape}"
-                )
-                continue
-
-            # 1. Critic (Q-value) update
-            try:
-                loss_vals = self.sac_loss(sample)
-                self.successful_batches += 1
-                self._consecutive_skips = 0
-            except RuntimeError as e:
-                if "All input tensors" in str(e) and "must share a unique shape" in str(
-                    e
-                ):
-                    self._record_skipped_batch("tensor shape error", exc=e)
-                    continue
-                else:
-                    raise
-
-            self.optimizer_value.zero_grad()
-            loss_vals["loss_qvalue"].backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    self.sac_loss.qvalue_network_params.values(True, True),
-                    self.config.max_grad_norm,
-                )
-            self.optimizer_value.step()
-            self.sac_loss.qvalue_network_params.to_module(self.value_net)
-
-            # 2. Actor update (fresh forward pass)
-            loss_vals_actor = self.sac_loss(sample)
-
-            self.optimizer_actor.zero_grad()
-            loss_vals_actor["loss_actor"].backward()
-            if self.config.max_grad_norm > 0:
-                torch.nn.utils.clip_grad_norm_(
-                    self.sac_loss.actor_network_params.values(True, True),
-                    self.config.max_grad_norm,
-                )
-            self.optimizer_actor.step()
-            self.sac_loss.actor_network_params.to_module(self.actor)
-
-            # 3. Alpha (temperature) update (fresh forward pass)
-            loss_vals_alpha = self.sac_loss(sample)
-
-            self.optimizer_alpha.zero_grad()
-            loss_vals_alpha["loss_alpha"].backward()
-            self.optimizer_alpha.step()
-
-            # Update target Q networks after all three updates
-            self.updater.step()
-
-            # Logging
-            value_loss = loss_vals["loss_qvalue"].item()
-            actor_loss = loss_vals_actor["loss_actor"].item()
-            alpha_loss = loss_vals_alpha["loss_alpha"].item()
-            alpha_val = loss_vals_alpha["alpha"].item()
-            entropy_tensor = loss_vals_alpha.get("entropy", None)
-            entropy_val = (
-                entropy_tensor.item() if entropy_tensor is not None else float("nan")
+    def _update_actor_and_targets(self, sample) -> tuple[float, dict | None]:
+        """Actor step, temperature step, and target-Q sync (each a fresh pass)."""
+        loss_vals_actor = self.sac_loss(sample)
+        self.optimizer_actor.zero_grad()
+        loss_vals_actor["loss_actor"].backward()
+        if self.config.max_grad_norm > 0:
+            torch.nn.utils.clip_grad_norm_(
+                self.sac_loss.actor_network_params.values(True, True),
+                self.config.max_grad_norm,
             )
+        self.optimizer_actor.step()
+        self.sac_loss.actor_network_params.to_module(self.actor)
 
-            self.logs["loss_value"].append(value_loss)
-            self.logs["loss_actor"].append(actor_loss)
-            self.logs["loss_alpha"].append(alpha_loss)
-            self.logs["alpha"].append(alpha_val)
-            self.logs["entropy"].append(entropy_val)
+        loss_vals_alpha = self.sac_loss(sample)
+        self.optimizer_alpha.zero_grad()
+        loss_vals_alpha["loss_alpha"].backward()
+        self.optimizer_alpha.step()
 
-            if (
-                hasattr(self, "callback")
-                and self.callback
-                and hasattr(self.callback, "log_training_step")
-            ):
-                self.callback.log_training_step(current_step, actor_loss, value_loss)
+        self.updater.step()
 
-            if self._should_log_step(current_step):
-                self._log_progress(
-                    max_length, buffer_len, loss_vals, loss_vals_actor, loss_vals_alpha
-                )
-
-            if self._should_eval_step(current_step):
-                self._evaluate()
+        actor_loss = loss_vals_actor["loss_actor"].item()
+        alpha_loss = loss_vals_alpha["loss_alpha"].item()
+        alpha_val = loss_vals_alpha["alpha"].item()
+        entropy_tensor = loss_vals_alpha.get("entropy", None)
+        entropy_val = (
+            entropy_tensor.item() if entropy_tensor is not None else float("nan")
+        )
+        # loss_actor is appended by the shared skeleton; the SAC-specific series
+        # are appended here.
+        self.logs["loss_alpha"].append(alpha_loss)
+        self.logs["alpha"].append(alpha_val)
+        self.logs["entropy"].append(entropy_val)
+        return actor_loss, {
+            "loss_alpha": alpha_loss,
+            "alpha": alpha_val,
+            "entropy": entropy_val,
+        }
 
     def _log_progress(
         self,
         max_length: int,
         buffer_len: int,
         loss_vals: dict,
-        loss_vals_actor: dict,
-        loss_vals_alpha: dict,
+        log_actor: bool = True,
+        actor_loss: float | None = None,
+        value_loss: float | None = None,
     ) -> None:
-        curr_loss_value = loss_vals["loss_qvalue"].item()
-        curr_loss_actor = loss_vals_actor["loss_actor"].item()
-        curr_loss_alpha = loss_vals_alpha["loss_alpha"].item()
-        curr_alpha = loss_vals_alpha["alpha"].item()
+        curr_loss_value = (
+            value_loss if value_loss is not None else loss_vals["loss_qvalue"].item()
+        )
+        curr_loss_actor = (
+            actor_loss if actor_loss is not None else loss_vals["loss_actor"].item()
+        )
+        curr_loss_alpha = (
+            self.logs["loss_alpha"][-1] if self.logs["loss_alpha"] else 0.0
+        )
+        curr_alpha = self.logs["alpha"][-1] if self.logs["alpha"] else 0.0
 
         logger.info(
             "sac step max_steps={} buffer_size={} loss_value={:.4f} loss_actor={:.4f} "

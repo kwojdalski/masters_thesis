@@ -259,82 +259,9 @@ class TD3Trainer(BaseTrainer):
     def _optimization_step(
         self, batch_idx: int, max_length: int, buffer_len: int
     ) -> None:
-        for j in range(self.config.optim_steps_per_batch):
-            sample = self.replay_buffer.sample(self.config.sample_size)
-            current_step = self._global_optimization_step(
-                batch_idx, j, self.config.optim_steps_per_batch
-            )
-
-            self._normalize_batch_shapes(sample)
-
-            if is_level_enabled("TRACE"):
-                actions = sample["action"]
-                rewards = sample["next", "reward"]
-                logger.trace(
-                    "td3 batch sample stats batch={} step={} "
-                    "action_mean={} action_std={} action_min={} action_max={} "
-                    "reward_mean={} reward_std={} reward_min={} reward_max={}",
-                    batch_idx,
-                    j,
-                    actions.mean(),
-                    actions.std(),
-                    actions.min(),
-                    actions.max(),
-                    rewards.mean(),
-                    rewards.std(),
-                    rewards.min(),
-                    rewards.max(),
-                )
-
-            if (
-                torch.isnan(sample["next", "reward"]).any()
-                or torch.isinf(sample["next", "reward"]).any()
-            ):
-                self._record_skipped_batch("nan/inf in reward")
-                continue
-
-            done = sample["next", "done"]
-            terminated = sample["next", "terminated"]
-            if done.shape != terminated.shape:
-                self._record_skipped_batch(
-                    f"done/terminated shape mismatch done={done.shape} terminated={terminated.shape}"
-                )
-                continue
-
-            result = self._update_critics(sample)
-            if result is None:
-                continue
-            loss_vals, value_loss = result
-
-            actor_updated = False
-            actor_loss = None
-            if self._should_update_actor(current_step):
-                actor_loss, extra_metrics = self._update_actor_and_targets(sample)
-                self.logs["loss_actor"].append(actor_loss)
-                actor_updated = True
-                if (
-                    hasattr(self, "callback")
-                    and self.callback
-                    and hasattr(self.callback, "log_training_step")
-                ):
-                    self.callback.log_training_step(
-                        current_step,
-                        actor_loss,
-                        value_loss,
-                        extra_metrics=extra_metrics,
-                    )
-
-            if self._should_log_step(current_step):
-                self._log_progress(
-                    max_length,
-                    buffer_len,
-                    loss_vals,
-                    log_actor=actor_updated,
-                    actor_loss=actor_loss,
-                )
-
-            if self._should_eval_step(current_step):
-                self._evaluate()
+        # Shared skeleton (BaseTrainer); TD3 supplies _normalize_batch_shapes,
+        # _update_critics, _update_actor_and_targets, and _should_update_actor.
+        self._run_offpolicy_optimization_step(batch_idx, max_length, buffer_len)
 
     def _compute_exploration_ratio(self) -> float:
         return self.config.td3.exploration_noise_std

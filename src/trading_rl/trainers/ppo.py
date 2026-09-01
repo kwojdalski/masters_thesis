@@ -289,15 +289,7 @@ class PPOTrainer(BaseTrainer):
                 self.logs["loss_value"].append(value_loss)
                 self.logs["loss_entropy"].append(entropy_loss)
 
-                # Log to callback if provided
-                if (
-                    hasattr(self, "callback")
-                    and self.callback
-                    and hasattr(self.callback, "log_training_step")
-                ):
-                    self.callback.log_training_step(
-                        current_step, actor_loss, value_loss
-                    )
+                self.callback.log_training_step(current_step, actor_loss, value_loss)
 
                 # Periodic logging and evaluation
                 if self._should_log_step(current_step):
