@@ -36,6 +36,42 @@ maker/taker fees and a slippage or market-impact model. Because the training
 reward shares the mid-price assumption, re-scoring the existing checkpoints is
 not sufficient.
 
+Two further assumptions in @sec-simulation-assumptions bear on the same
+question and have not been quantified here. The first is zero latency: the
+agent acts on an observation with no transport, decision, or matching-engine
+delay. The median inter-event gap on the test split is roughly 33
+microseconds, so even a modest few-hundred-microsecond round trip -- well
+inside what a non-co-located system would incur -- spans multiple order-book
+updates before the corresponding action could reach the market. Because the
+microprice-mid divergence is a one-step-ahead prediction of the next update,
+not a persistent state, a delayed action risks arriving after the predicted
+move has already occurred, or after a faster participant observing the same
+imbalance has already traded on it. Zero latency therefore does not merely
+omit an engineering cost; it assumes the agent wins every such race, which is
+the specific competitive margin that determines whether this class of
+signal is exploitable in practice.
+
+The second is the absence of any effect of the agent's own trading on the
+book. @sec-simulation-assumptions defends this on position-size grounds: at
+this scale, trades are small relative to displayed depth, so walking the book
+is not a concern. That defense addresses price impact from order size, but not
+a separate channel: the features the policy conditions on (order-flow
+imbalance, queue depletion, microprice divergence) are themselves signatures
+of recent trading in the book, and the agent trades on them at close to every
+step (turnover of roughly 0.4-0.5 across instruments in the Hypothesis 1
+agent). A real venue would reflect each fill back into queue depth and
+subsequent order flow, feeding into the very quantities the next observation
+is built from; the simulation cannot represent that loop by construction, since
+it treats every trade as leaving the book unchanged. This is a different
+question from the transaction-cost sensitivity tested in Hypothesis 2: that
+result shows the edge is fragile to a compensating fee; this limitation is
+about whether the edge would persist at all once the strategy's own order flow
+is allowed to feed back into the signal it exploits. Answering it needs either
+an explicit impact model (for example, a price-impact term keyed to trade size
+in the spirit of Kyle's lambda, already used as a feature-construction concept
+in Chapter 2) or a multi-agent analysis of what happens once the same signal
+is traded by more than one participant; both are left for future work.
+
 ### Evaluation Scope
 <!-- [PLACEHOLDER] -->
 
