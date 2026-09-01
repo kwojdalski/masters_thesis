@@ -143,16 +143,17 @@ rate, and critic-value magnitude would additionally prevent a saturated policy
 from reaching evaluation at all, replacing the manual exclusion used here with
 an automated and reproducible criterion.
 
-A separate evaluation-side issue affects the Hypothesis 1 comparison. The TD3
-agent was re-evaluated over a ten-percent window after a configuration
-collision required it to be re-scored, while DDPG, PPO, and the random baseline
-were evaluated over the full test split. Cumulative return compounds with
-window length, so the raw return column is not comparable across those arms;
-the table in Section 6.1 marks the affected figure and rescales it to the
-longest observed window, holding the measured per-step edge fixed. That
-rescaling is a projection under a stationarity assumption, not an independent
-measurement. Re-evaluating TD3 over the full window would remove the
-assumption, and is the outstanding correction to that table.
+An earlier revision of the Hypothesis 1 comparison scored TD3 over a
+ten-percent window, after a configuration collision required it to be
+re-evaluated, while DDPG, PPO, and the random baseline used the full test
+split; because cumulative return compounds with window length, that table
+carried a per-step-edge rescaling of the TD3 figure. TD3 has since been
+re-evaluated from its three-million-step checkpoint over the identical full
+per-symbol test window, so the comparison in Section 6.1 is now a matched
+direct measurement with no projection. It places TD3 at $+305\%$ aggregate
+return against DDPG's $+313\%$ and PPO's $+206\%$, confirming that the three
+learners are indistinguishable and that the separation that matters is the one
+from the random policy.
 
 TD3's stability corrections are also not complete. Target policy smoothing
 regularizes the critic to be locally consistent around actions seen in the
