@@ -44,7 +44,7 @@ It was integrated into the training pipeline via a custom wrapper
 (`StreamingTradingEnvXY`) that streams fixed-length episode windows from
 memory-mapped data files, keeping peak memory proportional to episode
 length rather than dataset size. One performance modification was applied
-to the library: the duplicate-timestamp check in the internal
+to the library. The duplicate-timestamp check in the internal
 `TrackRecord._checkpoint` method was overridden in a subclass to use an
 $O(1)$ dictionary lookup instead of an $O(n)$ linear list scan, which
 would otherwise degrade step time quadratically over long evaluation
@@ -62,7 +62,7 @@ market-shaping. This is defensible only while position sizes remain small
 relative to displayed order-book depth, which holds for the MBP-10 dataset
 used here (defined in Chapter 5.1)^[All six instruments (AAPL, MSFT, TSLA,
 META, AMZN, and AVGO) are highly liquid Nasdaq-listed blue-chips with tight
-spreads, deep displayed depth, and continuous two-sided quoting, ensuring
+spreads, deep displayed depth, and continuous two-sided quoting. This ensures
 that simulated agent trades represent a negligible fraction of resting book
 volume at any level.]
 

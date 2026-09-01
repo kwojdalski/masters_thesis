@@ -7,8 +7,8 @@ formulated in Chapter 4.
 
 ### Value-Based Methods and Their Limitations in Continuous Control
 
-The foundational algorithms of the field — Q-learning [@Watkins1992] and its
-on-policy variant SARSA [@Sutton2018] — operate over tabular representations
+The foundational algorithms of the field (Q-learning [@Watkins1992] and its
+on-policy variant SARSA [@Sutton2018]) operate over tabular representations
 of state-action value functions. Both methods converge to the optimal policy
 under mild conditions, but only when the state-action space is small enough to
 enumerate explicitly. In a trading context with continuous price-derived
@@ -27,7 +27,7 @@ because the max operator in the Bellman target presupposes that all actions can
 be enumerated. For a trading agent that outputs a continuous portfolio
 weight in $[-1, 1]$, this is not an acceptable limitation. Discretizing the
 action space into a finite grid resolves the representation issue formally, but
-it reintroduces the granularity problem: a coarse grid loses the benefits of
+it reintroduces the granularity problem. A coarse grid loses the benefits of
 continuous control, while a fine grid makes the maximization step computationally
 expensive and recovers the curse of dimensionality in higher-dimensional
 portfolio settings.
@@ -54,9 +54,9 @@ This generalizes the simpler form shown in @eq-policy-gradient-update, which
 presents the parameter update rule directly rather than deriving it from the
 gradient of the objective. While REINFORCE applies naturally to
 continuous action spaces through a parameterized distribution (for example, a
-Gaussian policy), it suffers from high variance in the gradient estimate because
-$G_t$ is computed from a full episode trajectory, making it sensitive to
-trajectory length and reward scale.
+Gaussian policy), it suffers from high variance in the gradient estimate. This
+variance arises because $G_t$ is computed from a full episode trajectory,
+making it sensitive to trajectory length and reward scale.
 
 The actor-critic architecture reduces this variance by replacing $G_t$ with a
 learned advantage estimate $A(s_t, a_t) = Q(s_t, a_t) - V(s_t)$, maintained by
@@ -70,7 +70,7 @@ architecture with deterministic policies and twin critics as described in
 ### DDPG: Deterministic Policies for Continuous Control
 
 The deterministic policy gradient (DPG) theorem was established,
-showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form [@Silver2014]:^[The original DPG paper uses $\theta$ for the actor and $w$ for the critic [@Silver2014]; the DDPG paper uses $\theta^\mu$ and $\theta^Q$ [@Lillicrap2015]. This thesis adopts the TD3 convention throughout — $\phi$ for the actor and $\theta$ for the critic(s) — to maintain consistency with the TD3 equations in Chapter 4 [@Fujimoto2018].]
+showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form [@Silver2014]:^[The original DPG paper uses $\theta$ for the actor and $w$ for the critic [@Silver2014]; the DDPG paper uses $\theta^\mu$ and $\theta^Q$ [@Lillicrap2015]. This thesis adopts the TD3 convention throughout ($\phi$ for the actor and $\theta$ for the critic(s)) to maintain consistency with the TD3 equations in Chapter 4 [@Fujimoto2018].]
 
 $$
 \begin{aligned}
@@ -104,7 +104,7 @@ $\arg\max$ required by value-based methods.
 
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
-Two failure modes in DDPG were identified [@Fujimoto2018], both corroborated by
+two failure modes in DDPG were identified [@Fujimoto2018], both corroborated by
 independent reproducibility studies [@Henderson2018]. First, the
 critic tends to overestimate action values because actor optimization can exploit
 positive approximation errors in the critic, and bootstrapped targets can
@@ -114,7 +114,7 @@ rather than the true reward signal. Second, the algorithm is sensitive to the
 relative frequency of actor and critic updates: updating the actor before the
 critic has converged amplifies the overestimation problem. In financial
 environments, where rewards are noisy and non-stationary, one would expect
-these instabilities to be particularly acute: the critic must separate genuine
+these instabilities to be particularly acute. The critic must separate genuine
 market signal from approximation artifacts, and overestimated Q-values provide
 a corrupted learning signal under conditions where the true reward is already
 weakly informative.
@@ -207,7 +207,7 @@ Q-learning correction [@VanHasselt2016], adapted to the deterministic actor-
 critic setting.
 
 **Delayed policy updates.** The actor and target networks are updated less
-frequently than the critics — typically once for every two critic updates. This
+frequently than the critics (typically once for every two critic updates). This
 allows the value estimates to stabilize before they are used to compute the
 policy gradient, breaking the feedback loop between an unstable critic and an
 erroneous actor update.
@@ -220,45 +220,45 @@ landscape.
 
 Together, these three modifications produce an algorithm that is substantially
 more reliable than DDPG on standard continuous control benchmarks [@Fujimoto2018].
-Evidence from trading-adjacent settings is more limited and heterogeneous:
-Several deep RL strategies were compared in asset-holding tasks,
-finding TD3 competitive with alternatives [@Mohammadshafie2024]; TD3 was
-evaluated in cryptocurrency trading with explicit attention to backtest
-overfitting [@Gort2022].
-These results should not be read as establishing a general ranking — they span
-different asset classes, reward formulations, and evaluation protocols — but they
-suggest TD3's stability mechanisms are not systematically harmful in financial
-settings. This matters for the present thesis
+Evidence from trading-adjacent settings is more limited and heterogeneous.
+Several deep RL strategies were compared in asset-holding tasks, finding TD3
+competitive with alternatives [@Mohammadshafie2024]; TD3 was also evaluated in
+cryptocurrency trading with explicit attention to backtest overfitting
+[@Gort2022].
+These results should not be read as establishing a general ranking: they span
+different asset classes, reward formulations, and evaluation protocols. They do
+suggest, however, that TD3's stability mechanisms are not systematically
+harmful in financial settings. This matters for the present thesis
 for a specific reason: the agent is trained in a price-taking historical-market
 simulator where each transition can be replayed because the agent's action
 changes portfolio wealth but not the subsequent order-book path. Replay therefore
 improves computational use of the simulated experience, but only under this
-execution assumption; it should not be interpreted as evidence that the agent has
-observed all counterfactual market reactions to alternative trades.
+execution assumption. It should not be interpreted as evidence that the agent
+has observed all counterfactual market reactions to alternative trades.
 
 TD3 is selected on the basis of two constraints imposed by the thesis design
 and one preference that follows from them.
 
-The action space is continuous — the agent outputs a target portfolio exposure
-in $[-1,1]$ — which eliminates the DQN family entirely, since a discretized
+The action space is continuous: the agent outputs a target portfolio exposure
+in $[-1,1]$. This eliminates the DQN family entirely, since a discretized
 action grid would make position sizing a modelling artifact rather than a
-learned decision, restricting the viable candidates to policy-gradient and
-actor-critic algorithms. The training window is also bounded by a fixed
-historical period, with live data collection outside the thesis's scope;
-off-policy algorithms that reuse transitions through a replay buffer extract
-more signal from each simulated step than on-policy methods, which
-disadvantages PPO relative to DDPG and TD3.
+learned decision. The viable candidates are therefore restricted to
+policy-gradient and actor-critic algorithms. The training window is also
+bounded by a fixed historical period, with live data collection outside the
+thesis's scope. Off-policy algorithms that reuse transitions through a replay
+buffer extract more signal from each simulated step than on-policy methods,
+which disadvantages PPO relative to DDPG and TD3.
 
 Given these constraints, the viable candidates are DDPG, TD3, and SAC
 [@Haarnoja2018]. DDPG and TD3 are preferred over SAC because they use natively
-deterministic policies, matching the evaluation objective of a single exposure
-decision per state and avoiding the choice between sampling from or taking the
-mode of a stochastic distribution at deployment.
+deterministic policies. This matches the evaluation objective of a single
+exposure decision per state and avoids the choice between sampling from or
+taking the mode of a stochastic distribution at deployment.
 
 SAC is excluded on methodological scope grounds rather than irrelevance. Its
-entropy-temperature coefficient introduces an additional objective
-dimension — trading off return against policy entropy — that is absent from
-the return-only formulation used here; this entropy-augmented framework has
+entropy-temperature coefficient introduces an additional objective dimension
+(trading off return against policy entropy) that is absent from the
+return-only formulation used here. This entropy-augmented framework has
 been applied to trading problems in the literature [@FinRL2020]. Comparing SAC
 to TD3 would require disentangling whether any improvement comes from the
 maximum-entropy objective or from the off-policy replay both algorithms share,
@@ -267,13 +267,13 @@ deterministic policies. SAC remains a promising direction for future work,
 particularly its online variants for regime shifts in non-stationary markets.
 
 Between DDPG and TD3, TD3 is preferred because it was introduced precisely to
-correct DDPG's two failure modes — critic overestimation and policy-update
-instability from premature actor updates — both of which are expected to be
-acute when rewards are noisy and the critic must separate genuine market
-signal from approximation artifacts. TD3 is therefore not chosen as a
-generally superior trading method, but as the algorithm whose structural
-properties — off-policy replay, deterministic actor, explicit overestimation
-corrections — most directly match this thesis's simulation design.
+correct DDPG's two failure modes (critic overestimation and policy-update
+instability from premature actor updates). Both are expected to be acute when
+rewards are noisy and the critic must separate genuine market signal from
+approximation artifacts. TD3 is therefore not chosen as a generally superior
+trading method, but as the algorithm whose structural properties (off-policy
+replay, deterministic actor, explicit overestimation corrections) most
+directly match this thesis's simulation design.
 
 This choice should be read together with the trading constraints discussed in
 Chapter 2, which motivate continuous exposure control, off-policy learning
@@ -287,7 +287,7 @@ market-design problems, which the empirical chapters address separately.
 The preceding sections establish how PPO, DDPG, and TD3 differ in learning
 paradigm, policy type, and stability mechanism, and why TD3 is selected under
 this thesis's constraints. @tbl-policy-comparison in Chapter 4 summarizes
-these differences at the implementation level — actor output, exploration
-noise, target smoothing, and update frequency — as configured for the
+these differences at the implementation level (actor output, exploration
+noise, target smoothing, and update frequency) as configured for the
 controlled comparison in Chapter 6, where all three algorithms are evaluated
 on identical trading tasks.

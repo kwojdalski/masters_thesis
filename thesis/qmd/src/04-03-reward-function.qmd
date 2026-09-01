@@ -33,7 +33,7 @@ This objective matches the standard RL formulation introduced in
 quantity being optimized.
 
 In trading, two properties are essential for the reward to work well in
-practice: the signal should be risk-adjusted so the agent does not maximize
+practice. The signal should be risk-adjusted so the agent does not maximize
 returns by taking excessive volatility, and it should be computable recursively
 so that no look-ahead into future returns is required at each training step.
 The baseline reward requires refinement at high frequency. The Differential
@@ -47,30 +47,30 @@ $a_{t-1}\,(P_t - P_{t-1})/P_{t-1}$, and a **friction term**, $c\,|a_t - a_{t-1}|
 **mid-price**, not an executable bid or ask quote, in keeping with the mid-price
 execution assumption stated in @sec-simulation-assumptions. Baseline runs set
 $c = 0$, so a buy and a sell settle at the same mid, no spread is crossed, and
-the friction term vanishes; the reward is then the signal term alone.
+the friction term vanishes. The reward is then the signal term alone.
 
-The features that carry the agent's directional signal — microprice, microprice
-divergence, order-flow imbalance, queue imbalance — are functions of
+The features that carry the agent's directional signal (microprice, microprice
+divergence, order-flow imbalance, queue imbalance) are functions of
 top-of-book prices and sizes. The microprice is a convex combination of the best
 bid and ask, so its divergence from the mid satisfies
 $|\text{microprice}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$,
-the half-spread, at **every tick** (an exact algebraic bound, verified on the
-full sample; see @sec-limitations-and-future-research). Because that divergence
+the half-spread, at **every tick**. This is an exact algebraic bound, verified
+on the full sample (see @sec-limitations-and-future-research). Because that divergence
 is the one-step-ahead predictor of the mid move, the largest **per-tick** edge
 this class of features can express is exactly one half-spread — the same
 quantity a spread-crossing fill would cost. Mid-price execution waives that
 cost, so the frictionless reward measures a **signal ceiling**: the most that
 could be captured if execution were free, not what a strategy that crosses the
 spread would realise. (This is a per-tick, next-mid-move bound on the tradable
-edge, not a claim that the features lack predictive value; Chapter 2 attributes
+edge, not a claim that the features lack predictive value. Chapter 2 attributes
 them genuine predictive content over longer horizons.)
 
 The transaction-cost sweep in @tbl-h2-transaction-costs varies $c$ and locates
-this ceiling against realistic cost: the reported edge is positive at zero fee
+this ceiling against realistic cost. The reported edge is positive at zero fee
 and turns negative once the per-trade fee approaches a fraction of a basis
 point — the scale of the half-spread on these instruments. Hypothesis 1 is
 therefore an existence-and-magnitude claim (the signal is real, TD3 learns it,
-its size is of the order of one half-spread); Hypothesis 2 maps how performance
+its size is of the order of one half-spread). Hypothesis 2 maps how performance
 responds as that cost is charged. The training reward uses the same mid-price
 valuation, so the learned policy is optimal for the frictionless objective;
 retraining under an explicit spread-crossing cost is left as future work
@@ -99,7 +99,7 @@ estimates. It also tends to reward high-turnover behavior regardless of risk.
 
 A related alternative is the Sharpe ratio computed over a fixed rolling window.
 This approach requires storing the full window of past returns at each step.
-It also introduces a sharp discontinuity when old returns drop out of it.^[When the oldest return in a fixed window is unusually large or small, its removal produces an abrupt shift in the estimated mean and variance — and therefore in the Sharpe ratio — that is unrelated to the current action. The agent cannot distinguish this accounting artifact from a genuine change in performance, introducing spurious gradient variance. Exponential weighting in the DSR avoids this because old returns decay continuously rather than dropping off a cliff.]
+It also introduces a sharp discontinuity when old returns drop out of it.^[When the oldest return in a fixed window is unusually large or small, its removal produces an abrupt shift in the estimated mean and variance (and therefore in the Sharpe ratio) that is unrelated to the current action. The agent cannot distinguish this accounting artifact from a genuine change in performance, introducing spurious gradient variance. Exponential weighting in the DSR avoids this because old returns decay continuously rather than dropping off a cliff.]
 
 Neither property
 is desirable in an online RL setting.
@@ -171,19 +171,19 @@ evidence of a strong Sharpe ratio on the test set would be incorrect.
 
 The DSR approach has four limitations. First, it assumes the first and second
 moments of returns are approximately stationary over the effective memory
-window ($\approx 1/\eta$ steps); intraday trading is well documented to
+window ($\approx 1/\eta$ steps). Intraday trading is well documented to
 violate this through market opening effects, scheduled announcements, and
 regime shifts [@Engle2000; @Cont2014], and exponential weighting only
 partially compensates. Second, like other variance-based measures, it
 penalizes upside and downside volatility symmetrically, whereas traders
-typically care more about downside risk; the Sortino ratio, the Calmar ratio,
-or utility-based rewards would align better with that preference but are
+typically care more about downside risk. The Sortino ratio, the Calmar ratio,
+or utility-based rewards would align better with that preference, but are
 non-recursive or computationally intractable at tick frequency. Third, it can
 become unstable when the denominator $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$
-is small — early in training or during low-variance regimes — amplifying
-microstructure noise into extreme reward values; the implementation clamps
+is small (early in training or during low-variance regimes), amplifying
+microstructure noise into extreme reward values. The implementation clamps
 $D_t$ to $[-10, 10]$, following standard reward-clipping practice
-[@Mnih2015].^[In the DSR scenario, the reward scale is $\kappa = 1$: at tick
+[@Mnih2015].^[In the DSR scenario, the reward scale is $\kappa = 1$. At tick
 frequency the empirical variance term dominates $\varepsilon = 10^{-16}$ by
 several orders of magnitude, so the resulting signal falls naturally in a
 well-conditioned $\mathcal{O}(1)$ range for the Adam optimiser and Huber
@@ -192,16 +192,17 @@ running moments $A_t, B_t$ are not part of the observation, the reward at
 time $t$ depends on a hidden trajectory of past returns. TD3 samples replayed
 transitions out of order, so the same state-action pair can yield different
 rewards depending on when it was collected, violating the stationarity its
-Bellman backup assumes — an effect strongest early in each episode, before
+Bellman backup assumes. This effect is strongest early in each episode, before
 the EMA moments stabilize after $\approx 1/\eta$ steps. Augmenting the
 observation with $(A_t, B_t)$ would restore the Markov property and is left
 for future work.
 
-The DSR was chosen despite these limitations for two reasons: its recursive
-formulation makes it uniquely suitable for online RL, where alternatives such
-as fixed-window Sharpe or utility-based rewards require storing unbounded
-history or solving optimization problems at each step; and while variance is
-an imperfect proxy for risk, it provides a tractable baseline that discourages
-the most pathological high-turnover behaviors. Whether an alternative reward
+The DSR was chosen despite these limitations for two reasons. First, its
+recursive formulation makes it uniquely suitable for online RL, where
+alternatives such as fixed-window Sharpe or utility-based rewards require
+storing unbounded history or solving optimization problems at each step.
+Second, while variance is an imperfect proxy for risk, it provides a
+tractable baseline that discourages the most pathological high-turnover
+behaviors. Whether an alternative reward
 formulation performs better is a question for future work, addressed in
 Chapter 7.

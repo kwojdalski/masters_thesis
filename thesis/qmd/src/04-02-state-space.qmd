@@ -16,15 +16,15 @@ criteria simultaneously.
 contains sufficient information such that the optimal action depends only on the
 current state, not on the full history. Raw price levels violate this assumption
 because their unconditional distribution is non-stationary; a price of 180 means
-something very different depending on recent trajectory. Engineered features —
-returns, imbalances, normalized spreads — are designed to be more stationary and
+something very different depending on recent trajectory. Engineered features
+(returns, imbalances, normalized spreads) are designed to be more stationary and
 to encode the local market state rather than the absolute price level.
 
 **Informativeness about short-term price direction.** For the reward signal to
 be learnable, the observation must contain features that are predictive of
 near-term mid-price changes. The selection is therefore grounded in market
-microstructure theory, which identifies specific LOB quantities — imbalances,
-order flow, spread — as the empirically dominant predictors of short-term price
+microstructure theory, which identifies specific LOB quantities (imbalances,
+order flow, spread) as the empirically dominant predictors of short-term price
 movement.
 
 **Dimensionality discipline.** Each additional observation dimension enlarges the
@@ -101,12 +101,13 @@ standardization counterproductive relative to the raw bounded signal.
 
 The candidate pool from which these groups were drawn contained over forty
 computable statistics. Features eliminated by the IC/ICIR filter or excluded on
-redundancy grounds include: VPIN [@Easley2012], which proved collinear with rolling
-OFI after conditional screening; cancel-to-trade ratio and trade arrival rate,
-which carried insufficient incremental ICIR beyond order count imbalance; OFI
-autocorrelation, whose predictive content was subsumed by the rolling OFI window;
-large trade ratio, which was redundant with the odd-lot decomposition; and depth
-ratio and price vamp, which did not survive the theory-constrained Stage 1 screen.
+redundancy grounds include VPIN [@Easley2012], cancel-to-trade ratio, trade
+arrival rate, OFI autocorrelation, large trade ratio, depth ratio, and price vamp.
+VPIN proved collinear with rolling OFI after conditional screening. Cancel-to-trade
+ratio and trade arrival rate carried insufficient incremental ICIR beyond order
+count imbalance. OFI autocorrelation's predictive content was subsumed by the
+rolling OFI window. Large trade ratio was redundant with the odd-lot decomposition.
+Depth ratio and price vamp did not survive the theory-constrained Stage 1 screen.
 Exact formulas, citations, parameter values, and model-inclusion status for
 both selected and excluded features are catalogued in Appendix A.
 

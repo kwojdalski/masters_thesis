@@ -39,9 +39,9 @@ claim in this thesis.
 **Hypothesis 3: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** The
 feature-set comparison confirms this hypothesis, and feature specification was
-the dominant determinant of policy quality: setups using only snapshot-level
+the dominant determinant of policy quality. Setups using only snapshot-level
 quantities produced weaker, short-biased, less stable policies than those using
-the microstructure-aware feature set, which supplements top-of-book snapshot
+the microstructure-aware feature set. That set supplements top-of-book snapshot
 quantities with order-flow imbalance, spread-regime features, book-shape
 measures, and temporal encodings. The improvement was visible not only in
 summary metrics but in policy behavior (lower-turnover, more stable

@@ -48,7 +48,7 @@ the book attract less informed order flow but carry higher execution uncertainty
 for those posting limit orders.
 
 This theoretical result motivates the multi-level features used in Chapter 4.
-The book is not a single price but a price schedule, and the shape of that
+The book is not a single price but a price schedule. The shape of that
 profile (measured by depth ratios, slopes, and convexity features)
 may encode information about how informed the marginal liquidity provider
 expects the market to be at each quantity level.
@@ -81,10 +81,10 @@ The microprice is derived as the theoretically optimal estimate of the
 next transaction price given the current state of the top-of-book queues
 [@Stoikov2018]. The key observation is that the mid-price (the arithmetic
 average of best bid and ask) is an inadequate fair value estimate when the
-queues are imbalanced, because the side with the thinner queue is more likely
+queues are imbalanced. This is because the side with the thinner queue is more likely
 to be depleted first by incoming market orders, pulling the next transaction
 price toward the opposite side. The microprice corrects for this by
-volume-weighting the best quotes so that when the bid side is heavier than
+volume-weighting the best quotes. When the bid side is heavier than
 the ask, the estimate is pulled toward the ask, the side more likely to
 move (exact formula and implementation in Appendix A). The microprice
 divergence from mid captures this adjustment as a stationary signal and
