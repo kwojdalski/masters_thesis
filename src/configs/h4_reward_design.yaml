@@ -1,0 +1,23 @@
+# H4 Reward-Function Design Configuration
+#
+# H4: The reward objective (log-return vs Differential Sharpe Ratio) materially
+# changes the learned policy and its risk profile under otherwise identical
+# training and evaluation conditions.
+#
+# One sensitivity axis: log-return baseline vs DSR. Every variant points to a
+# log_dir produced by `cli.py train --scenario <scenario>`.
+#
+# Run order to reproduce:
+#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected      # log-return baseline
+#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr  # DSR
+
+axes:
+  - name: reward_design
+    label: "Reward Function Design"
+    scenarios:
+      - label: "Log Return"
+        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+        baseline: true
+      - label: "Differential Sharpe (DSR)"
+        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+        baseline: false

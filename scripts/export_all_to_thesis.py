@@ -9,7 +9,7 @@ Usage:
     uv run python scripts/export_all_to_thesis.py              # all hypotheses
     uv run python scripts/export_all_to_thesis.py --hypothesis h1
     uv run python scripts/export_all_to_thesis.py --hypothesis h2
-    uv run python scripts/export_all_to_thesis.py --hypothesis h3
+    uv run python scripts/export_all_to_thesis.py --hypothesis h4
     uv run python scripts/export_all_to_thesis.py --hypothesis h1 h2
 """
 
@@ -35,19 +35,20 @@ SCENARIOS: dict[str, list[str]] = {
         "pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr",
         "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr",
     ],
-    "h2": [
+    "h2": [  # transaction-cost sensitivity
+        "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
+        "pooled/td3_h3_fees_1e6",
+        "pooled/td3_h3_fees_1e5",
+        "pooled/td3_h3_fees_1e4",
+    ],
+    "h3": [  # feature specification
         "pooled/td3_h3_features_minimal",
         "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
         "pooled/td3_h3_features_full",
     ],
-    "h3": [
-        "pooled/td3_h3_features_minimal",
+    "h4": [  # reward-function design
         "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
-        "pooled/td3_h3_features_full",
         "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
-        "pooled/td3_h3_fees_1e6",
-        "pooled/td3_h3_fees_1e5",
-        "pooled/td3_h3_fees_1e4",
     ],
 }
 
@@ -73,10 +74,10 @@ def main() -> int:
     p.add_argument(
         "--hypothesis",
         nargs="+",
-        choices=["h1", "h2", "h3"],
-        default=["h1", "h2", "h3"],
+        choices=["h1", "h2", "h3", "h4"],
+        default=["h1", "h2", "h3", "h4"],
         metavar="HYP",
-        help="Which hypotheses to export (h1 h2 h3). Defaults to all.",
+        help="Which hypotheses to export (h1 h2 h3 h4). Defaults to all.",
     )
     p.add_argument(
         "--verbose",

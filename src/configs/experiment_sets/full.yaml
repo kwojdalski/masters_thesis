@@ -8,21 +8,17 @@ hypotheses:
     - pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr
-  h2:
-    - pooled/td3_h3_features_minimal
+  h2:  # transaction-cost sensitivity
     - pooled/td3_hft_lob_state_space_pooled_streaming_selected
-    - pooled/td3_h3_features_full
-  h3:
-    - pooled/td3_h3_features_minimal
-    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
-    - pooled/td3_h3_features_full
-    - pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/td3_h3_fees_1e6
     - pooled/td3_h3_fees_1e5
     - pooled/td3_h3_fees_1e4
-  h4:
-    scenario: pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
-    trials: 5
-    steps: 200000
+  h3:  # feature specification
+    - pooled/td3_h3_features_minimal
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    - pooled/td3_h3_features_full
+  h4:  # reward-function design
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
 
 overrides: []

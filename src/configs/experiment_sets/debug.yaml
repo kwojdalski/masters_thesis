@@ -8,22 +8,18 @@ hypotheses:
     - pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr
-  h2:
-    - pooled/td3_h3_features_minimal
+  h2:  # transaction-cost sensitivity
     - pooled/td3_hft_lob_state_space_pooled_streaming_selected
-    - pooled/td3_h3_features_full
-  h3:
-    - pooled/td3_h3_features_minimal
-    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
-    - pooled/td3_h3_features_full
-    - pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/td3_h3_fees_1e6
     - pooled/td3_h3_fees_1e5
     - pooled/td3_h3_fees_1e4
-  h4:
-    scenario: pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
-    trials: 2
-    steps: 1000
+  h3:  # feature specification
+    - pooled/td3_h3_features_minimal
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    - pooled/td3_h3_features_full
+  h4:  # reward-function design
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected
+    - pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr
 
 overrides:
   - data.data_paths=[./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet]
