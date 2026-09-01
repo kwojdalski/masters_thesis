@@ -92,7 +92,7 @@ where:
 - TanhNormal — Gaussian distribution whose samples are squashed through $\tanh$ to lie in $(-1,1)$
 
 The actor network shares the same hidden-layer structure as the deterministic actors
-— two layers of width [128, 64] — but its output head differs. The final linear
+(two layers of width [128, 64]) but its output head differs. The final linear
 layer produces $2n_{\text{act}} = 2$ values, which are split into a mean $\mu$ and a
 raw scale parameter $\log \sigma$ by a parameter extractor. The scale is transformed
 to a positive standard deviation via a softplus non-linearity, and a TanhNormal
@@ -134,8 +134,8 @@ All three algorithms are trained with the same state representation, reward func
 data split, random seed, learning rates, and weight decay. The network capacity is
 equalized: both actor and value networks use hidden dimensions [128, 64] across all
 three algorithms. This ensures that differences in empirical performance in Chapter 6
-are attributable to the algorithmic properties — policy type, update rule, and
-stability mechanisms — and not to differences in model capacity or input features.
+are attributable to the algorithmic properties (policy type, update rule, and
+stability mechanisms) and not to differences in model capacity or input features.
 
 The table below summarizes the policy-level design choices for each algorithm in
 the controlled comparison.

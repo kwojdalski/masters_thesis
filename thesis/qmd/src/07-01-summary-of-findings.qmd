@@ -9,16 +9,16 @@ section summarizes the empirical evidence for each.
 from order-book microstructure.** The evidence supports this in its reworded
 form. Under frictionless mid-price execution the agent learns a directionally
 coherent, low-turnover, drawdown-controlled policy that beats passive benchmarks
-on this held-out window (Section 6.3), and TD3, DDPG, and PPO all separate
+on this held-out window (Section 6.3). TD3, DDPG, and PPO all separate
 cleanly from a random policy while remaining indistinguishable from one another
-(Section 6.1) — the microstructure signal exists, is learnable, and is not an
+(Section 6.1). The microstructure signal exists, is learnable, and is not an
 artifact of a single algorithm's inductive bias. Its economic magnitude,
-however, is of the same order as the cost of trading on it: the
+however, is of the same order as the cost of trading on it. The
 features that carry the signal (microprice divergence, order-flow imbalance)
 cannot express an edge larger than one bid–ask half-spread per trade
-(Section 4.3), and the transaction-cost sweep (Section 6.2) shows the reported
+(Section 4.3). The transaction-cost sweep (Section 6.2) shows the reported
 return changing sign once the per-trade fee reaches a fraction of a basis
-point — the same scale as that half-spread. The frictionless result is
+point (the same scale as that half-spread). The frictionless result is
 therefore a signal ceiling, not a deployable edge: profitable when execution is
 free, not expected to survive realistic spread-crossing cost. Retraining and
 re-evaluating under explicit bid/ask execution with calibrated fees is the
@@ -31,8 +31,8 @@ marginally positive at 0.01 basis points, and negative from 0.1 basis points
 upward; the sign changes within a single order of magnitude of fee. The level at
 which the edge disappears coincides with the half-spread ceiling on the
 microstructure signal (Section 4.3), so Hypotheses 1 and 2 meet at the same
-quantity from opposite directions — Hypothesis 1 measuring the edge, Hypothesis
-2 the cost that cancels it. That the reported result is this sensitive to a
+quantity from opposite directions. Hypothesis 1 measures the edge; Hypothesis
+2 measures the cost that cancels it. That the reported result is this sensitive to a
 parameter often left implicit is why robustness analysis precedes any economic
 claim in this thesis.
 
@@ -44,8 +44,8 @@ quantities produced weaker, short-biased, less stable policies than those using
 the microstructure-aware feature set, which supplements top-of-book snapshot
 quantities with order-flow imbalance, spread-regime features, book-shape
 measures, and temporal encodings. The improvement was visible not only in
-summary metrics but in policy behavior — lower-turnover, more stable
-positioning. The full 33-feature set did not improve further on the selected
+summary metrics but in policy behavior (lower-turnover, more stable
+positioning). The full 33-feature set did not improve further on the selected
 10-feature set, so the benefit comes from adding relevant microstructure
 information, not from maximizing feature count.
 

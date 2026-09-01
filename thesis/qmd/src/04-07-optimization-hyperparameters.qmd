@@ -6,9 +6,9 @@ Both actor and critic use Adam [@Kingma2014] with a learning rate of
 $\alpha = 0.0001$. This is deliberately conservative relative to the
 $3 \times 10^{-4}$ default common in continuous-control benchmarks. Preliminary
 experiments with more aggressive rates produced Q-value explosions and policy
-collapse — failure modes consistent with the high noise-to-signal ratio of
-tick-frequency rewards and the sensitivity of bootstrapped TD targets to
-large gradient steps. Stability was prioritized over sample efficiency.
+collapse. These failure modes are consistent with the high noise-to-signal
+ratio of tick-frequency rewards and the sensitivity of bootstrapped TD targets
+to large gradient steps. Stability was prioritized over sample efficiency.
 
 Actor and critic use the same nominal rate, but TD3's policy delay (every
 2 critic updates) effectively halves the actor's update frequency,
@@ -18,7 +18,7 @@ providing additional stability without a separate hyperparameter.
 
 L2 weight decay of $\lambda = 2 \times 10^{-6}$ is applied to the critic
 networks, while the actor uses no explicit weight decay. The critic regularizer
-is intentionally small — sufficient to discourage memorization of
+is intentionally small, sufficient to discourage memorization of
 training-period noise without restricting the network's capacity to represent
 nonlinear market dynamics. No further regularization (dropout, batch
 normalization) is used, keeping the architecture parsimonious.

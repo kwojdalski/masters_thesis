@@ -2,7 +2,7 @@
 
 Repeated TD3 training runs can diverge due to random initialization, replay
 sampling, and exploration noise, even under an identical dataset and
-configuration — the same single-run limitation already noted for the
+configuration. The same single-run limitation already noted for the
 Hypothesis 1 comparison above applies throughout this chapter. Repeated tuning on the
 same validation period can also bias later comparisons, and reward-based
 metrics can diverge from financial objectives when the reward is a shaped

@@ -22,7 +22,7 @@ where:
 
 Taking the minimum counteracts the overestimation bias that
 arises when bootstrapped targets are computed from the same network being
-updated — a failure mode documented in DDPG and addressed here following
+updated. This failure mode is documented in DDPG and addressed here following
 the TD3 formulation [@Fujimoto2018]. This formulation extends the standard Q-learning target
 in @eq-qlearning-update by (1) using twin critics to reduce overestimation and
 (2) employing a deterministic target policy rather than taking a maximum

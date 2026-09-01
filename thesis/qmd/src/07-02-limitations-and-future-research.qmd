@@ -10,7 +10,7 @@ latency, and no baseline fee. For a microstructure strategy this assumption is
 close to the whole result. The microprice divergence that drives the agent's
 directional calls is a convex combination of the best bid and ask, so
 $|\text{microprice}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$
-holds identically — an exact algebraic bound, verified on 100% of the
+holds identically. This is an exact algebraic bound, verified on 100% of the
 2.4-million-row AAPL sample. The largest per-tick edge the feature set can
 express is therefore exactly one half-spread, which is precisely what a
 spread-crossing fill would cost; mid-price execution deletes that liability and
@@ -20,13 +20,13 @@ could matter".
 
 Order-of-magnitude figures on the exported Hypothesis 1 test window: the spread a
 crossing environment would have charged is roughly ten times the gross profit,
-and the breakeven proportional fee is on the order of $4 \times 10^{-6}$ —
-consistent with the Hypothesis 2 fee sweep turning negative between
+and the breakeven proportional fee is on the order of $4 \times 10^{-6}$.
+This is consistent with the Hypothesis 2 fee sweep turning negative between
 $1 \times 10^{-6}$ and $1 \times 10^{-5}$. Re-pricing the identical action path
 under bid/ask execution instead of the mid moves the total return from roughly
 $+2.3$ to roughly $-10.6$ in net-liquidation-value units: the same signal, the
-opposite sign. These figures are indicative rather than final — they come from
-re-pricing a fixed policy, not from retraining — and a control in which random
+opposite sign. These figures are indicative rather than final: they come from
+re-pricing a fixed policy, not from retraining. A control in which random
 actions run through the same frictionless environment returns $-0.033\%$,
 confirming that the frictionless profit is a real signal harvested for free
 rather than bid–ask bounce available to any high-turnover policy. The direct
@@ -44,7 +44,7 @@ evaluation window: train, validation, and test splits all derive from the
 same three consecutive sessions (February 25-27, 2026), sharing one
 volatility regime, spread environment, and intraday seasonality. What this
 thesis calls "out-of-sample" performance is therefore within-window
-out-of-sample — the test split was withheld from training, but the agent has
+out-of-sample. The test split was withheld from training, but the agent has
 never encountered a different trading day, market condition, or instrument.
 This is a necessary but not sufficient condition for practical utility: the
 results establish that the learning problem is tractable in this window, not
@@ -53,8 +53,8 @@ single completed run per configuration on a single machine with a modest
 compute budget, so multi-seed variance and the ceiling reachable under
 larger-scale infrastructure both remain open. Extending the window across
 volatility and liquidity regimes, walk-forward validation, multi-seed
-reporting, and cross-asset testing — including foreign exchange, futures,
-and cryptocurrency — would be the most direct ways to strengthen the
+reporting, and cross-asset testing (including foreign exchange, futures,
+and cryptocurrency) would be the most direct ways to strengthen the
 generalization claim and determine whether asset-class-specific tuning is
 necessary.
 
@@ -64,20 +64,20 @@ necessary.
 A more fundamental constraint, shared with most academic RL trading
 research, is that the agent sees only the spot limit order book of a single
 instrument at a single venue. Price-relevant information that never reaches
-that book — derivatives and options-implied signals, unstructured data such
+that book (derivatives and options-implied signals, unstructured data such
 as earnings and macro releases, and proprietary order flow visible only to
-systematic internalizers, market makers, and prime brokers — appears to the
+systematic internalizers, market makers, and prime brokers) appears to the
 agent as unexplained noise, which both limits value-estimate precision and
 raises reward variance. This creates a structural information asymmetry
 between academic research, confined to public data, and well-resourced
-industry participants; the results here are best read as a lower bound on
+industry participants. The results here are best read as a lower bound on
 what such participants could achieve with the same technique, not as a
 statement about the technique's ceiling. The reward signal inherits this
 noise directly, since tick-level returns are dominated by bid-ask bounce and
-transient order-flow effects the agent cannot attribute to a cause — a
-constraint on learning that exists independently of algorithm or reward
-choice, and one that action-frequency sub-sampling (acting every $N$ ticks
-rather than every tick) could partially diagnose at low cost — several of the
+transient order-flow effects the agent cannot attribute to a cause. This
+constraint on learning exists independently of algorithm or reward
+choice, and action-frequency sub-sampling (acting every $N$ ticks
+rather than every tick) could partially diagnose it at low cost. Several of the
 engineered features have been shown in the microstructure literature to
 carry predictive content over horizons of minutes, not just the next event,
 so a lower-frequency action interval might reveal signal the current
@@ -86,8 +86,8 @@ tick-level setup discards as noise.
 ### Training Workflow
 <!-- [PLACEHOLDER] -->
 
-Some TD3 runs entered unstable regimes — persistent action saturation or
-collapse to a narrow exposure range — and were manually excluded from the
+Some TD3 runs entered unstable regimes (persistent action saturation or
+collapse to a narrow exposure range) and were manually excluded from the
 main comparison. This prevented obviously failed runs from contaminating the
 results, but it is not an automated or statistically principled criterion.
 Future work should make this explicit: validation-based checkpoint selection
@@ -102,7 +102,7 @@ begins producing actions in regions the critic has seen rarely or never, the
 critic's estimates there are extrapolations from the training distribution
 rather than reliable values, and the actor receives no signal that it has
 left the buffer's support. This is distinct from the overestimation-bias
-correction discussed in Chapter 3 (@sec-td3-lineage) — the twin-critic
+correction discussed in Chapter 3 (@sec-td3-lineage). The twin-critic
 minimum addresses optimistic bias at the target computation, not exposure to
 out-of-distribution actions at the actor update. Stochastic-policy methods
 such as SAC are structurally less exposed to this failure mode, since the
@@ -125,12 +125,12 @@ made here:
   steps) of key features is a low-cost first step before the more substantial
   redesign implied by a sequence encoder.
 - **Cross-asset and multi-asset extensions.** The pooled model trains across
-  six instruments but manages one position at a time; synchronized cross-asset
-  signals (e.g. VIX futures, sector-ETF flow) or genuine multi-asset portfolio
-  optimization are natural extensions, as is testing on instruments with
-  intermediate liquidity — active enough to generate a rich order book but not
-  so deep that every pattern is immediately arbitraged, unlike the highly
-  liquid large-caps used here. A more tractable intermediate step is a pair
+  six instruments but manages one position at a time. Synchronized cross-asset
+  signals (e.g. VIX futures, sector-ETF flow), genuine multi-asset portfolio
+  optimization, and testing on instruments with intermediate liquidity are
+  natural extensions. Intermediate liquidity means active enough to generate
+  a rich order book but not so deep that every pattern is immediately
+  arbitraged, unlike the highly liquid large-caps used here. A more tractable intermediate step is a pair
   with an economically well-defined price anchor, such as dual-class shares
   representing identical economic exposure to the same underlying business,
   where deviations from parity are theoretically bounded and the learning
@@ -141,15 +141,15 @@ made here:
   the specific algorithm and reward choice rather than the feature design.
   Within the MLP family, a structured search over learning rate, hidden-layer
   width and depth, and activation function would separate algorithmic
-  contribution from parameterization: activation functions with different
+  contribution from parameterization. Activation functions with different
   saturation properties, such as GELU or ELU in place of ReLU, may interact
-  differently with the bounded, skewed distribution of order-book features,
-  and layer normalization inside the critic — untested here — could stabilize
+  differently with the bounded, skewed distribution of order-book features.
+  Layer normalization inside the critic (untested here) could stabilize
   Q-value scale across reward magnitudes.
 - **Alternative architectures.** Transformer-based sequence encoders and
   hybrid gradient-boosted-tree approaches such as GBRL [@Fuhrer2025] are
   promising directions given the tabular, engineered nature of the feature
-  set — but a linear-policy baseline should be evaluated first: if a linear
+  set. However, a linear-policy baseline should be evaluated first: if a linear
   actor matches the MLP's out-of-sample performance, that is stronger
   evidence about the problem's structure than any higher-capacity model
   result would be.

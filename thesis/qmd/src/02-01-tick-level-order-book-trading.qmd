@@ -58,7 +58,7 @@ lower activity) when sizing positions.
 Prices cluster at round numbers and psychologically
 attractive levels, creating discontinuities in the order book that affect
 optimal order placement and execution [@Harris1991]. In a 10-level LOB, price clustering
-manifests as uneven spacing between price levels — a pattern captured by the
+manifests as uneven spacing between price levels. This pattern is captured by the
 book convexity feature, which measures the curvature of the price ladder on
 each side. Awareness of price clustering is also relevant to the spread ratio
 feature, since clusters create temporary spread compression and expansion that
@@ -70,7 +70,7 @@ and reward design; intraday periodicity motivates temporal context features;
 price discreteness motivates curvature features of the order book. Rather than
 treating the limit order book as a transparent window onto an efficient price,
 the empirical evidence supports modeling it as a strategic environment with
-predictable mechanical regularities — which is precisely the setting in which
+predictable mechanical regularities, which is precisely the setting in which
 a reinforcement learning agent can learn to act systematically.
 
 [^execution-scale]: This generalization depends on the scale of trading. For investment funds, execution is rarely a negligible issue — quite the opposite. Large-scale execution costs, market impact, and implementation shortfall can dominate gross returns, making execution quality a primary concern.

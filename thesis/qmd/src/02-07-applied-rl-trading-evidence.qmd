@@ -29,8 +29,8 @@ often superior to predicting intermediate outcomes.
 
 This framework was extended to an asset-allocation setting (S&P 500
 index versus T-bills), validating that RL-optimized policies could generate
-positive risk-adjusted returns after transaction costs — a stringent test of
-practical viability [@Moody2001].
+positive risk-adjusted returns after transaction costs [@Moody2001]. This was
+a stringent test of practical viability.
 
 ### From Discrete to Continuous Action Spaces
 
@@ -39,12 +39,12 @@ problems this thesis's design responds to directly. Discrete Q-learning on
 equity and futures markets [@Neuneier1998; @Lee2007] learned profitable
 patterns but suffered sparse rewards, delayed credit assignment, and
 out-of-sample degradation; more fundamentally, discrete buy/sell/hold actions
-force an artificial granularity on position sizing — a coarse grid loses
-control precision, a fine grid reintroduces the curse of dimensionality.
+force an artificial granularity on position sizing. A coarse grid loses
+control precision, and a fine grid reintroduces the curse of dimensionality.
 Extending direct/recurrent RL to foreign-exchange trading
 [@Gold2003; @Dempster2002] confirmed that mapping state directly into
 positions is viable, but performance varied substantially across currency
-pairs and system parameters — feasibility evidence, not a robust trading edge.
+pairs and system parameters. This is feasibility evidence, not a robust trading edge.
 
 ### Deep Reinforcement Learning Era
 
@@ -55,7 +55,7 @@ DDPG was applied to Dow-30 equity trading using engineered
 technical-indicator features [@Xiong2018], while a fuzzy-representation
 autoencoder was combined with direct reinforcement learning for futures trading
 [@Deng2016]. Both
-studies noted high variance across runs — a characteristic instability of
+studies noted high variance across runs. This is a characteristic instability of
 these methods under noisy financial rewards.
 
 The portfolio-vector-memory (PVM) architecture was proposed, combining
@@ -73,7 +73,7 @@ portfolio-action optimization, but the assumptions of immediate execution and no
 market impact remain far from tick-level order-book trading.
 
 DDPG, PPO, and Policy Gradient (PG) were compared for China A-share
-portfolio management, finding — counterintuitively — that the simpler PG
+portfolio management, finding, counterintuitively, that the simpler PG
 algorithm outperformed both actor-critic methods [@Liang2018]. The proposed adversarial
 training method improved average daily return and Sharpe ratio in backtests,
 with the PG-based agent outperforming a uniform constant rebalanced portfolio
@@ -81,8 +81,8 @@ baseline.
 
 A focused TD3 study on single-asset trading for AMZN and
 BTC used daily data and a continuous action space in $[-1,1]$ [@Majidi2024]. Its minimal
-state representation — lagged close-return windows rather than large
-technical-indicator sets — reported improved return and Sharpe ratio for TD3
+state representation (lagged close-return windows rather than large
+technical-indicator sets) reported improved return and Sharpe ratio for TD3
 versus discrete variants and buy-and-hold, though results were mixed across
 assets. This study is best interpreted as evidence that continuous action sizing
 can be beneficial under realistic frictions, not as definitive proof of robust
@@ -100,10 +100,10 @@ trend. The study does not report results across multiple random seeds or under
 realistic spread-crossing costs with a frozen policy, making it difficult to
 determine whether the reported performance reflects genuine signal or
 overfitting to the evaluation window. Methodologically the paper supports the
-practical value of feature enrichment in continuous-action actor-critic trading,
-but it also illustrates a broader pattern in the RL trading literature: without
-standardized evaluation protocols — multi-seed reporting, held-out test periods
-not used for model selection, and explicit cost assumptions — performance
+practical value of feature enrichment in continuous-action actor-critic trading.
+It also illustrates a broader pattern in the RL trading literature: without
+standardized evaluation protocols (multi-seed reporting, held-out test periods
+not used for model selection, and explicit cost assumptions), performance
 claims are difficult to assess on their own terms.
 
 Two further studies mark boundary cases outside this thesis's LOB-level,
@@ -113,15 +113,15 @@ equity universe, but its state representation, trading frequency, and
 execution assumptions differ from millisecond-level LOB trading. AlphaStock
 [@Wang2019AlphaStock] combines a Sharpe-oriented objective with history-state
 and cross-asset attention, contributing mainly through representation and
-interpretability in stock selection — supporting the claim that state
-representation matters materially in RL trading, but not addressing
+interpretability in stock selection. This supports the claim that state
+representation matters materially in RL trading, but does not address
 order-book-driven single-asset exposure control.
 
 A volatility-scaled deep RL trading strategy tested across
 50 liquid futures contracts spanning commodities, equity indices, fixed income,
 and FX, benchmarked against classical time-series momentum, was proposed
-[@Zhang2020]. Its result —
-that reward and risk-scaling choices materially affect realized performance —
+[@Zhang2020]. Its result,
+that reward and risk-scaling choices materially affect realized performance,
 reinforces that algorithm choice cannot be separated from state representation,
 action design, reward definition, transaction costs, and evaluation protocol.
 
@@ -146,8 +146,8 @@ outperformed either in isolation.
 Published deep RL trading strategies were shown to often fail to
 generalize out-of-sample due to backtest overfitting, motivating a
 probability-of-overfitting estimator to reject overfit agents before
-deployment [@Gort2022]. The implication is that evaluation methodology — strict temporal
-splits, multi-seed reporting, realistic cost assumptions — matters as much as
+deployment [@Gort2022]. The implication is that evaluation methodology (strict temporal
+splits, multi-seed reporting, realistic cost assumptions) matters as much as
 algorithm choice.
 
 **Reward specification.**
@@ -163,14 +163,14 @@ The literature reviewed here converges on design lessons rather than a
 headline result. Continuous-action actor-critic methods are frequently
 preferred over discrete alternatives for position-sizing tasks
 [@Liang2018; @Majidi2024; @Kabbani2022], since action spaces must match the
-economic decision being made. Risk-adjusted reward signals — especially
-Differential Sharpe Ratio formulations — appear promising for out-of-sample
+economic decision being made. Risk-adjusted reward signals, especially
+Differential Sharpe Ratio formulations, appear promising for out-of-sample
 generalization relative to raw return objectives, provided they penalize
-costs and avoid encouraging excessive turnover; explicit transaction-cost
+costs and avoid encouraging excessive turnover. Explicit transaction-cost
 modeling is a prerequisite for any realistic performance claim at the
 frequencies considered here, and such claims remain highly sensitive to the
 evaluation protocol. Validation must use held-out periods, frozen policies,
-and repeated runs where stochastic training is material — without these
+and repeated runs where stochastic training is material. Without these
 elements, a positive backtest is best interpreted as a proof of concept
 rather than evidence of a robust trading edge.
 

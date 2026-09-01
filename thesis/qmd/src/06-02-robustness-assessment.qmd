@@ -85,9 +85,9 @@ as the cost of trading on it, and the fee sweep tests exactly that. The policy i
 positive at zero fee; it is marginally positive at 0.01 basis points with a
 weaker profit factor; cumulative return turns negative at 0.1 basis points and
 the loss deepens at 1 basis point. The sign flips between 0.01 and 0.1 basis
-points — a per-trade cost of a few hundredths to a few tenths of a basis
-point — which is the scale of the bid–ask half-spread on these instruments, and
-the half-spread is the maximum edge the microstructure feature set can express
+points. This is a per-trade cost of a few hundredths to a few tenths of a basis
+point, which is the scale of the bid–ask half-spread on these instruments. The
+half-spread is the maximum edge the microstructure feature set can express
 (Section 4.3, @sec-execution-model-signal-friction). The fee sweep and the
 half-spread bound therefore locate the learned edge from opposite directions: it
 is positive but approximately one half-spread per trade, captured under
@@ -95,8 +95,8 @@ frictionless execution and eliminated by realistic spread-crossing cost. That is
 the evidential content of Hypothesis 1 as reworded.
 
 For Hypothesis 2 itself, the same table carries a distinct conclusion: empirical
-performance is materially sensitive to the transaction-cost assumption — a
-parameter often left implicit — and the fact that the sign changes within one
+performance is materially sensitive to the transaction-cost assumption (a
+parameter often left implicit). The fact that the sign changes within one
 order of magnitude of fee is why robustness analysis is a precondition for any
 economic claim here. Hypothesis 1 says how large the edge is; Hypothesis 2 says
 how fast the reported result moves when this assumption is varied.

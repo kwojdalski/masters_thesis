@@ -10,10 +10,10 @@ required to switch between experimental variants. A pre-training validation stag
 feature definitions, split feasibility, and column compatibility before any
 computation begins, preventing wasted runs from invalid experimental
 specifications. A condensed summary of the main specification is provided in
-Appendix B. A high-level overview of the full pipeline — from data
-acquisition and offline feature research through preparation, pre-training
-configuration checks, training, and post-training evaluation — is provided
-in Appendix E; the complete machine-readable diagram is maintained alongside
+Appendix B. A high-level overview of the full pipeline is provided
+in Appendix E, spanning data acquisition and offline feature research through
+preparation, pre-training configuration checks, training, and post-training
+evaluation. The complete machine-readable diagram is maintained alongside
 the source code in `docs/workflow.d2`.
 
 ### Feature Pipeline
@@ -39,8 +39,8 @@ update rules (deterministic policy gradient for DDPG/TD3, clipped surrogate for
 PPO) and replay buffer usage (off-policy for DDPG/TD3, on-policy for PPO).
 
 For DDPG and TD3, experience is collected into a replay buffer and the critic
-is updated from sampled mini-batches via the deterministic policy gradient;
-target networks track the main networks through soft updates with
+is updated from sampled mini-batches via the deterministic policy gradient.
+Target networks track the main networks through soft updates with
 coefficient $\tau$, and exploration noise is applied during training and
 removed at evaluation time. For PPO, training follows the on-policy
 paradigm: batches are collected using the current policy, multiple epochs of
@@ -103,9 +103,9 @@ $Q_{\theta'}(s', \mu_{\phi'}(s'))$ directly, without the minimum), the actor
 updated every step rather than every `policy_delay` critic steps, and no
 target-action smoothing noise. PPO (Algorithm 4, same appendix section)
 instead follows the on-policy paradigm summarized above: batches are
-collected with the current stochastic policy, GAE advantage estimates are
-computed, and the clipped surrogate objective (@eq-ppo-clip) together with a
-value loss and entropy bonus are optimized jointly over multiple epochs per
+collected with the current stochastic policy, and GAE advantage estimates are
+computed. The clipped surrogate objective (@eq-ppo-clip), together with a
+value loss and entropy bonus, is optimized jointly over multiple epochs per
 batch, with no replay buffer.
 
 The notation follows the conventions established in Chapter 3:
@@ -133,7 +133,7 @@ In this setting, the TD3 agent learned behavior consistent with the imposed
 sine-wave structure, providing a basic implementation sanity check before moving
 to noisy tick-level order-book data.
 
-A complementary check was conducted using a random policy — one that selects
+A complementary check was conducted using a random policy, one that selects
 actions uniformly at random with no learned component. This tests the opposite
 question: whether the environment, reward function, and accounting logic are
 free of structural bias that would generate returns even without a signal.
@@ -147,7 +147,7 @@ Learning health checks verify, after a single gradient update, that
 observations and rewards are finite, that every feature dimension varies
 across the batch (i.e., no collapsed or constant-valued feature), that
 the loss is finite, and that actor and critic parameters both change and
-remain finite — four conditions that are individually obvious but together
+remain finite. These four conditions are individually obvious but together
 rule out the silent errors most likely to produce plausible-looking
 training curves without genuine learning. Pipeline integration tests run a
 short end-to-end training loop to detect regressions in data loading,
@@ -160,7 +160,7 @@ experimental conditions that produced the reported results.
 
 Final performance is reported on the held-out test split using a dedicated
 evaluation environment. Training reward and realized portfolio return are kept
-as two separate output streams — one for optimization diagnostics, one for the
-financial metrics computed from the deterministic rollout — for the reasons
-discussed in Section 4.3. Metrics derived from the test rollout are described
+as two separate output streams: one for optimization diagnostics, one for the
+financial metrics computed from the deterministic rollout. This separation
+follows the reasons discussed in Section 4.3. Metrics derived from the test rollout are described
 in Chapter 6.

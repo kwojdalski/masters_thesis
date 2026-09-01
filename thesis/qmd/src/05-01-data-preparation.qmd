@@ -13,7 +13,7 @@ while avoiding names whose order-book event density on the Nasdaq ITCH feed
 would be disproportionately inflated by factors unrelated to underlying
 economic activity. This
 liquidity profile ensures that the price-taking assumption embedded in the
-simulation — that agent trades do not move quoted prices — is empirically
+simulation (that agent trades do not move quoted prices) is empirically
 defensible, and that the microstructure features derived from the order book
 reflect genuine supply and demand rather than thin-market artifacts.
 
@@ -28,20 +28,20 @@ The choice to train a single pooled model across multiple instruments, rather
 than a separate model per instrument, is a deliberate design decision.
 Securities within the same asset class that trade on the same exchange, under
 the same tick-size regime, and with comparable order-flow dynamics share a
-common microstructure regime. The residual cross-sectional variation —
-differences in volatility level, beta, or sector exposure — is dominated by
+common microstructure regime. The residual cross-sectional variation
+(differences in volatility level, beta, or sector exposure) is dominated by
 this shared structure. Within such a homogeneous class, LOB feature distributions
 are comparable after standard normalization, making it feasible for a single
 policy network to learn market-wide order-book dynamics rather than
 instrument-specific quirks. Pooling across $N$ securities multiplies the
 effective training sample by a factor of $N$, reducing the risk of overfitting
 to idiosyncratic patterns in any single stock's order-flow sequence. It also
-encourages the model to capture universal microstructure signals — spread
-dynamics, order-flow imbalance, and depth asymmetries — that transfer across
+encourages the model to capture universal microstructure signals (spread
+dynamics, order-flow imbalance, and depth asymmetries) that transfer across
 equities within the same class. The feature pipeline supports this directly:
 all inputs are z-score normalized per security, and the microstructure features
-in the state space — order-flow imbalance, relative spread, depth slope, queue
-imbalance — are inherently relative measures that carry the same semantic meaning
+in the state space (order-flow imbalance, relative spread, depth slope, queue
+imbalance) are inherently relative measures that carry the same semantic meaning
 regardless of the underlying price level or absolute volume.
 
 A further consideration is access symmetry. Because all six instruments trade
@@ -53,7 +53,7 @@ the learning algorithm and feature engineering, not to exploit a structural
 information advantage.
 
 The data were obtained from Nasdaq via the DataBento API, using the MBP-10
-(Market By Price, 10 levels) feed — a hybrid order book format that sits
+(Market By Price, 10 levels) feed. This is a hybrid order book format that sits
 between L2 (aggregated depth) and L3 (order-by-order) data, providing
 depth-of-book snapshots at up to ten price levels and additionally recording
 the order count at each level via `side_ct_xx` fields (e.g., `bid_ct_00` for
@@ -103,7 +103,7 @@ statistical filtering.
 
 Before feature engineering, each daily file is filtered to retain only events
 that modify at least one of the five shallowest book levels (levels 0–4). The
-full MBP-10 feed delivers updates at all ten price levels, but every
+full MBP-10 feed delivers updates at all ten price levels. Every
 microstructure feature in the state space draws exclusively on levels 0–4:
 order-flow imbalance, depth slopes, queue sizes, bid/ask slopes, and related
 signals are all defined relative to the top-of-book region. Events that update
@@ -120,9 +120,9 @@ yielding 24 files in total (6 symbols × 4 trading days). The four days cover
 February 25–27, 2026 (days 1–3, training) and March 2, 2026 (day 4,
 evaluation). All files are filtered to US regular market hours (09:30–16:00 ET).
 Raw event counts and inter-event timing per symbol and split, before the
-level-0–4 filter is applied, are reported in Appendix, @tbl-raw-file-inventory;
-event density varies substantially across symbols (from roughly 190,000 to
-7.1 million events per split) and this variation carries through to the
+level-0–4 filter is applied, are reported in Appendix, @tbl-raw-file-inventory.
+Event density varies substantially across symbols (from roughly 190,000 to
+7.1 million events per split), and this variation carries through to the
 post-filter split sizes summarized below.
 
 **Training data.** The 18 files from days 1–3 are used exclusively for
@@ -153,12 +153,12 @@ strictly-causal normalization: the statistics that standardize the observation a
 step $t$ are accumulated from that session's own events up to $t-1$ only
 (@sec-feature-normalization-and-causality-preservation), and they reset at each
 session break. For this feature set the separate fitting step over the
-concatenated training days is therefore inert — its output is never consulted at
-transform time — and the evaluation day is normalized entirely by its own
+concatenated training days is therefore inert (its output is never consulted at
+transform time), and the evaluation day is normalized entirely by its own
 expanding within-session statistics. The causality guarantee is consequently
 stronger than a train-fit-then-freeze scheme would provide: training-period data
 cannot leak into the evaluation representation because it does not enter it at
-all. This was confirmed directly — normalizing the AAPL evaluation day with a
+all. This was confirmed directly. Normalizing the AAPL evaluation day with a
 pipeline fitted on a different security (TSLA) reproduces the AAPL-fitted output
 bit for bit, and a prefix-invariance check (normalizing the first 200,000 versus
 the first 400,000 rows) leaves the overlapping rows unchanged.
@@ -166,7 +166,7 @@ the first 400,000 rows) leaves the overlapping rows unchanged.
 
 ### Feature Normalization and Causality Preservation {#sec-feature-normalization-and-causality-preservation}
 
-Normalization of microstructure features presents a methodological challenge for sequential learning: the conventional approach of fitting a standard scaler on the full training dataset and applying it globally introduces look-ahead bias. Each observation's normalized value would incorporate statistical information from future timesteps, violating the causal structure that a trading agent must respect in deployment. An agent at step $t$ can only condition on information available at time $t$; allowing its inputs to be scaled using the mean and variance of the entire training set (including steps $t+1, t+2, \dots$) would, in effect, provide the agent with knowledge it cannot access.
+Normalization of microstructure features presents a methodological challenge for sequential learning: the conventional approach of fitting a standard scaler on the full training dataset and applying it globally introduces look-ahead bias. Each observation's normalized value would incorporate statistical information from future timesteps, violating the causal structure that a trading agent must respect in deployment. An agent at step $t$ can only condition on information available at time $t$. Allowing its inputs to be scaled using the mean and variance of the entire training set (including steps $t+1, t+2, \dots$) would, in effect, provide the agent with knowledge it cannot access.
 
 To preserve causality, this study employs a **cumulative running normalization**
 scheme: for each feature, the mean and variance used to standardize the
@@ -218,8 +218,8 @@ after the current step, there is no look-ahead: statistics from the test period
 cannot influence the training representation, and a later observation cannot
 influence an earlier one. One consequence should be stated plainly. The
 validation and test sets are the two chronological halves of a single trading
-session, split at its midpoint, and the running statistics are not reset at that
-midpoint — so the test half's normalization is warm-started by the accumulated
+session, split at its midpoint. The running statistics are not reset at that
+midpoint, so the test half's normalization is warm-started by the accumulated
 statistics of the validation half. This is backward-looking and therefore not
 leakage in the look-ahead sense, but it does mean the validation and test halves
 are not statistically independent samples and should not be described as
@@ -238,7 +238,7 @@ twelve-event AAPL window, reported in Appendix, @tbl-transformed-features,
 illustrates this pipeline end to end: raw best bid/ask prices and sizes
 alongside the corresponding normalized features. Three properties stand out.
 **Book Pressure** and **Order Imbalance** capture instantaneous liquidity and
-directional pressure — positive when bid depth dominates, negative when a
+directional pressure: positive when bid depth dominates, negative when a
 bid-side refresh shifts pressure toward the ask (visible at event 12 in the
 appendix table). **Microprice Deviation** tracks how far the microprice lies
 from the simple mid-price, a depth-weighted estimate of fair value. **OFI**
@@ -258,14 +258,14 @@ relationship — including non-linear but rank-preserving ones.
 All absolute correlations are below 0.005. Neither measure identifies any feature
 whose marginal distribution is reliably aligned with the direction of the next
 price move. This is expected in a microstructure context: each feature captures
-a local structural signal — order-flow pressure, depth asymmetry, queue imbalance —
+a local structural signal (order-flow pressure, depth asymmetry, queue imbalance)
 that is informative about the trading environment but not predictive of short-term
 returns in isolation. Predictive value, if any, arises from the joint, non-linear
 interaction among multiple features simultaneously observed at the same timestep.
 
-Linear models — including logistic regression, ridge regression, and any other
-predictor that combines features through a weighted sum — cannot exploit this joint
-non-linear structure. The near-zero Pearson and Spearman correlations confirm that
+Linear models cannot exploit this joint non-linear structure. This category
+includes logistic regression, ridge regression, and any other predictor that
+combines features through a weighted sum. The near-zero Pearson and Spearman correlations confirm that
 linearly combining even the full feature vector is unlikely to yield a useful
 directional signal. This directly motivates the use of a deep neural network as
 the function approximator inside the RL policy: the network can, in principle, learn
