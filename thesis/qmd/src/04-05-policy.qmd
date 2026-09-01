@@ -29,8 +29,9 @@ $$s_t \in \mathbb{R}^{11}
   \xrightarrow{\text{ReLU}} \mathbb{R}^{1}
   \xrightarrow{\text{Tanh}} [-1,\,1]$$ {#eq-det-actor-network}
 
-Hidden layers use ReLU activations, which avoid the vanishing-gradient problem that
-arises with saturating activations in deep hidden layers [@Mnih2015]. The output layer
+Hidden layers use ReLU activations, following the DQN architecture [@Mnih2015];
+ReLU is generally preferred over saturating activations to mitigate vanishing
+gradients in deep networks. The output layer
 applies no activation before the Tanh squashing, which maps the pre-activation scalar
 to $(-1, 1)$. Tanh is preferred over a hard clip because it is differentiable
 everywhere: the policy gradient passes through the output non-linearity without

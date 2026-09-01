@@ -62,7 +62,9 @@ these events exert on the best bid and ask queues. Using NYSE TAQ data for 50
 randomly sampled S&P 500 stocks, they find a linear relationship between OFI
 and mid-price changes over ten-second intervals, with OFI explaining an
 average of 65% of short-term price variation (68% with a nonlinear
-correction). Importantly, the relationship is contemporaneous: OFI at time $t$
+correction); the authors note that OFI partly overlaps by construction with
+price-changing events, and that $R^2$ falls to roughly 35--60% when that
+overlap is removed. Importantly, the relationship is contemporaneous: OFI at time $t$
 is correlated with price changes at time $t$, not a lagged effect, which is
 consistent with the efficient incorporation of order book information into
 prices.^[OFI's relevance for the present thesis is narrower than the

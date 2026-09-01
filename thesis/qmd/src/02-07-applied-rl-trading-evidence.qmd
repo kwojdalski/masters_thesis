@@ -54,15 +54,16 @@ applicability to high-dimensional state spaces.
 DDPG was applied to Dow-30 equity trading using engineered
 technical-indicator features [@Xiong2018], while a fuzzy-representation
 autoencoder was combined with direct reinforcement learning for futures trading
-[@Deng2016]. Both
-studies noted high variance across runs. This is a characteristic instability of
-these methods under noisy financial rewards.
+[@Deng2016]. Neither study reports variance across repeated training runs, an
+omission characteristic of the period; run-to-run instability under noisy
+financial rewards was later documented systematically [@Henderson2018].
 
 The portfolio-vector-memory (PVM) architecture was proposed, combining
 policy gradients with recurrent networks for cryptocurrency portfolio management
 [@Jiang2017]. Its fully differentiable end-to-end design incorporated current holdings into
-the state and penalized transaction costs explicitly, outperforming
-Markowitz mean-variance allocation in backtests across 12 cryptocurrencies.
+the state and penalized transaction costs explicitly, outperforming a uniform
+constant rebalanced portfolio and a suite of published online
+portfolio-selection algorithms in backtests across 12 cryptocurrencies.
 
 An earlier cryptocurrency portfolio study used a
 convolutional network to map historical prices directly into continuous

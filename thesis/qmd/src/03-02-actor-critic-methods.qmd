@@ -103,8 +103,10 @@ $\arg\max$ required by value-based methods.
 
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
-two failure modes in DDPG were identified [@Fujimoto2018], both corroborated by
-independent reproducibility studies [@Henderson2018]. First, the
+two failure modes in DDPG were identified [@Fujimoto2018]. Independent
+reproducibility work separately documents that DDPG's benchmark performance is
+highly sensitive to random seed, codebase, and hyperparameter choice
+[@Henderson2018]. First, the
 critic tends to overestimate action values because actor optimization can exploit
 positive approximation errors in the critic, and bootstrapped targets can
 propagate those overestimated values through subsequent updates. Overestimated
@@ -201,9 +203,10 @@ $\tilde{a}'$ replaces the maximum over actions. The TD3 instantiation in
 Chapter 4.4 uses the same formulation, shown in @eq-bellman-target.
 
 Taking the minimum provides a conservative estimate of target value and
-substantially reduces overestimation bias. This is analogous to the double
-Q-learning correction [@VanHasselt2016], adapted to the deterministic actor-
-critic setting.
+substantially reduces overestimation bias. This is analogous to the original
+double Q-learning correction [@VanHasselt2010], adapted to the deterministic
+actor-critic setting; the deep variant, Double DQN [@VanHasselt2016], was
+found ineffective in this setting [@Fujimoto2018].
 
 **Delayed policy updates.** The actor and target networks are updated less
 frequently than the critics (typically once for every two critic updates). This

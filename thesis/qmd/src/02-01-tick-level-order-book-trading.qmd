@@ -46,8 +46,8 @@ bid-ask, conditioning the agent's position-sizing decisions on the current
 liquidity environment.
 
 Intraday patterns in volume,
-volatility, and returns have been documented: a pronounced U-shape in trading activity and spread
-width, with elevated liquidity demand at market open and close and a quiet
+volatility, and returns have been documented: a pronounced U-shape in trading
+activity, with elevated liquidity demand at market open and close and a quiet
 midday period [@Wood1985; @Harris1986]. These patterns reflect institutional trading schedules and
 liquidity provision dynamics rather than information arrival. The
 hour-of-day sine and cosine encodings in the observation vector are motivated by
