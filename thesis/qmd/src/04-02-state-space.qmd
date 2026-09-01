@@ -69,9 +69,9 @@ queue-weighted midpoint [@Stoikov2018], implemented under the legacy feature
 name `hft_microprice`. It is complemented by its divergence from the midpoint
 and a volume-weighted midpoint skew across three levels.
 **Spread and cost features** capture adverse selection risk through the bid-ask
-spread in basis points, its ratio to a 50-event rolling mean, book convexity on
-each side, and depth slopes that proxy market impact per unit of volume
-[@Kyle1985; @GlostenMilgrom1985; @Bouchaud2002]. **Order flow features** measure
+spread in basis points [@GlostenMilgrom1985], its ratio to a 50-event rolling
+mean, book convexity on each side [@Bouchaud2002], and depth slopes that proxy
+market impact per unit of volume [@Kyle1985]. **Order flow features** measure
 net directional pressure from LOB events between consecutive snapshots: order
 flow imbalance [@Cont2014] and its 50-event rolling sum, queue depletion on each
 side, signed trade flow from the tape [@LeeReady1991], and odd-lot trade ratio and

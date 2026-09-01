@@ -103,7 +103,7 @@ $\arg\max$ required by value-based methods.
 
 DDPG inherits the experience replay and target network mechanisms from DQN,
 making it an off-policy algorithm and therefore sample-efficient. However,
-two failure modes in DDPG were identified [@Fujimoto2018]. Independent
+three failure modes in DDPG were identified [@Fujimoto2018]. Independent
 reproducibility work separately documents that DDPG's benchmark performance is
 highly sensitive to random seed, codebase, and hyperparameter choice
 [@Henderson2018]. First, the
@@ -113,7 +113,10 @@ propagate those overestimated values through subsequent updates. Overestimated
 Q-values then push the policy toward actions that exploit the critic's errors
 rather than the true reward signal. Second, the algorithm is sensitive to the
 relative frequency of actor and critic updates: updating the actor before the
-critic has converged amplifies the overestimation problem. In financial
+critic has converged amplifies the overestimation problem. Third, a
+deterministic policy can overfit to narrow peaks in the value estimate, so that
+small errors in the critic's value landscape are exploited as if they were real
+returns. In financial
 environments, where rewards are noisy and non-stationary, one would expect
 these instabilities to be particularly acute. The critic must separate genuine
 market signal from approximation artifacts, and overestimated Q-values provide
@@ -272,8 +275,9 @@ corrections for deterministic policies. SAC remains a promising direction for fu
 particularly its online variants for regime shifts in non-stationary markets.
 
 Between DDPG and TD3, TD3 is preferred because it was introduced precisely to
-correct DDPG's two failure modes (critic overestimation and policy-update
-instability from premature actor updates). Both are expected to be acute when
+correct DDPG's failure modes (critic overestimation, policy-update
+instability from premature actor updates, and overfitting to narrow peaks in
+the value estimate). All three are expected to be acute when
 rewards are noisy and the critic must separate genuine market signal from
 approximation artifacts. TD3 is therefore not chosen as a generally superior
 trading method, but as the algorithm whose structural properties (off-policy
