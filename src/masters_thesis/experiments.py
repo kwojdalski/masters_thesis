@@ -103,9 +103,15 @@ _EVAL_ONLY: dict[str, list[str]] = {
     # exported statistical_tests.json is only the benchmark comparison table
     # (experiment-audit 2026-08-31 finding #9).
     "h1": ["metrics", "benchmarks", "plots", "stats"],
-    "h2": ["metrics", "plots"],
-    "h3": ["metrics", "plots"],
-    "h4": ["metrics", "plots"],
+    # h2-h4 render no figures: every table in 06-02 reads metrics via
+    # load_scenario_metrics, and the only show_plot calls in the thesis are the
+    # three h1 figures in 06-03. Generating plots here wrote ~1.4 GB of per-step
+    # plot CSV per scenario that nothing read. The per-step rollout is still
+    # retained (--save-rollout in _evaluate_all), so any figure can be rebuilt
+    # offline without re-running the policy.
+    "h2": ["metrics"],
+    "h3": ["metrics"],
+    "h4": ["metrics"],
 }
 
 # Values are argv tails for scripts/<name>; _run_report splices in the
@@ -440,6 +446,12 @@ def _evaluate_all(scenarios: list[str], eval_only: list[str], args: RunArgs) -> 
             # split instead -- silently turning in-sample numbers into the
             # thesis's out-of-sample results.
             "--per-symbol",
+            # The complete per-step trace (action, simple_return,
+            # cumulative_log_return) per split, ~10 MB. Every metric in the
+            # results tables can be recomputed from it offline via
+            # build_metric_report, so a metrics bug no longer costs a re-run of
+            # the policy -- which is hours per scenario at pooled sizes.
+            "--save-rollout",
             *[flag for only in eval_only for flag in ("--only", only)],
             *_override_flags(scenario_overrides),
         ]
