@@ -137,11 +137,11 @@ trading studies increasingly require standardized environments, comparable
 baselines, and explicit market-friction assumptions before algorithm rankings
 can be interpreted.
 
-Deep RL was compared against traditional quantitative strategies
-(momentum, mean reversion, pairs trading), noting that RL exhibited superior
-adaptability during regime changes while traditional strategies offered better
-interpretability [@Lopez2018]. Hybrid approaches combining domain knowledge with RL often
-outperformed either in isolation.
+These comparisons do not establish a universal ranking of reinforcement
+learning and traditional strategies. Results depend on the market, sample
+period, baselines, transaction costs, and evaluation protocol. Traditional
+strategies remain useful as interpretable baselines. Any advantage attributed
+to reinforcement learning should therefore be tested under matched conditions.
 
 **Overfitting and generalization.**
 Published deep RL trading strategies were shown to often fail to
