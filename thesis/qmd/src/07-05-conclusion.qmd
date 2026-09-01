@@ -5,16 +5,28 @@ The central question of this thesis was: can a LOB-informed deep RL agent achiev
 conditions, is affirmative but bounded. Under frictionless mid-price execution,
 the TD3 agent trained on microstructure-aware limit order book features learned a
 directionally coherent, risk-controlled policy that outperformed the evaluated
-benchmark strategies on this held-out window. The extended feature set
-provided a measurable improvement over the simpler snapshot-based state
-representation. That outperformance is clear within the simulator but highly
-sensitive to its execution assumptions. The fee sweep weakens the result at a
-fraction of a basis point, while fixed-path bid/ask repricing reverses its sign
-(Section 7.2). These findings hold together rather
-than in isolation: the performance advantage of the richer state design is
-visible in both summary metrics and in the qualitative character of the learned
-policy (lower unnecessary turnover, more responsive positioning, and more
-contained drawdown relative to passive exposure).
+benchmark strategies on this held-out window. That outperformance is clear
+within the simulator but highly sensitive to its execution assumptions. The fee
+sweep weakens the result at a fraction of a basis point, while fixed-path
+bid/ask repricing reverses its sign (Section 7.2). The qualitative character of
+the learned policy is consistent with a deliberate strategy rather than noise:
+turnover well below that of a random policy, responsive rather than static
+positioning, and drawdown an order of magnitude shallower than passive
+exposure.
+
+The contribution of the feature set itself is left open. Of the three feature
+specifications compared under identical training and evaluation conditions,
+only the curated ten-feature configuration converged to a trading policy; the
+three-feature and thirty-three-feature variants both saturated at a fixed
+position and never trained (Sections 6.2 and 7.1). Because two of the three
+arms did not optimize, the comparison cannot isolate the effect of feature
+choice, and Hypothesis 3 is unresolved. The pattern is nonetheless suggestive:
+a compact, theoretically motivated set may give the policy a higher
+signal-to-noise ratio to work with than either a state too sparse to be
+informative or one padded with collinear and noisy channels. Whether that
+intuition survives once every arm is trained to convergence, or whether the
+failures instead reflect optimization budget and observation dimensionality,
+is a question for the training-stability work identified in Section 7.2.
 
 The contribution of the thesis is methodological as much as empirical. The
 end-to-end pipeline developed here provides a replicable framework
@@ -38,8 +50,8 @@ What the thesis does establish is that the combination of limit order book data,
 LOB-informed feature engineering, and continuous-action actor-critic
 learning is a productive research direction. The informational content of the
 order book, well-established in the theoretical microstructure literature, can
-be translated into state features that improve a reinforcement learning agent's
-held-out behavior in ways that are measurable and consistent with economic
+be translated into state features that a continuous-control agent learns to act
+on, producing held-out behavior that is measurable and consistent with economic
 intuition. That conclusion is the foundation on which more operationally realistic
 extensions (wider data windows, multi-seed validation, explicit bid/ask execution,
 and cross-asset generalization) can now be built.
