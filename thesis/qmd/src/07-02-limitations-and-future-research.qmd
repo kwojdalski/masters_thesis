@@ -171,7 +171,7 @@ made here:
   representing identical economic exposure to the same underlying business.
   For such a pair, deviations from parity are theoretically bounded and the
   learning target becomes the spread rather than a directional price level.
-- **Algorithm and reward ablation.** Replacing TD3 with SAC or PPO, and the
+- **Algorithm and reward comparison.** Replacing TD3 with SAC or PPO, and the
   Differential Sharpe Ratio with a Sortino-based or drawdown-penalized
   reward, would test how much of the observed performance is attributable to
   the specific algorithm and reward choice rather than the feature design.

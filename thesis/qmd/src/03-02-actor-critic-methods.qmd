@@ -264,8 +264,8 @@ return-only formulation used here. This entropy-augmented framework has
 been applied to trading problems in the literature [@FinRL2020]. Comparing SAC
 to TD3 would require disentangling whether any improvement comes from the
 maximum-entropy objective or from the off-policy replay both algorithms share,
-an ablation outside this thesis's focus on value-estimation corrections for
-deterministic policies. SAC remains a promising direction for future work,
+a separate comparison outside this thesis's focus on value-estimation
+corrections for deterministic policies. SAC remains a promising direction for future work,
 particularly its online variants for regime shifts in non-stationary markets.
 
 Between DDPG and TD3, TD3 is preferred because it was introduced precisely to

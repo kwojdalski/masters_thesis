@@ -74,7 +74,7 @@ are identical. The differences between the two algorithms lie entirely in the cr
 training procedure: TD3 maintains twin critics and uses their minimum for conservative
 value targets, and delays actor updates to one per every two critic updates. DDPG uses
 a single critic and updates actor and critic at the same frequency. This makes
-DDPG the natural ablation for TD3: it isolates the effect of clipped double
+DDPG the natural control for TD3: it isolates the effect of clipped double
 Q-learning, delayed policy updates, and target policy smoothing while holding
 the policy architecture constant.
 
