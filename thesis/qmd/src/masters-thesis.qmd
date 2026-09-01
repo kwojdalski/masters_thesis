@@ -220,5 +220,8 @@ assumptions separating these findings from deployable performance claims.
 ```
 
 {{< include ./99-appendix.qmd >}}
+
+\newpage
+
 {{< include ./99-glossary.qmd >}}
 {{< include ./99-audit-log.qmd >}}

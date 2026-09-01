@@ -331,7 +331,7 @@ horizontally instead.
 
 ```{python}
 #| label: tbl-transformed-features
-#| tbl-cap: "Twelve consecutive AAPL LOB events and their transformed microstructure features."
+#| tbl-cap: "Twelve consecutive AAPL LOB events and their selected microstructure features."
 #| echo: false
 #| warning: false
 
@@ -576,6 +576,12 @@ introduce look-ahead bias or circular reasoning.
 The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
+
+<!-- The diagram is close to a full page; give it its own page inside this
+     appendix so it cannot float past the following section. -->
+```{=latex}
+\clearpage
+```
 
 ![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.5in" fig-pos="H"}
 
