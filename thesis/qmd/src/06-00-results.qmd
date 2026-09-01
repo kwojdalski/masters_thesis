@@ -87,10 +87,8 @@ _audit = audit_plots_enabled()
 #| warning: false
 #| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random, under frictionless (mid-price, zero-fee) execution."
 
-import numpy as np
 import pandas as pd
-from IPython.display import HTML
-from thesis_mlflow_results import load_scenario_metrics, load_scenario_per_symbol_metrics
+from thesis_mlflow_results import load_scenario_metrics
 from thesis_tables import RESULTS_TABLE_COLS, fmt_val, display_df, table_note
 
 _H1_AGENTS = [
@@ -103,61 +101,14 @@ _H1_AGENTS = [
 # Shared across the H1/H2/H3/H4 results tables so they compare row-for-row.
 _H1_COLS = RESULTS_TABLE_COLS
 
-# Per-symbol evaluations for the four agents were not all run over the same
-# window (TD3's re-evaluation used a 10% window to save time after a config
-# collision retrained it under the wrong settings; DDPG/PPO/Random ran the
-# full test split). Cumulative return compounds over the window, so comparing
-# it directly overstates the gap: a 10x shorter window understates Return by
-# roughly 10x even when the underlying per-step edge is the same (verified
-# directly -- TD3 and DDPG's mean per-step log-return are 0.0247 vs 0.0231 bp,
-# essentially identical, while their raw cumulative Returns differ by ~20x).
-# Rescale every agent's per-symbol Return to the longest window observed for
-# that symbol across agents, holding the per-step edge fixed. This is a
-# projection under a stationarity assumption, not a second measurement -- it
-# is marked with * and is superseded by a full-window TD3 re-run (Section 7.2).
-_per_symbol_by_agent = {
-    label: load_scenario_per_symbol_metrics(exp_name, split="test")
-    for exp_name, label in _H1_AGENTS
-}
-_ref_steps: dict[str, int] = {}
-for _sym_metrics in _per_symbol_by_agent.values():
-    for _sym, _m in _sym_metrics.items():
-        _n = _m.get("n_steps") or 0
-        _ref_steps[_sym] = max(_ref_steps.get(_sym, 0), _n)
-
-_rescaled_return: dict[str, float] = {}
-_was_rescaled: dict[str, bool] = {}
-for label, _sym_metrics in _per_symbol_by_agent.items():
-    if not _sym_metrics:
-        continue
-    _vals = []
-    _rescaled_any = False
-    for _sym, _m in _sym_metrics.items():
-        _n = _m.get("n_steps") or 0
-        _ret = _m.get("total_return")
-        _ref = _ref_steps.get(_sym, _n)
-        if not _n or _ret is None:
-            continue
-        if _n != _ref:
-            _rescaled_any = True
-        _bp_step = np.log1p(_ret) / _n
-        _vals.append(np.expm1(_bp_step * _ref))
-    if _vals:
-        _rescaled_return[label] = float(np.mean(_vals))
-        _was_rescaled[label] = _rescaled_any
-
+# All four agents are evaluated over the identical full test window (the same
+# per-symbol event counts), so every metric here is a direct measurement.
 rows = []
 for exp_name, label in _H1_AGENTS:
     m = load_scenario_metrics(exp_name)
     row = {"Algorithm": label}
     for key, col, fmt in _H1_COLS:
-        if key == "total_return" and label in _rescaled_return:
-            cell = fmt_val(_rescaled_return[label], fmt)
-            if _was_rescaled.get(label):
-                cell = f"{cell}*"
-        else:
-            cell = fmt_val(m.get(key), fmt)
-        row[col] = cell
+        row[col] = fmt_val(m.get(key), fmt)
     rows.append(row)
 
 h1_df = pd.DataFrame(rows)
@@ -169,13 +120,10 @@ else:
         source="Author's own calculations.",
         note=(
             "All figures use mid-price execution with zero transaction cost and "
-            "represent frictionless gross performance, not net-of-cost performance; "
-            "transaction-cost sensitivity is in Section 6.2 "
-            "(@tbl-h2-transaction-costs). * Return rescaled to the longest "
-            "per-symbol evaluation window observed across the four agents, "
-            "holding the measured mean per-step log-return fixed; a projection "
-            "under a stationarity assumption, not an independent measurement, "
-            "pending a matched-window re-run (Section 7.2)."
+            "represent frictionless gross performance, not net-of-cost "
+            "performance; transaction-cost sensitivity is in Section 6.2 "
+            "(@tbl-h2-transaction-costs). Every agent is evaluated over the same "
+            "full per-symbol test window."
         ),
     )
     show_table_meta(finished, audit=_audit)
@@ -240,23 +188,24 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
-The cumulative-return column spans a factor of six, from $+3.9\%$ on META
-to $+23.4\%$ on AMZN, which invites the reading that the strategy works on
+The cumulative-return column spans roughly a factor of twenty, from $+33\%$ on
+META to $+675\%$ on AMZN, which invites the reading that the strategy works on
 some instruments and not others. The per-step column shows that reading is
 wrong. Expressed per decision the six instruments occupy a narrow band
-(roughly $0.016$ to $0.039$ basis points per step). The ordering does not
+(roughly $0.016$ to $0.036$ basis points per step). The ordering does not
 match the cumulative one: META, the weakest instrument on cumulative return,
-carries a *higher* per-step edge ($0.0279$ bp) than AMZN, the strongest
-($0.0186$ bp).
+carries a *higher* per-step edge ($0.021$ bp) than AMZN, the strongest
+($0.018$ bp), and AVGO has the largest per-step edge of all ($0.036$ bp) on
+only a mid-ranking $+120\%$ cumulative return.
 
 What separates them is the number of decisions the evaluation window afforded.
-AMZN records 112,842 environment steps against META's 13,667, an
+AMZN records 1,128,425 environment steps against META's 136,676, an
 eight-fold difference in opportunity over the same wall-clock session, because
 message-level event counts differ across instruments. Compounding a similar
-per-step edge over eight times as many steps produces most of the six-fold gap
-in the cumulative column. Holding META's per-step edge fixed and applying
-AMZN's step count would imply a cumulative return near $+37\%$, above AMZN's own
-figure. Cumulative return over a fixed session therefore measures event
+per-step edge over eight times as many steps produces most of the gap in the
+cumulative column. Holding META's per-step edge fixed and applying AMZN's step
+count would imply a cumulative return near $+980\%$, well above AMZN's own
+$+675\%$. Cumulative return over a fixed session therefore measures event
 frequency at least as much as it measures skill, and the per-step figure is the
 quantity that should be compared across instruments and carried into the
 transaction-cost analysis.
@@ -275,7 +224,7 @@ three algorithms, even though all three were trained on identical data, features
 and reward specification.
 
 All three learners take balanced two-sided exposure. Long-position shares span a
-narrow band, $45.5\%$ for TD3, $53.7\%$ for DDPG, and $51.9\%$ for PPO, against
+narrow band, $49.8\%$ for TD3, $53.7\%$ for DDPG, and $51.9\%$ for PPO, against
 the random baseline's $50.0\%$. None commits to a persistent directional bet, so
 none of the returns reported here is explained by a standing long or short
 position in a drifting market. All three also turn over at broadly comparable
@@ -284,40 +233,33 @@ $0.67$, which is what a policy that changes exposure deliberately rather than
 indiscriminately looks like.
 
 **DDPG** records the highest cumulative return, $312.8\%$, with a profit factor
-of $3.64$ and a Sharpe ratio of $4.96$. **PPO** returns $205.5\%$ on the highest
-profit factor of the three, $4.59$, and the highest per-bar Sharpe, $5.44$, at
-the lowest turnover, $0.36$. **TD3** returns $13.9\%$ with a profit factor of
-$3.73$ and a Sharpe of $2.99$, at the lowest maximum drawdown of any arm,
-$-0.04\%$, an order of magnitude shallower than DDPG's or PPO's
-$-0.45\%$ and $-0.47\%$. The ordering on cumulative
-return is therefore not the ordering on risk-adjusted return or on drawdown, and
-no single arm dominates across the three.
+of $3.64$ and a Sharpe ratio of $4.96$. **TD3** is close behind at $304.9\%$,
+with a profit factor of $3.41$ and the highest per-bar Sharpe of the three,
+$5.04$. **PPO** returns $205.6\%$ on the highest profit factor, $4.59$, at the
+lowest turnover, $0.36$. On drawdown the order reverses: DDPG and PPO hold their
+worst loss to $-0.45\%$ and $-0.47\%$, while TD3's $-0.65\%$ is the deepest of
+the learners, driven almost entirely by META (a $-3.3\%$ excursion on the
+instrument with the fewest events). The ordering on cumulative return is
+therefore not the ordering on risk-adjusted return or on drawdown, and no single
+arm dominates across the three.
 
-The **random baseline** returns $0.25\%$ with a profit factor of $1.006$, which
+The **random baseline** returns $0.2\%$ with a profit factor of $1.01$, which
 is what noise looks like: gross gains and gross losses almost exactly offset. It
-does so at the highest turnover, $0.67$, and the deepest drawdown,
-$-0.59\%$. The separation from the learned arms is therefore large
-and consistent. Each learner clears the random policy by two to three orders of
-magnitude on cumulative return and by a factor of three to five on profit
-factor, while trading less. That gap, rather than any difference among TD3,
-DDPG, and PPO, is what the algorithm comparison establishes.
-
-A caution applies to the return column specifically. Cumulative return
-compounds over the evaluation window, and TD3's window is one tenth the length
-of the other three arms', so its $13.9\%$ is not directly comparable with
-DDPG's $312.8\%$. The rescaled column in the table above corrects for this;
-@sec-h1-per-instrument shows that per decision the arms are far closer than the
-raw returns suggest.
+does so at the highest turnover, $0.67$, and a drawdown of $-0.59\%$. The
+separation from the learned arms is therefore large and consistent. Each learner
+clears the random policy by about three orders of magnitude on cumulative
+return and by a factor of three to five on profit factor, while trading less.
+That gap, rather than any difference among TD3, DDPG, and PPO, is what the
+algorithm comparison establishes.
 
 The comparison does not separate the three learning algorithms. On AAPL, the
 common instrument for which all four agents have been evaluated, TD3 and DDPG
 are indistinguishable on cumulative return ($3.548$ versus $3.599$), and PPO
 posts the highest per-bar Sharpe ratio ($7.53$) on the lowest return ($2.522$).
-The ordering is not stable across splits either: DDPG leads on validation as
-well as on test. Reading these three as a ranking would over-interpret a single instrument
+Reading these three as a ranking would over-interpret a single instrument
 and a single evaluation window. What separates cleanly is the
 learned-versus-unlearned boundary: all three learners return above $250\%$
-while the random policy returns $-0.49\%$. The algorithms differ mainly in
+on AAPL while the random policy returns $-0.9\%$. The algorithms differ mainly in
 how they reach that outcome. PPO changes position roughly three times as often
 as TD3 ($731{,}830$ versus $233{,}082$ steps with a position change) for a
 smaller gross result.
