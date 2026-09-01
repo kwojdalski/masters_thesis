@@ -5,7 +5,7 @@
 # Feature Inventory
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Feature Inventory}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Feature Inventory}
 ```
 
 ```{python}
@@ -122,7 +122,7 @@ Feature & Group & Formula & Param & In model & Citation \\
 # Main Experiment Specification
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Main Experiment Specification}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Main Experiment Specification}
 ```
 
 The table below condenses the main experiment into a self-contained
@@ -166,7 +166,7 @@ else:
 # Baseline Algorithm Pseudocode {#sec-appendix-baseline-algorithms}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Baseline Algorithm Pseudocode}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Baseline Algorithm Pseudocode}
 ```
 
 Chapter 5.2 gives TD3's full training loop (Algorithm 2) since TD3 is this
@@ -250,7 +250,7 @@ reproducibility.
 # Raw Data Inventory {#sec-appendix-raw-inventory}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Raw Data Inventory}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Raw Data Inventory}
 ```
 
 @tbl-raw-file-inventory reports raw MBP-10 event counts and inter-event
@@ -309,7 +309,7 @@ else:
 # Transformed Feature Example {#sec-appendix-transformed-features}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Transformed Feature Example}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Transformed Feature Example}
 ```
 
 @tbl-transformed-features shows twelve consecutive events from the AAPL feed,
@@ -331,7 +331,7 @@ horizontally instead.
 
 ```{python}
 #| label: tbl-transformed-features
-#| tbl-cap: "Twelve consecutive AAPL LOB events and their transformed microstructure features."
+#| tbl-cap: "Twelve consecutive AAPL LOB events and their selected microstructure features."
 #| echo: false
 #| warning: false
 
@@ -359,7 +359,7 @@ else:
 # Tick-Size Break-Even Fee by Instrument {#sec-appendix-tick-breakeven}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Tick-Size Break-Even Fee by Instrument}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Tick-Size Break-Even Fee by Instrument}
 ```
 
 @tbl-tick-breakeven-fee supports the transaction-cost discussion in
@@ -371,7 +371,7 @@ cost at which a single minimum-tick move stops covering the fee.
 
 ```{python}
 #| label: tbl-tick-breakeven-fee
-#| tbl-cap: "Break-even transaction fee -- the proportional cost at which a one-sided minimum-tick move stops covering the fee -- by mean instrument price over the evaluation window."
+#| tbl-cap: "Per-instrument break-even transaction fee by mean price."
 #| echo: false
 #| warning: false
 
@@ -388,15 +388,16 @@ _tick_path = (
 if _tick_path.exists():
     df = pd.DataFrame(json.loads(_tick_path.read_text()))
     df["Symbol"] = df["symbol"]
-    df["Mean Price"] = df["mean_price"].apply(lambda x: f"${x:,.2f}")
-    df["Break-Even Fee"] = df["breakeven_fee_bp"].apply(lambda x: f"{x:.3f} bp")
+    df["Mean Price"] = df["mean_price"].apply(lambda x: f"{x:,.2f}")
+    df["Break-Even Fee"] = df["breakeven_fee_bp"].apply(lambda x: f"{x:.3f}")
     display_df(df[["Symbol", "Mean Price", "Break-Even Fee"]])
     table_note(
         source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
         note=(
-            "Break-even fee = (half of the one-cent minimum price increment / "
-            "mean mid-price) x 10,000, in basis points. Mean price is computed "
-            "over the 2 March 2026 evaluation session."
+            "Break-even fee, in basis points, is the proportional trading cost at "
+            "which a one-sided minimum-tick move stops covering the fee: (half of "
+            "the one-cent minimum price increment / mean mid-price) x 10,000. Mean "
+            "price is in US dollars, over the 2 March 2026 evaluation session."
         ),
     )
 else:
@@ -411,7 +412,7 @@ else:
 # Feature Distribution Statistics {#sec-appendix-feature-statistics}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Feature Distribution Statistics}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Feature Distribution Statistics}
 ```
 
 @tbl-feature-stats reports distributional statistics for all engineered
@@ -453,9 +454,7 @@ if _feat_path.exists():
 else:
     missing_data_notice(
         "feature_stats.csv not found — run: "
-        "`uv run python src/cli.py peek dataset "
-        "-s pooled/td3_hft_lob_state_space_pooled_streaming_selected --skip 500 --export`, then: "
-        "`uv run python scripts/export_peek_to_thesis.py "
+        "`uv run python scripts/export_streaming_feature_stats_to_thesis.py "
         "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
     )
 ```
@@ -465,13 +464,13 @@ else:
 # Feature–Return Correlations {#sec-appendix-feature-correlations}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Feature-Return Correlations}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Feature-Return Correlations}
 ```
 
 @tbl-feature-correlations reports Pearson and Spearman rank correlations
 between each engineered feature and the one-step-ahead log mid-price return,
-computed on the training split; see @sec-feature-return-correlations for the
-interpretation of this result.
+computed over the full streamed training set (six instruments, three sessions);
+see @sec-feature-return-correlations for the interpretation of this result.
 
 ```{python}
 #| label: cell-feature-correlations
@@ -505,14 +504,14 @@ else:
 # Data Preparation Pipeline
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Data Preparation Pipeline}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Data Preparation Pipeline}
 ```
 
 The diagram below shows the feature pipeline design that ensures no information
 from the validation or test splits leaks into the fitted normalization
 parameters.
 
-![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="3.5in"}
+![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="3.5in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
@@ -523,7 +522,7 @@ parameters.
 # Offline Feature Selection Pipeline
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Offline Feature Selection Pipeline}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Offline Feature Selection Pipeline}
 ```
 
 The feature selection procedure described in Section 4.2 operates in two stages:
@@ -554,7 +553,7 @@ which jointly rewards signal strength and consistency; features with $|\text{ICI
 
 The diagram below summarizes the pipeline.
 
-![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){#fig-feature-selection-pipeline fig-align="center" width="1.9in"}
+![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){#fig-feature-selection-pipeline fig-align="center" width="1.9in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
@@ -571,14 +570,20 @@ introduce look-ahead bias or circular reasoning.
 # Experimental Pipeline Architecture {#sec-appendix-pipeline}
 
 ```{=latex}
-\addcontentsline{lap}{appendices}{Experimental Pipeline Architecture}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Experimental Pipeline Architecture}
 ```
 
 The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
 
-![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.5in"}
+<!-- The diagram is close to a full page; give it its own page inside this
+     appendix so it cannot float past the following section. -->
+```{=latex}
+\clearpage
+```
+
+![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.5in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.

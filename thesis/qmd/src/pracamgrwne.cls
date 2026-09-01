@@ -72,7 +72,18 @@
   \renewcommand{\listofappendices}{%
     \clearpage
     \oldlistofappendices
+    \clearpage
   }
+}
+% List-of-Appendices entries carry the appendix letter (A, B, ...), matching the
+% appendix headings and the table of contents. Each appendix section in
+% 99-appendix.qmd writes its own entry as
+% \addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Title};
+% widen the label box from tocloft's default so "A." .. "K." clear the title.
+\AtBeginDocument{%
+  \@ifundefined{cftappendicesnumwidth}{}{%
+    \setlength{\cftappendicesnumwidth}{2.3em}%
+  }%
 }
 \usepackage{amsmath}
 \DeclareMathOperator*{\argmax}{argmax}

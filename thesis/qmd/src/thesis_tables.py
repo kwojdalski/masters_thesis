@@ -320,10 +320,14 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
 
     caption = "Distributional statistics of engineered microstructure features."
     note_base = (
-        "Computed on the training split; the first 500 events are skipped to allow "
-        "rolling-window features to reach steady state. "
-        "Skew and Kurt are the Fisher skewness and excess kurtosis. "
-        "Median is the 50th percentile."
+        "Computed over the full pooled training set streamed to the agent -- six "
+        "instruments over three sessions (25-27 February 2026), roughly 18.7 "
+        "million events -- with the first 500 events of each session skipped so "
+        "the rolling-window features reach steady state. Values are the "
+        "normalized features as fed to the policy (causal running z-score, reset "
+        "at session boundaries), before the environment's observation clip. "
+        "Skew and Kurt are the bias-corrected Fisher skewness and excess "
+        "kurtosis. Median is the 50th percentile."
     )
     clip_suffix_html = (
         (
@@ -456,14 +460,18 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
 
     caption = (
         "Pearson and Spearman rank correlations between each engineered feature "
-        "and the next-step log return, computed on the training split."
+        "and the one-step-ahead log mid-price return, over the streamed training "
+        "set."
     )
     note = (
-        "Correlations computed against one-step-ahead log mid-price returns on the training split "
-        "after skipping the first 500 events. All |r| < 0.005 across both measures, "
-        "indicating negligible linear and monotone dependence between individual features "
-        "and the prediction target. This motivates a non-linear function approximator "
-        "(the neural network policy) rather than a linear model."
+        "Each event's feature value is paired with the log mid-price return to "
+        "the next event, pooled over six instruments and three sessions (roughly "
+        "18.7 million pairs), with the first 500 events of each session skipped. "
+        "Pearson measures linear association, Spearman any monotone association. "
+        "The largest magnitude is a Spearman correlation of 0.26 for best-level "
+        "order-count imbalance; the imbalance and order-flow features sit near "
+        "0.15-0.26 on Spearman and below 0.16 on Pearson, and every other feature "
+        "is below 0.02 on both. Section 5.3.5 interprets this."
     )
 
     # ── HTML version ──────────────────────────────────────────────────
