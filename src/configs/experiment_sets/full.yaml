@@ -1,6 +1,13 @@
 description: Canonical thesis experiments using the complete pooled dataset.
 output_root: logs
-export_to_thesis: true
+# TEMPORARILY DISABLED: a run's auto-export was overwriting thesis/qmd/results/
+# snapshots with un-rescaled aggregates while 06-00-results.qmd's h1_algo_comparison
+# cell was mid-review, producing two disagreeing "Return" figures for the same
+# agent (13.87% in the frozen snapshot vs the cell's own 328.69% rescale). Flip
+# back to `true` once the H1 table content is finalized and any re-run's export
+# is expected to match it. Export manually in the meantime with:
+#   uv run python scripts/export_eval_to_thesis.py --scenario <scenario>
+export_to_thesis: false
 
 hypotheses:
   h1:
