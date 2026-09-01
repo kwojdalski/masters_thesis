@@ -122,14 +122,43 @@ tick-level setup discards as noise.
 ### Training Workflow
 <!-- [PLACEHOLDER] -->
 
-Some TD3 runs entered unstable regimes (persistent action saturation or
-collapse to a narrow exposure range) and were manually excluded from the
-main comparison. This prevented obviously failed runs from contaminating the
-results, but it is not an automated or statistically principled criterion.
-Future work should make this explicit: validation-based checkpoint selection
-and early-stopping on diagnostics such as validation Sharpe, action
-saturation rate, and critic-value magnitude would reduce manual intervention
-and make cross-algorithm comparisons more reproducible.
+Action saturation is the most consequential unresolved issue in the
+experimental package, and it is not confined to a few discarded runs. Four
+separately configured arms reported in Chapter 6 converged to a constant,
+saturated position: the 3-feature and 33-feature arms of Hypothesis 3, and the
+log-return arm of Hypothesis 4, together with an earlier log-return baseline
+that preceded it. Each records turnover of order $10^{-5}$ with zero position
+changes and sits at $100\%$ long or $100\%$ short for the entire evaluation.
+Two saturate at the upper bound and two at the lower, which is characteristic
+of an optimization that lands arbitrarily rather than of a systematic response
+to the factor under test. Because the affected arms span both the feature-set
+and reward-design comparisons, two of the four hypotheses are unresolved on
+present evidence, and the constraint is a property of training rather than of
+the design choices those hypotheses examine.
+
+Two properties of the setup make this diagnosable rather than mysterious. The
+arms that failed share the log-return objective or a small observation space,
+while the Differential Sharpe arms at the same budget trained normally, and
+alternative reward scalings tried during development did not recover the
+log-return arm. A systematic sweep over reward scaling, actor learning rate,
+and exploration noise, with the saturation rate logged as a first-class
+training diagnostic, would establish whether these configurations are
+unsuitable in this setting or merely mis-parameterized. Validation-based
+checkpoint selection and early stopping on validation Sharpe, action saturation
+rate, and critic-value magnitude would additionally prevent a saturated policy
+from reaching evaluation at all, replacing the manual exclusion used here with
+an automated and reproducible criterion.
+
+A separate evaluation-side issue affects the Hypothesis 1 comparison. The TD3
+agent was re-evaluated over a ten-percent window after a configuration
+collision required it to be re-scored, while DDPG, PPO, and the random baseline
+were evaluated over the full test split. Cumulative return compounds with
+window length, so the raw return column is not comparable across those arms;
+the table in Section 6.1 marks the affected figure and rescales it to the
+longest observed window, holding the measured per-step edge fixed. That
+rescaling is a projection under a stationarity assumption, not an independent
+measurement. Re-evaluating TD3 over the full window would remove the
+assumption, and is the outstanding correction to that table.
 
 TD3's stability corrections are also not complete. Target policy smoothing
 regularizes the critic to be locally consistent around actions seen in the

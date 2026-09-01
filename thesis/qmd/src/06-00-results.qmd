@@ -251,22 +251,22 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
-The cumulative-return column spans a factor of twenty, from $+33.4\%$ on META
-to $+675.3\%$ on AMZN, which invites the reading that the strategy works on
+The cumulative-return column spans a factor of six, from $+3.9\%$ on META
+to $+23.4\%$ on AMZN, which invites the reading that the strategy works on
 some instruments and not others. The per-step column shows that reading is
 wrong. Expressed per decision the six instruments occupy a narrow band
-(roughly $0.016$ to $0.036$ basis points per step). The ordering does not
+(roughly $0.016$ to $0.039$ basis points per step). The ordering does not
 match the cumulative one: META, the weakest instrument on cumulative return,
-carries a *higher* per-step edge ($0.0211$ bp) than AMZN, the strongest
-($0.0181$ bp).
+carries a *higher* per-step edge ($0.0279$ bp) than AMZN, the strongest
+($0.0186$ bp).
 
 What separates them is the number of decisions the evaluation window afforded.
-AMZN records 1,128,425 environment steps against META's 136,676, an
+AMZN records 112,842 environment steps against META's 13,667, an
 eight-fold difference in opportunity over the same wall-clock session, because
 message-level event counts differ across instruments. Compounding a similar
-per-step edge over eight times as many steps produces the twenty-fold gap in
-the cumulative column. Holding META's per-step edge fixed and applying AMZN's
-step count would imply a cumulative return near $+980\%$, above AMZN's own
+per-step edge over eight times as many steps produces most of the six-fold gap
+in the cumulative column. Holding META's per-step edge fixed and applying
+AMZN's step count would imply a cumulative return near $+37\%$, above AMZN's own
 figure. Cumulative return over a fixed session therefore measures event
 frequency at least as much as it measures skill, and the per-step figure is the
 quantity that should be compared across instruments and carried into the
@@ -285,56 +285,40 @@ The comparison reveals qualitatively distinct behavioral profiles across the
 three algorithms, even though all three were trained on identical data, features,
 and reward specification.
 
-**DDPG** produces the weakest result. It develops a systematic short bias during
-evaluation (spending 63.5% of steps short against 36.5% long), with a profit
-factor of 0.44, meaning gross losses exceed gross gains, and a marginally
-negative cumulative return ($-2.67 \times 10^{-7}$). In the evaluation window
-the pooled market drifted upward, so a persistent short bias is doubly
-penalising: it misaligns directional exposure with realized price movement and
-accumulates losses from that misalignment. The result is consistent with the
-theoretical concern that DDPG's single-critic Q-learning is susceptible to
-overestimation bias in noisy reward environments. Inflated Q-values in a subset
-of state-action regions can push the policy toward directional commitments that
-are not grounded in genuine microstructure signal; the short bias observed here
-is a plausible manifestation of that failure mode.
+All three learners take balanced two-sided exposure. Long-position shares span a
+narrow band, $45.5\%$ for TD3, $53.7\%$ for DDPG, and $51.9\%$ for PPO, against
+the random baseline's $50.0\%$. None commits to a persistent directional bet, so
+none of the returns reported here is explained by a standing long or short
+position in a drifting market. All three also turn over at broadly comparable
+rates, between $0.36$ and $0.45$ per step, well below the random policy's
+$0.67$, which is what a policy that changes exposure deliberately rather than
+indiscriminately looks like.
 
-**TD3** achieves a positive but very small cumulative return ($2.28 \times
-10^{-7}$), with a near-neutral position distribution (49.8% long, 50.2% short)
-and extremely low turnover (0.054% per step). A profit factor of 5.70 indicates
-that winning trades are substantially larger than losing ones. The win rate
-of 18.8% (combined with near-zero turnover), however, implies that the agent spends most
-evaluation steps holding a near-flat position, with infrequent and selective
-position changes. The twin-critic correction and delayed policy updates appear to
-prevent the directional drift seen in DDPG: the policy does not commit to a
-persistent directional bias and instead preserves near-neutral exposure
-throughout the evaluation period. The consequence is the lowest maximum drawdown
-of any algorithm ($-1.05 \times 10^{-7}$), effectively zero, at the cost of
-generating negligible absolute return.
+**DDPG** records the highest cumulative return, $312.8\%$, with a profit factor
+of $3.64$ and a Sharpe ratio of $4.96$. **PPO** returns $205.5\%$ on the highest
+profit factor of the three, $4.59$, and the highest per-bar Sharpe, $5.44$, at
+the lowest turnover, $0.36$. **TD3** returns $13.9\%$ with a profit factor of
+$3.73$ and a Sharpe of $2.99$, at the lowest maximum drawdown of any arm,
+$-4.5 \times 10^{-4}$, an order of magnitude shallower than DDPG's or PPO's
+$-4.5 \times 10^{-3}$ and $-4.7 \times 10^{-3}$. The ordering on cumulative
+return is therefore not the ordering on risk-adjusted return or on drawdown, and
+no single arm dominates across the three.
 
-**PPO** generates the highest cumulative return ($4.95 \times 10^{-5}$) but with
-a qualitatively different behavioral profile. It spends 65.3% of steps long,
-has a turnover of 8.2% per step (approximately 150 times higher than TD3) and
-incurs a maximum drawdown of $-1.35 \times 10^{-5}$, several orders of magnitude
-larger than TD3's. PPO's long bias in an evaluation window that trended upward
-partially explains its absolute return advantage. Whether this directional lean
-reflects genuine LOB-derived signal or favorable alignment between the learned
-policy and the realized market direction cannot be separated from a single
-evaluation window of this length. Under any positive transaction cost regime,
-PPO's substantially higher turnover imposes a larger per-step cost burden, and the
-sensitivity analysis confirms that the strategy's apparent advantage degrades
-more sharply than TD3's as fees increase.
+The **random baseline** returns $0.25\%$ with a profit factor of $1.006$, which
+is what noise looks like: gross gains and gross losses almost exactly offset. It
+does so at the highest turnover, $0.67$, and the deepest drawdown,
+$-5.9 \times 10^{-3}$. The separation from the learned arms is therefore large
+and consistent. Each learner clears the random policy by two to three orders of
+magnitude on cumulative return and by a factor of three to five on profit
+factor, while trading less. That gap, rather than any difference among TD3,
+DDPG, and PPO, is what the algorithm comparison establishes.
 
-The **random baseline** achieves a positive return ($2.58 \times 10^{-5}$) with
-the highest turnover (67.5% per step) and drawdown ($-5.60 \times 10^{-5}$) of
-any strategy. Its profit factor of 1.31 is consistent with noise rather than
-signal: in an evaluation window with positive market drift, a strategy that is
-randomly long approximately half the time accumulates small positive returns from
-upward price movement without having learned any relationship between observations
-and actions. That TD3 and PPO both exceed the random baseline on profit factor
-(while DDPG does not) is consistent with TD3 and PPO having learned some
-structure in the state-action mapping that goes beyond randomness. That advantage
-is nonetheless modest in absolute magnitude at the zero-fee evaluation horizon
-studied here.
+A caution applies to the return column specifically. Cumulative return
+compounds over the evaluation window, and TD3's window is one tenth the length
+of the other three arms', so its $13.9\%$ is not directly comparable with
+DDPG's $312.8\%$. The rescaled column in the table above corrects for this;
+@sec-h1-per-instrument shows that per decision the arms are far closer than the
+raw returns suggest.
 
 The comparison does not separate the three learning algorithms. On AAPL, the
 common instrument for which all four agents have been evaluated, TD3 and DDPG

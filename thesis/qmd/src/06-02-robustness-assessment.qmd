@@ -151,10 +151,14 @@ out-of-sample performance.
 
 from thesis_tables import build_comparison_rows, comparison_table_html
 
+# All three arms share the H1 train.yaml and differ only in observation.yaml,
+# so the feature set is the single varying factor. The "selected" arm is the
+# dedicated td3_h3_features_selected scenario defined in _H3_SCENARIOS, not the
+# superseded shared baseline that an earlier revision of this cell referenced.
 _FEATURE_SCENARIOS = [
-    ("pooled_td3_h3_features_minimal",                           "Minimal (3 features)",   False),
-    ("pooled_td3_hft_lob_state_space_pooled_streaming_selected", "Selected (10 features)", True),
-    ("pooled_td3_h3_features_full",                              "Full (33 features)",     False),
+    ("pooled_td3_h3_features_minimal",  "Minimal (3 features)",   False),
+    ("pooled_td3_h3_features_selected", "Selected (10 features)", True),
+    ("pooled_td3_h3_features_full",     "Full (33 features)",     False),
 ]
 
 _FEATURE_COLS = [
@@ -194,22 +198,36 @@ else:
 ```
 :::
 
-The feature comparison supports a qualified version of Hypothesis 3. The minimal
-three-feature representation produces a negative cumulative return
-($-3.45 \times 10^{-8}$), a profit factor below one, and a short-biased policy
-that spends 77.2% of the evaluation window short. The selected 10-feature
-microstructure representation improves the result to a positive cumulative
-return ($1.29 \times 10^{-7}$), a profit factor of 2.01, and a materially
-stronger Sortino ratio under the same data and evaluation protocol.
+Only one of the three arms produced a functioning policy, so the comparison
+does not isolate the effect of the feature set. The selected 10-feature
+representation trades: turnover of $0.53$, $21{,}776$ position changes, a
+profit factor of $3.64$, and a cumulative return of $+13.4\%$, with exposure
+split $44.8\%$ long against $55.2\%$ short. Neither the minimal nor the full
+representation does. The minimal three-feature arm records turnover of
+$5.3 \times 10^{-6}$ with zero position changes and sits fully long for the
+entire evaluation; the full 33-feature arm records turnover of
+$4.7 \times 10^{-5}$, also with zero position changes, and sits fully short.
+Both are saturated at an action bound, and their near-zero returns
+($-0.017\%$ and $+0.017\%$) are the drift of a held position rather than the
+outcome of any learned decision.
 
-The full 33-feature representation does not improve further. It remains
-positive on cumulative return ($2.68 \times 10^{-8}$), but underperforms the
-selected representation on return, drawdown, profit factor, and turnover. This
-suggests that the benefit comes from adding relevant microstructure information,
-not from maximizing feature count. For this thesis, Hypothesis 3 is therefore supported
-for the transition from a minimal snapshot representation to the selected
-microstructure-aware state, but not for the claim that every broader feature set
-is better.
+The failures are therefore not evidence that three features carry too little
+signal or that thirty-three carry too much noise. They are the same
+optimization failure documented for the log-return arm in Hypothesis 4 below,
+and the two arms saturate at *opposite* bounds, which is what unstable
+optimization landing arbitrarily looks like rather than a systematic response
+to feature count. A genuine feature-quality effect would be visible as a
+difference between trained policies, not as the difference between one trained
+policy and two that never left their initial bound.
+
+Hypothesis 3 is therefore unresolved on this evidence. What the run supports is
+narrower: under an identical configuration and a matched 500,000-step budget,
+the selected 10-feature specification converged to a trading policy while the
+3-feature and 33-feature specifications did not. Whether a broader feature set
+improves performance once all arms train, and whether higher-dimensional
+observations simply require a longer budget to converge, are open questions
+that a training-stability study would need to separate
+(@sec-limitations-and-future-research).
 
 ## Hypothesis 4: Reward Function Design
 <!-- [PLACEHOLDER] -->
