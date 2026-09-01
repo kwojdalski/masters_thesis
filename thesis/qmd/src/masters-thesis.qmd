@@ -213,6 +213,15 @@ assumptions separating these findings from deployable performance claims.
 
 \pagebreak
 
+<!-- WNE UW rule 1g fixes the back-matter order as: wykaz skrotow (list of
+abbreviations), spis tabel, spis rysunkow, spis zalacznikow, zalaczniki. The
+glossary is this thesis's wykaz skrotow, so it leads that block rather than
+trailing the appendices. Rule 15 adds that the whole "zestawienie spisow" is
+treated like the table of contents, which is why its headings are unnumbered
+top-level sections in 99-glossary.qmd: included after 99-appendix.qmd it sat
+inside \appendix and its subsections numbered as "K.0.1". -->
+{{< include ./99-glossary.qmd >}}
+
 ```{=latex}
 \listoftables
 \listoffigures
@@ -223,5 +232,4 @@ assumptions separating these findings from deployable performance claims.
 
 \newpage
 
-{{< include ./99-glossary.qmd >}}
 {{< include ./99-audit-log.qmd >}}
