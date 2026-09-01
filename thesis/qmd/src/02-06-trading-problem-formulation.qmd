@@ -3,7 +3,7 @@
 The finance literature reviewed here relies on RL concepts with specific
 consequences for trading. Chapter 3 provides their formal definitions, equations,
 and algorithm taxonomies; the standard reference for the framework itself is
-@SuttonBarto2018.
+@Sutton2018.
 
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
