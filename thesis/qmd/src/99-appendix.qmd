@@ -8,6 +8,26 @@
 \addcontentsline{lap}{appendices}{Feature Inventory}
 ```
 
+```{python}
+#| label: validate-feature-table-citations
+#| echo: false
+#| warning: false
+
+# The feature table below is a raw LaTeX longtable, so Pandoc cannot process
+# @key citations inside it and its Citation column is written by hand. This
+# guard compares every one of those cells against the text derived from
+# library.bib and fails the render on any disagreement, which is how the
+# "Cao et al. (2004)" / 2009 drift reached the submitted document unnoticed.
+from feature_table_citations import validate_table
+
+_citation_problems = validate_table("99-appendix.qmd")
+if _citation_problems:
+    raise ValueError(
+        "Feature table citations disagree with library.bib:\n  "
+        + "\n  ".join(_citation_problems)
+    )
+```
+
 The tables below catalogue every feature type implemented in the feature
 registry. The subset used in the main
 state-space experiment is marked in the **In model** column: $\checkmark$ indicates
