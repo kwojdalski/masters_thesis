@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
 import torch
@@ -34,6 +34,41 @@ _MIN_BATCH_SUCCESS_RATE = (
     70.0  # Warn if fewer than this % of optimization batches succeed
 )
 _MAX_CONSECUTIVE_SKIPPED_BATCHES = 10
+
+
+@runtime_checkable
+class TrainerCallback(Protocol):
+    """Structural contract for a trainer's optional per-step callback.
+
+    ``MLflowTrainingCallback`` satisfies this duck-typed; nothing needs to
+    subclass it. ``_NullTrainerCallback`` below is the no-op default so trainers
+    can call ``self.callback.log_training_step(...)`` unconditionally.
+    """
+
+    def log_training_step(
+        self,
+        step: int,
+        actor_loss: float,
+        value_loss: float,
+        *,
+        extra_metrics: dict | None = None,
+    ) -> None: ...
+
+
+class _NullTrainerCallback:
+    """No-op TrainerCallback used when no real callback is supplied.
+
+    Deliberately does NOT implement ``log_episode_stats`` — the training loop
+    gates that call on ``hasattr(callback, "log_episode_stats")``, so a null
+    callback keeps episode-stat accumulation switched off exactly as ``None``
+    did.
+    """
+
+    def log_training_step(self, *args: Any, **kwargs: Any) -> None:
+        return None
+
+
+_NULL_CALLBACK = _NullTrainerCallback()
 
 
 @dataclass(frozen=True)
@@ -366,7 +401,7 @@ class BaseTrainer(ABC):
         self.env = env
         self.config = config
         self.eval_config = eval_config or EvaluationConfig()
-        self.callback = None
+        self.callback = None  # coerced to _NULL_CALLBACK by the setter
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_prefix = checkpoint_prefix
 
@@ -433,6 +468,17 @@ class BaseTrainer(ABC):
         self.skipped_batches = 0
         self._consecutive_skips = 0
 
+    @property
+    def callback(self) -> TrainerCallback:
+        """The per-step callback. Never ``None`` — a null no-op stands in."""
+        return self._callback
+
+    @callback.setter
+    def callback(self, value: TrainerCallback | None) -> None:
+        # The training loop assigns trainer.callback = <arg to train()>, which
+        # may be None; coerce so call sites never have to guard.
+        self._callback = value if value is not None else _NULL_CALLBACK
+
     def _global_optimization_step(
         self, batch_idx: int, inner_idx: int, steps_per_batch: int
     ) -> int:
@@ -450,6 +496,123 @@ class BaseTrainer(ABC):
         """Return True when policy evaluation should run at this optimization step."""
         interval = getattr(self.config, "eval_interval", 0)
         return interval > 0 and step % interval == 0
+
+    # ------------------------------------------------------------------
+    # Shared off-policy optimization skeleton (Template Method)
+    # ------------------------------------------------------------------
+    # TD3/DDPG/SAC each ran the same outer loop — sample, NaN/inf and
+    # done/terminated guards, critic update, delayed actor update, callback
+    # log, periodic progress/eval — with only the critic/actor update calls
+    # differing. That skeleton lives here now; subclasses supply three hooks.
+
+    def _normalize_batch_shapes(self, sample: Any) -> None:
+        """Optional per-sample shape fix-up before the loss is computed.
+
+        No-op by default; TD3 overrides to force reward/done/terminated to 2-D
+        for ``TD3Loss``.
+        """
+        return None
+
+    def _should_update_actor(self, current_step: int) -> bool:
+        """Whether to run the actor/target update this step.
+
+        Default: every step (DDPG, SAC). TD3 overrides for ``policy_delay``.
+        """
+        return True
+
+    def _update_critics(
+        self, sample: Any
+    ) -> tuple[Any, float] | None:  # pragma: no cover - hook
+        """Run one critic gradient step. Return ``(loss_vals, value_loss)`` or
+        ``None`` to skip this batch. Off-policy subclasses implement this."""
+        raise NotImplementedError
+
+    def _update_actor_and_targets(
+        self, sample: Any
+    ) -> tuple[float, dict | None]:  # pragma: no cover - hook
+        """Run the actor gradient step and target-network update. Return
+        ``(actor_loss, extra_metrics)``. Off-policy subclasses implement this."""
+        raise NotImplementedError
+
+    def _run_offpolicy_optimization_step(
+        self, batch_idx: int, max_length: int, buffer_len: int
+    ) -> None:
+        """The shared off-policy inner loop. Subclasses call this from
+        ``_optimization_step`` and provide the three hooks above."""
+        for j in range(self.config.optim_steps_per_batch):
+            sample = self.replay_buffer.sample(self.config.sample_size)
+            current_step = self._global_optimization_step(
+                batch_idx, j, self.config.optim_steps_per_batch
+            )
+
+            self._normalize_batch_shapes(sample)
+
+            if is_level_enabled("TRACE"):
+                actions = sample["action"]
+                rewards = sample["next", "reward"]
+                logger.trace(
+                    "{} batch sample stats batch={} step={} "
+                    "action_mean={} action_std={} action_min={} action_max={} "
+                    "reward_mean={} reward_std={} reward_min={} reward_max={}",
+                    self._algo_label,
+                    batch_idx,
+                    j,
+                    actions.mean(),
+                    actions.std(),
+                    actions.min(),
+                    actions.max(),
+                    rewards.mean(),
+                    rewards.std(),
+                    rewards.min(),
+                    rewards.max(),
+                )
+
+            if (
+                torch.isnan(sample["next", "reward"]).any()
+                or torch.isinf(sample["next", "reward"]).any()
+            ):
+                self._record_skipped_batch("nan/inf in reward")
+                continue
+
+            done = sample["next", "done"]
+            terminated = sample["next", "terminated"]
+            if done.shape != terminated.shape:
+                self._record_skipped_batch(
+                    "done/terminated shape mismatch "
+                    f"done={done.shape} terminated={terminated.shape}"
+                )
+                continue
+
+            result = self._update_critics(sample)
+            if result is None:
+                continue
+            loss_vals, value_loss = result
+
+            actor_updated = False
+            actor_loss = None
+            if self._should_update_actor(current_step):
+                actor_loss, extra_metrics = self._update_actor_and_targets(sample)
+                self.logs["loss_actor"].append(actor_loss)
+                actor_updated = True
+                self.callback.log_training_step(
+                    current_step,
+                    actor_loss,
+                    value_loss,
+                    extra_metrics=extra_metrics,
+                )
+
+            if self._should_log_step(current_step):
+                self._log_progress(
+                    max_length,
+                    buffer_len,
+                    loss_vals,
+                    log_actor=actor_updated,
+                    actor_loss=actor_loss,
+                    value_loss=value_loss,
+                )
+
+            if self._should_eval_step(current_step):
+                self._evaluate()
 
     @staticmethod
     @abstractmethod

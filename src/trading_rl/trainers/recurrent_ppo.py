@@ -152,12 +152,7 @@ class RecurrentPPOTrainer(PPOTrainerContinuous):
             self.logs["loss_value"].append(value_loss)
             self.logs["loss_entropy"].append(entropy_loss)
 
-            if (
-                hasattr(self, "callback")
-                and self.callback
-                and hasattr(self.callback, "log_training_step")
-            ):
-                self.callback.log_training_step(current_step, actor_loss, value_loss)
+            self.callback.log_training_step(current_step, actor_loss, value_loss)
 
             if self._should_log_step(current_step):
                 self._log_progress(max_length, buffer_len, loss_vals)
