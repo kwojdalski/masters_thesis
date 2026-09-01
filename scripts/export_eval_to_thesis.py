@@ -190,20 +190,16 @@ def _load_benchmark_table(eval_dir: Path) -> tuple[dict | None, str | None]:
         except Exception:
             return None
 
-    # --- Try old aggregated layout first ---
-    for split in _SPLIT_PREFERENCE:
-        bench_path = eval_dir / "benchmark_tables" / f"{split}_benchmark_table.json"
-        if bench_path.exists():
-            data = _load_json(bench_path)
-            if data:
-                rows = data.get("rows", [])
-                if rows:
-                    return {"benchmark_comparison_table": _convert_rows(rows)}, split
-
-    # --- Try new per-symbol layout (test_AAPL_benchmark_table.json, …) ---
+    # --- Try the per-symbol layout first: it is what `evaluate --per-symbol`
+    # produces now, and a stale aggregated benchmark_tables/ file from an
+    # earlier run must not shadow a fresh per-symbol re-evaluation. Files land
+    # either at the eval-dir top level or under per_symbol/<SYMBOL>/.
     for split_prefix in _SPLIT_PREFERENCE:
         per_symbol_files = sorted(
-            eval_dir.glob(f"{split_prefix}_*_benchmark_table.json")
+            [
+                *eval_dir.glob(f"{split_prefix}_*_benchmark_table.json"),
+                *eval_dir.glob(f"per_symbol/*/{split_prefix}_*_benchmark_table.json"),
+            ]
         )
         if not per_symbol_files:
             continue
@@ -242,6 +238,16 @@ def _load_benchmark_table(eval_dir: Path) -> tuple[dict | None, str | None]:
             converted.append(row_out)
 
         return {"benchmark_comparison_table": converted}, split_prefix
+
+    # --- Fall back to the old aggregated layout (benchmark_tables/<split>_…) ---
+    for split in _SPLIT_PREFERENCE:
+        bench_path = eval_dir / "benchmark_tables" / f"{split}_benchmark_table.json"
+        if bench_path.exists():
+            data = _load_json(bench_path)
+            if data:
+                rows = data.get("rows", [])
+                if rows:
+                    return {"benchmark_comparison_table": _convert_rows(rows)}, split
 
     return None, None
 
