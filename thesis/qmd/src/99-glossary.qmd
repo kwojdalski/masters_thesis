@@ -1,4 +1,4 @@
-## Glossary of Abbreviations and Key Terms {.unnumbered}
+# Glossary of Abbreviations and Key Terms {.unnumbered}
 
 This glossary defines abbreviations and domain-specific terms used throughout
 the thesis. Entries are restricted to terms whose meaning in this context
@@ -13,7 +13,7 @@ definitions — standard statistical measures, common financial concepts, and
 general machine-learning terminology — are omitted where their inclusion would
 expand the section beyond its practical purpose.
 
-### Market Microstructure and Trading
+## Market Microstructure and Trading {.unnumbered}
 
 | Term | Definition |
 |------|------------|
@@ -50,7 +50,7 @@ expand the section beyond its practical purpose.
 | **VIX** | CBOE Volatility Index. A measure of expected 30-day S&P 500 volatility derived from options prices; a common proxy for broad market fear or uncertainty. |
 | **VWAP** | Volume-Weighted Average Price. The average price of an asset weighted by traded volume over a period; a common execution benchmark. Computed retrospectively over the evaluation window, so the reported VWAP rows are reference values rather than attainable returns (see @sec-benchmark-strategies). |
 
-### Reinforcement Learning and Machine Learning
+## Reinforcement Learning and Machine Learning {.unnumbered}
 
 | Term | Definition |
 |------|------------|
@@ -79,7 +79,7 @@ expand the section beyond its practical purpose.
 | **Temporal difference (TD) learning** | A class of RL methods that update value estimates based on the difference between successive predictions, without requiring full episode trajectories. |
 | **Value function** | A function estimating the expected cumulative discounted reward from a given state (or state-action pair) under a given policy. The critic network in actor-critic algorithms approximates this function. |
 
-### Other
+## Other {.unnumbered}
 
 | Term | Definition |
 |------|------------|
