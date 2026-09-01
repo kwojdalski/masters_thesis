@@ -108,6 +108,18 @@
 \advance\textheight -50mm
 \advance\textheight -\footskip
 \marginparwidth15mm
+% WNE UW rule 8 requires a footnote wrapping to a second line to be indented
+% "z odsadzeniem uwidaczniajacym numer przypisu" -- so the marker stays visible
+% rather than being absorbed into the left margin. article.cls's \@makefntext
+% indents only the first line and returns continuation lines flush left, which
+% is the opposite. \hangindent indents every line after the first by the width
+% reserved for the marker; the \hb@xt@ box holds the marker itself at that same
+% width so the two line up. 1.5em matches the tab-width odsadzenie rule 14 uses
+% for wrapped bibliography entries.
+\long\def\@makefntext#1{%
+  \noindent
+  \hangindent 1.5em
+  \hb@xt@ 1.5em{\@makefnmark\hfil}#1}
 % Abstract environment: 12 pt body text at the document's own margins.
 % The \null\vfil ... \vfil\null pair previously wrapping this body is the
 % standard "vertically centre the abstract on its own page" idiom. It only
