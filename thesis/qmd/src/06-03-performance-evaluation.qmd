@@ -245,7 +245,7 @@ any single directional move can inflict.
 These figures are measured under frictionless mid-price execution and inherit
 the Hypothesis 1 caveat in full: the comparison establishes that the policy
 extracts a real signal the passive benchmarks do not, not that the resulting
-edge survives the cost of trading on it. Section 6.4 shows it does not.
+edge survives the cost of trading on it. Section 6.2 shows it does not.
 
 Taken together, the benchmark comparison establishes that the agent's
 outperformance is not a positioning artefact. Win rate ($20.4\%$ against
@@ -259,7 +259,7 @@ comparison is, however, run under mid-price execution with zero fees. That is no
 proportional to turnover, so a comparison whose only asymmetry is the spread the
 active arm does not pay favours the higher-turnover reinforcement learning policy
 over the near-static passive benchmarks. Any spread-crossing cost both erases the
-agent's own frictionless return (Section 6.4) and narrows its measured advantage
+agent's own frictionless return (Section 6.2) and narrows its measured advantage
 over buy-and-hold. The benchmark comparison thus supports the existence half of
 Hypothesis 1 (a coherent, risk-controlled policy) but not a claim of
 benchmark-dominating or deployable performance. The economic magnitude is

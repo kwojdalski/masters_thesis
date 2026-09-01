@@ -1,11 +1,3 @@
-## Robustness Assessment
-<!-- [PLACEHOLDER] -->
-
-Robustness depends on whether nearby changes in feature specification, reward
-definition, transaction-cost assumptions, or split design materially alter the
-conclusions for the high-frequency TD3 setup. Stable results indicate structural
-effects; unstable results suggest dependence on a narrow experimental design.
-
 ```{python}
 #| label: robustness_setup
 #| echo: false
