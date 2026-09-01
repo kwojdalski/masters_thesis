@@ -11,7 +11,7 @@ differences motivate the choice of reinforcement learning for the present proble
 $(X_i, Y_i)_{i=1}^{n}$ to minimize a loss function $\mathcal{L}(f_\theta(X), Y)$
 over a held-out sample. In trading, supervised approaches have been widely
 applied to return prediction, directional classification, and volatility
-forecasting — tasks where historical outcomes provide a natural training signal
+forecasting. These are tasks where historical outcomes provide a natural training signal
 [@Krauss2017; @Zhang2019].
 
 This includes modern LOB prediction models, which use deep architectures to map
@@ -48,15 +48,15 @@ be the action that maximizes longer-horizon portfolio utility once turnover,
 inventory persistence, and risk are considered.
 
 This misalignment is most consequential at high frequencies, where turnover costs
-consume a large fraction of gross returns. At lower frequencies — daily or weekly
-rebalancing — the cost of turning over a position is small relative to the
+consume a large fraction of gross returns. At lower frequencies (daily or weekly
+rebalancing), the cost of turning over a position is small relative to the
 forecast signal, and well-specified supervised models remain competitive. Factor-based
 strategies in the Fama-French tradition, momentum screens, and several recent
 deep-learning forecasting papers achieve meaningful net alpha precisely because the
 prediction horizon is long enough for transaction costs to be a second-order
 concern. The advantage of direct optimization narrows as the cost-to-signal ratio
 decreases. At tick frequency, where the present thesis operates, this ratio is
-unfavorable for a predict-then-trade pipeline: the cost of crossing the spread on
+unfavorable for a predict-then-trade pipeline. The cost of crossing the spread on
 each position change can exceed the directional signal per step, making the
 alignment between reward and realized return a first-order design requirement.
 The motivation for reinforcement learning in this thesis should therefore be
@@ -72,17 +72,17 @@ microstructure states), dimensionality reduction of large feature sets
 (PCA, autoencoders), and anomaly detection in order flow data.
 
 These applications are useful as preprocessing or exploratory tools, but
-unsupervised learning does not produce trading decisions directly — it carries
+unsupervised learning does not produce trading decisions directly. It carries
 no reward signal and cannot optimize for a financial objective such as
 risk-adjusted return. In the present thesis, the regime-conditioning problem
-is addressed implicitly through engineered microstructure features — spread
-ratio, inter-event time, temporal encodings — that condition the agent's
+is addressed implicitly through engineered microstructure features (spread
+ratio, inter-event time, temporal encodings) that condition the agent's
 observation on the current market state without requiring an explicit
 unsupervised clustering step.
 
 **Semi-Supervised Learning.** Semi-supervised learning combines a small labeled set with a larger unlabeled
 set, propagating label information through structural similarity in the data.
-It is useful when labeling is expensive or subjective — medical annotation being
+It is useful when labeling is expensive or subjective. Medical annotation is
 the canonical application.
 
 In financial trading, the approach is rarely adopted because the main bottleneck
@@ -90,11 +90,11 @@ is not label scarcity but the absence of a stable labeling criterion: what
 constitutes an optimal action at a given market state depends on subsequent
 price evolution, which is noisy and non-stationary. Constructing pseudo-labels
 for unlabeled market observations requires either a strong prior on optimal
-behavior or a separate forecasting model — at which point the problem has
+behavior or a separate forecasting model. At that point, the problem has
 already been reformulated as supervised or reinforcement learning. This
 instability of financial labels is documented in the literature: fixed-horizon
 labeling schemes are path-dependent and regime-sensitive, which motivates the
-triple-barrier method as a more robust alternative — itself an acknowledgment
+triple-barrier method as a more robust alternative. This is itself an acknowledgment
 that no universal labeling criterion exists across market conditions
 [@Lopez2018, ch. 3].
 
@@ -118,8 +118,8 @@ a training phase.
 
 The limitation is inflexibility. Rules are defined over a fixed set of
 observable conditions and optimized for a particular market regime. When it
-changes — for example, when a previously mean-reverting asset enters a
-trending period — fixed rules either require manual recalibration or continue
+changes (for example, when a previously mean-reverting asset enters a
+trending period), fixed rules either require manual recalibration or continue
 generating losses until the regime reverts. This brittleness under
 non-stationarity is the primary motivation for learning-based approaches,
 which can update their behavior from experience rather than requiring explicit
@@ -130,7 +130,7 @@ optimizing trading performance directly. One variant employs supervised learning
 to generate price forecasts from market inputs and then feeds those forecasts
 into a separate decision rule. Another variant trains directly on labeled
 state-action pairs, imitating historical or hand-crafted trades without an
-explicit forecasting stage — learning the action-mapping function by minimizing
+explicit forecasting stage. This learns the action-mapping function by minimizing
 imitation loss against expert or rule-derived action labels, the standard
 behavior-cloning setup.
 

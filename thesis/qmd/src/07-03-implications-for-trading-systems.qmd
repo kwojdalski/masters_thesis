@@ -8,14 +8,14 @@ systems.
 
 **Invest in feature engineering before algorithm selection.** The
 performance gap between the extended and baseline feature sets shows that
-order-book-derived microstructure information — order flow imbalance, spread
-regime, book shape, temporal encoding — carries signal that aggregate
+order-book-derived microstructure information (order flow imbalance, spread
+regime, book shape, temporal encoding) carries signal that aggregate
 snapshot quantities do not, consistent with the microstructure literature
 reviewed in Chapter 2. Feature quality is at least as consequential as
 algorithm choice: a well-specified feature set with a standard actor-critic
 architecture will likely outperform a poorly-specified feature set with a
-more sophisticated model. A thorough feature validation — correlation
-structure, stationarity, and predictive content on held-out data — is more
+more sophisticated model. A thorough feature validation (correlation
+structure, stationarity, and predictive content on held-out data) is more
 valuable time spent than hyperparameter search over an impoverished state
 space.
 
@@ -24,15 +24,15 @@ continuous action space let the agent express varying directional conviction
 through position size rather than binary buy/sell decisions, which matters
 when the economically correct position magnitude varies with signal
 strength; a discrete-action grid either loses this precision or reintroduces
-the curse of dimensionality. TD3's stability mechanisms — clipped double
-Q-learning, delayed policy updates, target policy smoothing — proved
-important in this noisy reward environment: without them, value
+the curse of dimensionality. TD3's stability mechanisms (clipped double
+Q-learning, delayed policy updates, target policy smoothing) proved
+important in this noisy reward environment. Without them, value
 overestimation would likely have driven the policy toward unreliable actions
 during early training.
 
 **Enforce a strict chronological evaluation protocol from the start.** Any
-lookahead — features computed from future data, normalization fit on the
-full dataset, non-sequential splits — produces a materially optimistic
+lookahead (features computed from future data, normalization fit on the
+full dataset, non-sequential splits) produces a materially optimistic
 out-of-sample assessment. In high-frequency settings, where signal decay is
 measured in seconds, even mild lookahead can manufacture the appearance of a
 viable strategy from a leakage artifact. Normalization should be fit on the
@@ -42,17 +42,17 @@ requirement for the results to be meaningful, not an optional refinement.
 
 **Keep reward optimization and financial evaluation strictly separate.** A
 shaped reward such as the Differential Sharpe Ratio is a training objective,
-not a performance report (Section 4.3): conflating a high training DSR with
+not a performance report (Section 4.3). Conflating a high training DSR with
 held-out Sharpe performance is a common source of overoptimistic claims in the
 literature, and the most consistent failure mode to avoid.
 
 **Treat transaction-cost sensitivity as a go/no-go criterion.** The
 execution model used here is a mid-price proxy, and represents an upper
-bound on realizable returns: spread-crossing costs are of similar magnitude
+bound on realizable returns. Spread-crossing costs are of similar magnitude
 to the price moves the agent targets, and the demonstrated edge does not
 survive at high cost levels, as the sensitivity analysis shows. Before
 treating any result as evidence of a deployable strategy, practitioners
-should run the same evaluation across a range of cost levels — from zero to
-the realistic spread-plus-fee regime of the target venue — and check whether
+should run the same evaluation across a range of cost levels (from zero to
+the realistic spread-plus-fee regime of the target venue) and check whether
 risk-adjusted return degrades gracefully or collapses abruptly. An edge that
 survives only at zero cost is not a tradeable strategy.

@@ -16,7 +16,7 @@ whose trades are uncorrelated with future price changes, and informed traders,
 who possess private information about fundamental value. Setting a positive
 spread allows the market maker to profit from uninformed flow and recoup losses
 on informed flow. The spread therefore decomposes into an adverse selection
-component — compensation for information risk — and an inventory or order
+component (compensation for information risk) and an inventory or order
 processing component.
 
 This decomposition has a direct implication for trading signal design. A
@@ -31,8 +31,8 @@ Kyle's continuous-time model, the informed trader optimally splits their order
 to minimize price impact, and the market maker sets prices to break even against
 order flow. The resulting relationship between order imbalance and price change
 is linear, with slope $\lambda$ that depends on the ratio of informed to
-uninformed volume. The order flow features in Chapter 4 — OFI and signed trade
-flow — can be understood as empirical proxies for Kyle's order imbalance
+uninformed volume. The order flow features in Chapter 4 (OFI and signed trade
+flow) can be understood as empirical proxies for Kyle's order imbalance
 variable, with the bid-ask slope features measuring the depth analogue of
 $\lambda$ across levels of the order book. The limitation is that these proxies
 summarize observable pressure and depth, not the latent information set of the
@@ -42,14 +42,14 @@ informed trader in Kyle's model.
 The theory of the open limit order book as a competitive
 equilibrium was developed, showing that a full LOB can sustain itself as a market mechanism
 under adverse selection [@Glosten1994]. The key insight is that the price schedule embedded in
-the LOB — the sequence of bid and ask quotes at increasing depths — reflects the
+the LOB (the sequence of bid and ask quotes at increasing depths) reflects the
 cumulative information content of orders at each quantity level. Deeper levels of
 the book attract less informed order flow but carry higher execution uncertainty
 for those posting limit orders.
 
 This theoretical result motivates the multi-level features used in Chapter 4.
 The book is not a single price but a price schedule, and the shape of that
-profile — measured by depth ratios, slopes, and convexity features —
+profile (measured by depth ratios, slopes, and convexity features)
 may encode information about how informed the marginal liquidity provider
 expects the market to be at each quantity level.
 
@@ -79,13 +79,13 @@ order-flow pressure.
 **Fair value estimation from the order book.**
 The microprice is derived as the theoretically optimal estimate of the
 next transaction price given the current state of the top-of-book queues
-[@Stoikov2018]. The key observation is that the mid-price — the arithmetic
-average of best bid and ask — is an inadequate fair value estimate when the
+[@Stoikov2018]. The key observation is that the mid-price (the arithmetic
+average of best bid and ask) is an inadequate fair value estimate when the
 queues are imbalanced, because the side with the thinner queue is more likely
 to be depleted first by incoming market orders, pulling the next transaction
 price toward the opposite side. The microprice corrects for this by
 volume-weighting the best quotes so that when the bid side is heavier than
-the ask, the estimate is pulled toward the ask — the side more likely to
+the ask, the estimate is pulled toward the ask, the side more likely to
 move (exact formula and implementation in Appendix A). The microprice
 divergence from mid captures this adjustment as a stationary signal and
 serves as the primary fair value feature in Chapter 4. Its limitation is
@@ -104,5 +104,5 @@ that conditions on the current queue imbalance.
 
 These mechanisms are not independent: they all reflect aspects of information
 aggregation through order flow, motivating the candidate feature families
-introduced in Chapter 4 — spread-based, order-flow, depth-shape, and
+introduced in Chapter 4: spread-based, order-flow, depth-shape, and
 fair-value signals.

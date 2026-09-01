@@ -85,7 +85,7 @@ if finished is not None:
 *TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (mean excess return divided by standard deviation, not annualized). Sortino: Sortino Ratio (mean excess return divided by downside deviation, not annualized). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
 **Return aggregation for ratio metrics.**
-Roughly 80–90\% of consecutive LOB returns are zero — the mid-price does not
+Roughly 80–90\% of consecutive LOB returns are zero. The mid-price does not
 move between most order-book events. This causes $\hat{\sigma}$ to collapse
 faster than $\bar{r}$, inflating the naive per-tick Sharpe by $\sqrt{N}$
 without any real edge. The pipeline therefore compounds per-tick returns into
@@ -216,13 +216,13 @@ The test window is characterized by a slight market decline. The buy-and-hold
 benchmark accumulated a total return of $-6.98 \times 10^{-4}$ ($-0.070\%$);
 TWAP and VWAP produced $-5.73 \times 10^{-4}$ ($-0.057\%$) and
 $-6.08 \times 10^{-4}$ ($-0.061\%$) respectively. In this environment, the
-TD3 agent recorded a total return of $-1.40 \times 10^{-4}$ ($-0.014\%$) —
+TD3 agent recorded a total return of $-1.40 \times 10^{-4}$ ($-0.014\%$),
 better than all passive benchmarks. The agent's behavioral profile explains this
 outcome: with approximately 54.9% long and 45.1% short exposure and a per-step
 turnover of 0.058%, the agent accumulated only a fraction of the directional loss
 that sustained long-only exposure would imply in a declining market. The
-outperformance relative to passive benchmarks is therefore structural — a
-consequence of near-neutral positioning — rather than a sign of correctly
+outperformance relative to passive benchmarks is therefore structural (a
+consequence of near-neutral positioning) rather than a sign of correctly
 timed directional bets.
 
 The trade-level statistics reinforce this interpretation. The agent's win rate
@@ -240,17 +240,17 @@ cumulative loss that any single directional move can inflict, regardless of
 whether that positioning reflects skill or passivity.
 
 Taken together, the benchmark comparison establishes that the agent's
-outperformance is structural — near-neutral positioning that incidentally
-reduces exposure during a period when all passive long strategies lost money
-— rather than a sign of correctly timed directional bets. Its trade-level
+outperformance is structural: near-neutral positioning that incidentally
+reduces exposure during a period when all passive long strategies lost money,
+rather than a sign of correctly timed directional bets. Its trade-level
 quality metrics (win rate, profit factor) are substantially worse than even a
 passive strategy, so the positive relative total return
 ($-0.014\%$ versus $-0.057\%$ to $-0.070\%$) is entirely attributable to the
 neutral position stance, not profitable active trading. The Hypothesis 1 verdict
 from the benchmark comparison is therefore two-sided. The agent clears a weak
-feasibility bar — it does not commit capital to a sustained wrong-direction bet,
+feasibility bar: it does not commit capital to a sustained wrong-direction bet,
 and its relative total return over this declining window is better than passive
-long exposure — but the mechanism is near-neutral positioning, not profitable
+long exposure. The mechanism, however, is near-neutral positioning, not profitable
 directional trading, and the comparison is run under mid-price execution with
 zero fees. That is not a neutral choice: zero-cost execution is a subsidy
 proportional to turnover, so a comparison whose only asymmetry is the spread the
@@ -258,7 +258,7 @@ active arm does not pay favours the higher-turnover reinforcement learning polic
 over the near-static passive benchmarks. Any spread-crossing cost both erases the
 agent's own frictionless return (Section 6.2) and narrows its measured advantage
 over buy-and-hold. The benchmark comparison thus supports the existence half of
-Hypothesis 1 — a coherent, risk-controlled policy — but not a claim of
+Hypothesis 1 (a coherent, risk-controlled policy) but not a claim of
 benchmark-dominating or deployable performance; the economic magnitude of the
 edge is bounded by transaction cost, as Sections 4.3
 (@sec-execution-model-signal-friction) and 6.2 establish.

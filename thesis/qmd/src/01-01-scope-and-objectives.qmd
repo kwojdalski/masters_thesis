@@ -25,8 +25,8 @@ precondition for any credible economic claim:
    spread-crossing costs.
 2. The empirical performance of the agent is materially sensitive to the
    transaction-cost assumption: the learned edge is positive under zero fee but
-   changes sign once the per-trade cost reaches a fraction of a basis point —
-   the scale of the bid-ask half-spread on these instruments.
+   changes sign once the per-trade cost reaches a fraction of a basis point.
+   This is the scale of the bid-ask half-spread on these instruments.
 3. Within the order-book-based trading framework studied here, extending the
    state representation from basic snapshot features to a broader
    microstructure-aware feature set leads to improved out-of-sample performance
@@ -59,7 +59,7 @@ data. The research objectives are structured in three interconnected phases:
      training and evaluation framework, operationalizing Hypothesis 3
    - Assess the practical relevance and limitations of the approach under
      simplified execution assumptions
-   - Identify the binding constraints on out-of-sample performance —
-     whether they originate in execution modeling simplifications, feature
-     set coverage, or training data volume — to prioritize specific extensions
+   - Identify the binding constraints on out-of-sample performance
+     (whether they originate in execution modeling simplifications, feature
+     set coverage, or training data volume) to prioritize specific extensions
      for future work

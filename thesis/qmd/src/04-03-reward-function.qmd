@@ -76,7 +76,7 @@ valuation, so the learned policy is optimal for the frictionless objective;
 retraining under an explicit spread-crossing cost is left as future work
 (@sec-limitations-and-future-research).
 
-### Why Raw Log-Return Is Insufficient
+### Log-Return
 
 The simplest reward is the single-step log-return:
 
