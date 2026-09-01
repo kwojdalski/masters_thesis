@@ -335,6 +335,58 @@ else:
 
 ---
 
+# Tick-Size Break-Even Fee by Instrument {#sec-appendix-tick-breakeven}
+
+```{=latex}
+\addcontentsline{lap}{appendices}{Tick-Size Break-Even Fee by Instrument}
+```
+
+@tbl-tick-breakeven-fee supports the transaction-cost discussion in
+@sec-h2-transaction-cost-sensitivity. The minimum price increment for these
+instruments is one cent, so the smallest possible one-sided move in the
+mid-price is half a cent. At each instrument's mean price over the evaluation
+window (2 March 2026), this sets a break-even fee: the proportional trading
+cost at which a single minimum-tick move stops covering the fee.
+
+```{python}
+#| label: tbl-tick-breakeven-fee
+#| tbl-cap: "Break-even transaction fee -- the proportional cost at which a one-sided minimum-tick move stops covering the fee -- by mean instrument price over the evaluation window."
+#| echo: false
+#| warning: false
+
+import json
+import pandas as pd
+from thesis_mlflow_results import repo_root
+from thesis_tables import display_df, table_note, missing_data_notice
+
+_tick_path = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/peek/tick_breakeven.json"
+)
+
+if _tick_path.exists():
+    df = pd.DataFrame(json.loads(_tick_path.read_text()))
+    df["Symbol"] = df["symbol"]
+    df["Mean Price"] = df["mean_price"].apply(lambda x: f"${x:,.2f}")
+    df["Break-Even Fee"] = df["breakeven_fee_bp"].apply(lambda x: f"{x:.3f} bp")
+    display_df(df[["Symbol", "Mean Price", "Break-Even Fee"]])
+    table_note(
+        source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
+        note=(
+            "Break-even fee = (half of the one-cent minimum price increment / "
+            "mean mid-price) x 10,000, in basis points. Mean price is computed "
+            "over the 2 March 2026 evaluation session."
+        ),
+    )
+else:
+    missing_data_notice(
+        "tick_breakeven.json not found — run: "
+        "`uv run python scripts/export_tick_breakeven_to_thesis.py`"
+    )
+```
+
+---
+
 # Feature Distribution Statistics {#sec-appendix-feature-statistics}
 
 ```{=latex}

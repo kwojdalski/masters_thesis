@@ -23,7 +23,7 @@ _audit = audit_plots_enabled()
 ```
 
 
-## Hypothesis 2: Transaction-Cost Sensitivity
+## Hypothesis 2: Transaction-Cost Sensitivity {#sec-h2-transaction-cost-sensitivity}
 <!-- [PLACEHOLDER] -->
 
 This section varies the proportional transaction cost while holding the
@@ -96,23 +96,23 @@ the evidential content of Hypothesis 1 as reworded.
 
 The break between 0.01 and 0.1 basis points is not just a sign flip in the
 reported return; it is the point at which the policy stops trading altogether,
-which admits a more direct mechanical explanation. Under Reg NMS Rule 612 the
-minimum price increment for these instruments is one cent, so the smallest
-possible move in the mid-price, when only one side of the book updates, is half
-a cent. At the mean price of each instrument over the evaluation window this
-sets a break-even fee -- the proportional cost at which a one-sided minimum-tick
-move stops covering the fee -- ranging from roughly 0.08 basis points for the
-highest-priced instrument to roughly 0.24 basis points for the lowest-priced
-one. The observed break sits below every one of these break-even points, which
-is consistent with Section 4.3's framing of the half-spread as a ceiling on the
-expressible edge rather than the edge the agent actually realizes on a given
-trade: the policy stops scalping before the fee mathematically exceeds the
-largest possible tick-driven move, not only after. This is a plausible reading
-of the current fee-ladder run, not a confirmed mechanism -- it is drawn from a
-single representative instrument at a training budget shorter than the primary
-Hypothesis 1 agent's, and the per-instrument breakdown needed to test its
-central prediction (that higher-priced instruments should stop trading at
-comparably lower fee levels) has not yet been examined.
+which admits a more direct mechanical explanation. The minimum price increment
+for these instruments is one cent, so the smallest possible move in the
+mid-price, when only one side of the book updates, is half a cent. At the mean
+price of each instrument over the evaluation window this sets a break-even fee
+-- the proportional cost at which a one-sided minimum-tick move stops covering
+the fee -- ranging from roughly 0.08 basis points for the highest-priced
+instrument to roughly 0.24 basis points for the lowest-priced one
+(@tbl-tick-breakeven-fee). The observed break sits below every one of these
+break-even points, which is consistent with Section 4.3's framing of the
+half-spread as a ceiling on the expressible edge rather than the edge the agent
+actually realizes on a given trade: the policy stops scalping before the fee
+mathematically exceeds the largest possible tick-driven move, not only after.
+This is a plausible reading of the current fee-ladder run, not a confirmed
+mechanism -- it is drawn from a single representative instrument at a training
+budget shorter than the primary Hypothesis 1 agent's, and the per-instrument
+breakdown needed to test its central prediction (that higher-priced instruments
+should stop trading at comparably lower fee levels) has not yet been examined.
 
 For Hypothesis 2 itself, the same table carries a distinct conclusion: empirical
 performance is materially sensitive to the transaction-cost assumption (a

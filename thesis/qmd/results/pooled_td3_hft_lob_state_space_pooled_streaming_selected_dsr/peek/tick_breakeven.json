@@ -1,0 +1,32 @@
+[
+  {
+    "symbol": "META",
+    "mean_price": 652.8946783455492,
+    "breakeven_fee_bp": 0.07658203023909031
+  },
+  {
+    "symbol": "TSLA",
+    "mean_price": 400.0987392079451,
+    "breakeven_fee_bp": 0.12496915161238056
+  },
+  {
+    "symbol": "MSFT",
+    "mean_price": 398.48231887853893,
+    "breakeven_fee_bp": 0.1254760817009812
+  },
+  {
+    "symbol": "AVGO",
+    "mean_price": 315.48697341409974,
+    "breakeven_fee_bp": 0.15848514903457311
+  },
+  {
+    "symbol": "AAPL",
+    "mean_price": 264.3717590390341,
+    "breakeven_fee_bp": 0.18912761401499614
+  },
+  {
+    "symbol": "AMZN",
+    "mean_price": 207.96955012806984,
+    "breakeven_fee_bp": 0.2404198113099224
+  }
+]
