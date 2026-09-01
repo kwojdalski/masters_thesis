@@ -1,0 +1,29 @@
+[
+  {
+    "split": "train",
+    "rows": 18707348,
+    "columns": 104,
+    "first_timestamp": "2026-02-25 14:30:00.000843670+00:00",
+    "last_timestamp": "2026-02-27 20:59:59.999717206+00:00",
+    "mean_delta_s": 0.008523304589271785,
+    "median_delta_s": 1.4627e-05
+  },
+  {
+    "split": "val",
+    "rows": 3673436,
+    "columns": 108,
+    "first_timestamp": "2026-03-02 14:30:00.000241811",
+    "last_timestamp": "2026-03-02 16:53:17.344765418",
+    "mean_delta_s": 0.008870392959692247,
+    "median_delta_s": 2.582e-05
+  },
+  {
+    "split": "test",
+    "rows": 3673439,
+    "columns": 108,
+    "first_timestamp": "2026-03-02 16:53:17.344824134",
+    "last_timestamp": "2026-03-02 20:59:59.999918688",
+    "mean_delta_s": 0.015272781865951726,
+    "median_delta_s": 3.3304e-05
+  }
+]

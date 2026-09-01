@@ -80,7 +80,7 @@ class PeekCommand(BaseCommand):
             )
         )
         self._print_scenario_status(config)
-        splits_df = self._print_splits(dataset)
+        splits_df = self._print_splits(dataset, config)
         feat_df = self._print_feature_stats(
             dataset,
             config,
@@ -290,8 +290,92 @@ class PeekCommand(BaseCommand):
             logger.debug("failed to detect warmup from feature pipeline: {}", exc)
         return detected
 
-    def _print_splits(self, dataset) -> pd.DataFrame:
+    def _raw_span(self, data_paths) -> tuple[str, str] | None:
+        """Earliest and latest ts_event across the configured raw files."""
+        if not data_paths:
+            return None
+        import pandas as _pd
+
+        first: _pd.Timestamp | None = None
+        last: _pd.Timestamp | None = None
+        for p in data_paths:
+            path = Path(str(p))
+            if not path.exists():
+                continue
+            try:
+                idx = _pd.read_parquet(path, columns=["ts_event"])["ts_event"]
+            except Exception as exc:  # a malformed file must not break the summary
+                logger.debug("skipping {} while spanning raw files: {}", path, exc)
+                continue
+            if idx.empty:
+                continue
+            lo, hi = idx.min(), idx.max()
+            first = lo if first is None or lo < first else first
+            last = hi if last is None or hi > last else last
+        if first is None or last is None:
+            return None
+        return str(first), str(last)
+
+    def _streamed_row_counts(self, config) -> dict[str, int]:
+        """Rows each split actually feeds the agent, for streaming scenarios.
+
+        `dataset.train_df` is a staging frame used to build the env (schema,
+        feature columns); when the env is a StreamingTradingEnv it reads
+        `data.memmap_dir` instead and the frame's length is unrelated to the
+        training set. Reporting len(train_df) understated the pooled six-asset
+        training data as 50,000 rows against the 18,707,348 actually streamed.
+
+        Val and test are summed over the per-symbol prepared files: the bare
+        `val_prepared.parquet` / `test_prepared.parquet` aggregates hold one
+        symbol only, so reporting their length labelled an AAPL-sized count as
+        the six-asset total.
+
+        Returns {} when the scenario is not streaming, leaving the DataFrame
+        lengths as the source of truth.
+        """
+        from trading_rl.data_loading import load_memmap_paths
+
+        data_cfg = getattr(config, "data", None)
+        memmap_dir = getattr(data_cfg, "memmap_dir", None)
+        if not memmap_dir or not Path(memmap_dir).exists():
+            return {}
+
+        counts: dict[str, int] = {}
+        try:
+            paths = load_memmap_paths(memmap_dir)
+        except Exception as exc:  # diagnostic tool: never fatal
+            self.console.print(f"[yellow]memmap row counts unavailable: {exc}[/yellow]")
+            return {}
+        if paths:
+            counts["train"] = sum(int(p.n_rows) for p in paths)
+            # The staging frame holds one day's opening minutes, so its index
+            # would report a seven-minute training range. Take the span from the
+            # configured raw files instead: the memmaps are built from them.
+            span = self._raw_span(getattr(data_cfg, "data_paths", None))
+            if span:
+                counts["train_first"], counts["train_last"] = span  # type: ignore[assignment]
+
+        prepared = getattr(data_cfg, "prepared_data_dir", None)
+        if prepared and Path(prepared).exists():
+            import pandas as _pd
+
+            for split in ("val", "test"):
+                # <split>_<SYMBOL>_prepared.parquet, excluding <split>_prepared.parquet
+                per_symbol = [
+                    p
+                    for p in sorted(Path(prepared).glob(f"{split}_*_prepared.parquet"))
+                    if p.name != f"{split}_prepared.parquet"
+                ]
+                if per_symbol:
+                    counts[split] = sum(
+                        len(_pd.read_parquet(p, columns=[])) for p in per_symbol
+                    )
+        return counts
+
+    def _print_splits(self, dataset, config=None) -> pd.DataFrame:
         import numpy as np
+
+        streamed = self._streamed_row_counts(config) if config is not None else {}
 
         def _delta_stats(df: pd.DataFrame) -> tuple[float | None, float | None]:
             if not isinstance(df.index, pd.DatetimeIndex) or len(df) < 2:
@@ -329,9 +413,12 @@ class PeekCommand(BaseCommand):
                     return f"{s * 1e3:.2f} ms"
                 return f"{s:.3f} s"
 
+            n_rows = streamed.get(name, len(df))
+            first = str(streamed.get(f"{name}_first", first))
+            last = str(streamed.get(f"{name}_last", last))
             tbl.add_row(
                 name,
-                f"{len(df):,}",
+                f"{n_rows:,}",
                 str(df.shape[1]),
                 first,
                 last,
@@ -341,7 +428,7 @@ class PeekCommand(BaseCommand):
             rows.append(
                 {
                     "split": name,
-                    "rows": len(df),
+                    "rows": n_rows,
                     "columns": int(df.shape[1]),
                     "first_timestamp": first,
                     "last_timestamp": last,
