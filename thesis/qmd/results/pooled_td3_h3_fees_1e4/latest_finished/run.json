@@ -1,9 +1,9 @@
 {
   "run_id": null,
   "run_name": "pooled_td3_h3_fees_1e4",
-  "status": "FINISHED",
-  "start_time": "2026-05-24T23:29:02.385464+00:00",
-  "end_time": "2026-05-24T23:29:02.385464+00:00",
+  "status": "EXPORTED",
+  "start_time": null,
+  "end_time": "2026-09-01T07:31:26.161911+00:00",
   "artifact_uri": null,
   "experiment_name": "pooled_td3_h3_fees_1e4",
   "experiment_id": null,
@@ -11,78 +11,77 @@
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_fees_1e4",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_fees_1e4/results.json",
-    "exported_at_utc": "2026-05-24T23:29:02.385464+00:00"
+    "results_file_mtime_utc": "2026-09-01T07:31:26.161911+00:00",
+    "exported_at_utc": "2026-09-01T07:31:54.190584+00:00"
   },
   "files": {
     "params": "params.json",
     "latest_metrics": "latest_metrics.json",
     "evaluation_report": "evaluation_report.json",
-    "statistical_tests": null
+    "statistical_tests": "statistical_tests.json",
+    "hyperparams": "hyperparams.json"
   },
-  "evaluation_plots": {
-    "rewards": "plots/rewards.png",
-    "positions": "plots/positions.png"
-  },
+  "evaluation_plots": {},
   "per_symbol_results": {
     "val_AAPL": {
       "split": "val_AAPL",
-      "final_reward": -1.6786010746727698e-05,
-      "n_steps": 100
+      "final_reward": -14.539571762084961,
+      "n_steps": 96921
     },
     "test_AAPL": {
       "split": "test_AAPL",
-      "final_reward": -9.442215741728432e-06,
-      "n_steps": 100
+      "final_reward": -18.02398681640625,
+      "n_steps": 96921
     },
     "val_AMZN": {
       "split": "val_AMZN",
-      "final_reward": -2.5742874640855007e-05,
-      "n_steps": 100
+      "final_reward": -117.59140014648438,
+      "n_steps": 112842
     },
     "test_AMZN": {
       "split": "test_AMZN",
-      "final_reward": -4.686496140493546e-06,
-      "n_steps": 100
+      "final_reward": 1.9952239990234375,
+      "n_steps": 112842
     },
     "val_AVGO": {
       "split": "val_AVGO",
-      "final_reward": -2.6517862352193333e-05,
-      "n_steps": 100
+      "final_reward": 29.751808166503906,
+      "n_steps": 21969
     },
     "test_AVGO": {
       "split": "test_AVGO",
-      "final_reward": -4.395001269585919e-06,
-      "n_steps": 100
+      "final_reward": -30.500999450683594,
+      "n_steps": 21969
     },
     "val_META": {
       "split": "val_META",
-      "final_reward": -8.019889719435014e-06,
-      "n_steps": 100
+      "final_reward": -145.29978942871094,
+      "n_steps": 13667
     },
     "test_META": {
       "split": "test_META",
-      "final_reward": -5.5549580793012865e-06,
-      "n_steps": 100
+      "final_reward": 19.905643463134766,
+      "n_steps": 13667
     },
     "val_MSFT": {
       "split": "val_MSFT",
-      "final_reward": -4.201350293442374e-06,
-      "n_steps": 100
+      "final_reward": -83.12260437011719,
+      "n_steps": 38031
     },
     "test_MSFT": {
       "split": "test_MSFT",
-      "final_reward": -4.803666342922952e-06,
-      "n_steps": 100
+      "final_reward": 12.299882888793945,
+      "n_steps": 38031
     },
     "val_TSLA": {
       "split": "val_TSLA",
-      "final_reward": -1.1954442015849054e-05,
-      "n_steps": 100
+      "final_reward": -116.94369506835938,
+      "n_steps": 83910
     },
     "test_TSLA": {
       "split": "test_TSLA",
-      "final_reward": -6.446892712119734e-06,
-      "n_steps": 100
+      "final_reward": -16.957382202148438,
+      "n_steps": 83910
     }
   }
 }
