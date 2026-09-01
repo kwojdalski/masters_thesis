@@ -64,9 +64,6 @@ format:
         icon: file-pdf
 bibliography: ../../bibliography/library.bib
 csl: ../../bibliography/apa.csl
-# The appendix feature table renders its Citation column as literal LaTeX text
-# rather than Pandoc @keys, so sources appearing only there never reach the
-# reference list. Most are also cited by key in Chapter 4.2; these two are not.
 # Every source cited by the appendix feature table. That table is raw LaTeX, so
 # Pandoc never sees its citations and would otherwise drop from the reference
 # list any source cited only there. Keep in step with CITATION_KEYS in
@@ -112,9 +109,9 @@ six Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO) over three
 consecutive trading sessions in February 2026, evaluated against benchmark
 strategies under explicit simulation assumptions. Under frictionless mid-price
 execution it achieves positive held-out returns with low drawdown and a high
-profit factor, but this edge is bounded by transaction cost: the microstructure
-signal it trades on cannot exceed the bid–ask half-spread, and the return turns
-negative once a fee of a fraction of a basis point is charged. A
+profit factor. The return turns negative once a fee of a fraction of a basis
+point is charged, and fixed-path bid/ask repricing reverses its sign. The
+reported magnitude is therefore highly sensitive to the execution assumptions. A
 microstructure-aware state built from order flow, spread regime, and book shape
 improves policy behavior over simpler snapshot-based variants.
 
