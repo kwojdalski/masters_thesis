@@ -5,36 +5,28 @@ The thesis set out to answer four hypotheses concerning deep reinforcement learn
 for high-frequency single-asset trading using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
-**Hypothesis 1: a TD3 agent learns a real but cost-bounded risk-adjusted edge
-from order-book microstructure.** The evidence supports this in its reworded
-form. Under frictionless mid-price execution the agent learns a directionally
-coherent, low-turnover, drawdown-controlled policy that beats passive benchmarks
-on this held-out window (Section 6.3). TD3, DDPG, and PPO all separate
-cleanly from a random policy while remaining indistinguishable from one another
-(Section 6.1). The microstructure signal exists, is learnable, and is not an
-artifact of a single algorithm's inductive bias. Its economic magnitude,
-however, is of the same order as the cost of trading on it. The
-features that carry the signal (microprice divergence, order-flow imbalance)
-cannot express an edge larger than one bid–ask half-spread per trade
-(Section 4.3). The transaction-cost sweep (Section 6.2) shows the reported
-return changing sign once the per-trade fee reaches a fraction of a basis
-point (the same scale as that half-spread). The frictionless result is
-therefore a signal ceiling, not a deployable edge: profitable when execution is
-free, not expected to survive realistic spread-crossing cost. Retraining and
-re-evaluating under explicit bid/ask execution with calibrated fees is the
-outstanding test, identified as future work (Section 7.2).
+**Hypothesis 1: a TD3 agent learns an assumption-sensitive risk-adjusted edge
+from order-book microstructure.** Under frictionless mid-price execution, the
+agent learns a directionally coherent, low-turnover, drawdown-controlled policy
+that beats passive benchmarks on this held-out window (Section 6.3). TD3, DDPG,
+and PPO also separate cleanly from a random policy while remaining
+indistinguishable from one another (Section 6.1). These results support a
+learnable relationship under the specified simulator. They do not establish
+deployable performance. The transaction-cost sweep changes sign once the
+per-trade fee reaches a fraction of a basis point (Section 6.2). Fixed-path
+bid/ask repricing also reverses the result (Section 7.2). The strong frictionless
+figures are therefore conditional on favorable execution assumptions.
+Retraining and re-evaluating under explicit bid/ask execution with calibrated
+fees remains the outstanding test.
 
 **Hypothesis 2: empirical performance is materially sensitive to the
-transaction-cost assumption.** The fee sweep confirms this hypothesis and, in
-doing so, bounds Hypothesis 1. The learned edge is positive at zero fee, only
-marginally positive at 0.01 basis points, and negative from 0.1 basis points
-upward; the sign changes within a single order of magnitude of fee. The level at
-which the edge disappears coincides with the half-spread ceiling on the
-microstructure signal (Section 4.3), so Hypotheses 1 and 2 meet at the same
-quantity from opposite directions. Hypothesis 1 measures the edge; Hypothesis
-2 measures the cost that cancels it. That the reported result is this sensitive to a
-parameter often left implicit is why robustness analysis precedes any economic
-claim in this thesis.
+transaction-cost assumption.** The fee sweep confirms this hypothesis. The
+learned edge is positive at zero fee, only marginally positive at 0.01 basis
+points, and negative from 0.1 basis points upward. The sign therefore changes
+within a single order of magnitude of fee. This does not identify a theoretical
+signal ceiling or isolate every component of execution cost. It demonstrates
+that the H1 result depends materially on a parameter omitted from the baseline.
+That sensitivity is why robustness analysis must precede any economic claim.
 
 **Hypothesis 3: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** This

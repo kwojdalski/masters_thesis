@@ -615,7 +615,7 @@ def lob_events_table(df: pd.DataFrame) -> None:
         "Bid Size",
         "Ask Size",
     ]
-    FEAT_COLS = ["Book Pressure", "Order Imbalance", "Microprice Dev.", "OFI"]
+    FEAT_COLS = ["Book Pressure", "Order Imbalance", "QWM Deviation", "OFI"]
     FIRST_FEAT_COL = FEAT_COLS[0]
 
     tbl = pd.DataFrame(
@@ -632,7 +632,9 @@ def lob_events_table(df: pd.DataFrame) -> None:
             "Order Imbalance": win["feature_hft_order_book_imbalance_3l"]
             .round(3)
             .values,
-            "Microprice Dev.": win["feature_hft_microprice_divergence"].round(3).values,
+            "QWM Deviation": win["feature_hft_microprice_divergence"]
+            .round(3)
+            .values,
             "OFI": win["feature_hft_ofi"].round(3).values,
         },
         index=[f"E{i}" for i in range(1, 13)],
@@ -667,7 +669,8 @@ def lob_events_table(df: pd.DataFrame) -> None:
         note=(
             "Twelve consecutive order-book events selected from the test split "
             "to include multiple bid/ask price changes. "
-            "Book Pressure, Order Imbalance, Microprice Dev., and OFI are "
+            "Book Pressure, Order Imbalance, queue-weighted-midpoint (QWM) "
+            "Deviation, and OFI are "
             "z-score normalized using causal running statistics. "
             "A vertical rule separates the raw order-book state (left columns) "
             "from the normalized features (right columns)."

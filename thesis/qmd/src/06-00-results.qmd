@@ -180,7 +180,7 @@ else:
         source="Author's own calculations.",
         note=(
             "All figures use mid-price execution with zero transaction cost and "
-            "represent a signal ceiling, not net-of-cost performance; "
+            "represent frictionless gross performance, not net-of-cost performance; "
             "transaction-cost sensitivity is in Section 6.2 "
             "(@tbl-h2-transaction-costs). * Return rescaled to the longest "
             "per-symbol evaluation window observed across the four agents, "
@@ -356,12 +356,12 @@ same instruments ranged from $-0.68\%$ (MSFT) to $+1.07\%$ (AVGO), that is,
 sessions with no material directional move to capture. The headline cumulative figures are the
 compounding of a per-step edge far smaller than one tick of spread, not evidence
 of a large exploitable inefficiency. Section 4.3
-(@sec-execution-model-signal-friction) explains why that magnitude is the
-decisive quantity for a microstructure feature set: the features carrying the
-signal cannot express an edge larger than one half-spread per trade, which is
-exactly the cost mid-price execution declines to charge. Whether an edge of this
-size survives once that cost is applied is taken up by the transaction-cost
-sensitivity analysis in Section 6.2. The defensible Hypothesis 1 verdict is
-therefore that continuous-control agents learn a real but very small
-microstructure edge, and that their frictionless performance is a ceiling on
-deployable performance, not an estimate of it.
+(@sec-execution-model-signal-friction) explains why this magnitude must be read
+against omitted execution costs. The algebraic half-spread bound on the
+queue-weighted-midpoint displacement does not bound the policy's return. The
+relevant evidence instead comes from the transaction-cost sensitivity analysis
+in Section 6.2 and the fixed-path bid/ask repricing in Section 7.2. The
+defensible Hypothesis 1 verdict is therefore that continuous-control agents
+learn a small edge under the frictionless simulator. Its economic magnitude is
+highly sensitive to execution assumptions and is not an estimate of deployable
+performance.

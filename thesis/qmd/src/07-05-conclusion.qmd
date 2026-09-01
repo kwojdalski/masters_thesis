@@ -7,10 +7,10 @@ the TD3 agent trained on microstructure-aware limit order book features learned 
 directionally coherent, risk-controlled policy that outperformed the evaluated
 benchmark strategies on this held-out window. The extended feature set
 provided a measurable improvement over the simpler snapshot-based state
-representation. That outperformance is real but cost-bounded: the edge the
-microstructure features can express is of the order of the bid–ask half-spread,
-so it is realised under frictionless execution and is not expected to survive
-realistic spread-crossing cost (Section 7.2). These findings hold together rather
+representation. That outperformance is clear within the simulator but highly
+sensitive to its execution assumptions. The fee sweep weakens the result at a
+fraction of a basis point, while fixed-path bid/ask repricing reverses its sign
+(Section 7.2). These findings hold together rather
 than in isolation: the performance advantage of the richer state design is
 visible in both summary metrics and in the qualitative character of the learned
 policy (lower unnecessary turnover, more responsive positioning, and more

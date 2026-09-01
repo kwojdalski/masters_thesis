@@ -240,8 +240,8 @@ alongside the corresponding normalized features. Three properties stand out.
 **Book Pressure** and **Order Imbalance** capture instantaneous liquidity and
 directional pressure: positive when bid depth dominates, negative when a
 bid-side refresh shifts pressure toward the ask (visible at event 12 in the
-appendix table). **Microprice Deviation** tracks how far the microprice lies
-from the simple mid-price, a depth-weighted estimate of fair value. **OFI**
+appendix table). **Queue-Weighted-Midpoint Deviation** tracks the static
+top-of-book adjustment away from the ordinary midpoint. **OFI**
 captures signed net trade flow over a short window and spikes sharply when
 displayed depth is consumed or replenished. These four features are a
 representative subset; the full feature set additionally includes depth
