@@ -577,13 +577,7 @@ The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
 
-<!-- The diagram is close to a full page; give it its own page inside this
-     appendix so it cannot float past the following section. -->
-```{=latex}
-\clearpage
-```
-
-![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.5in" fig-pos="H"}
+![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="3.9in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
