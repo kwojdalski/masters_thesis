@@ -111,9 +111,11 @@ strategies under explicit simulation assumptions. Under frictionless mid-price
 execution it achieves positive held-out returns with low drawdown and a high
 profit factor. The return turns negative once a fee of a fraction of a basis
 point is charged, and fixed-path bid/ask repricing reverses its sign. The
-reported magnitude is therefore highly sensitive to the execution assumptions. A
-microstructure-aware state built from order flow, spread regime, and book shape
-improves policy behavior over simpler snapshot-based variants.
+reported magnitude is therefore highly sensitive to the execution assumptions.
+Of the feature specifications compared, only a curated ten-feature
+microstructure state -- order flow, spread regime, and book shape -- converged
+to a trading policy; sparser and larger variants did not train, so the effect
+of feature choice is left unresolved.
 
 The main contribution is an end-to-end, reproducible pipeline linking LOB
 feature engineering, Differential Sharpe Ratio reward design, TD3 training, and

@@ -6,18 +6,20 @@ limit order book data beyond the specific experiments studied here, and
 translate directly into recommendations for practitioners building similar
 systems.
 
-**Invest in feature engineering before algorithm selection.** The
-performance gap between the extended and baseline feature sets shows that
-order-book-derived microstructure information (order flow imbalance, spread
-regime, book shape, temporal encoding) carries signal that aggregate
-snapshot quantities do not. This finding is consistent with the microstructure literature
-reviewed in Chapter 2. Feature quality is at least as consequential as
-algorithm choice: a well-specified feature set with a standard actor-critic
-architecture will likely outperform a poorly-specified feature set with a
-more sophisticated model. A thorough feature validation (correlation
-structure, stationarity, and predictive content on held-out data) is more
-valuable time spent than hyperparameter search over an impoverished state
-space.
+**Get the state representation right before tuning the algorithm.** Feature
+specification had an outsized effect on whether training succeeded at all. Of
+three feature sets run under an identical budget and architecture, only the
+curated ten-feature set converged to a trading policy; both a three-feature
+subset and a thirty-three-feature superset saturated at a fixed position and
+never trained (Section 6.2). This comparison does not establish that a richer
+state improves returns -- two of the three arms did not optimize -- but it does
+show that a poorly chosen state can block learning outright, which no amount of
+algorithm tuning recovers. The microstructure literature reviewed in Chapter 2
+motivates which quantities belong in the state (order-flow imbalance, spread
+regime, book shape, temporal encoding); a thorough feature validation
+(correlation structure, stationarity, and predictive content on held-out data)
+is better time spent than hyperparameter search over a state space that is
+either impoverished or padded with noise.
 
 **Continuous-action actor-critic methods suit position-sizing tasks.** The
 continuous action space let the agent express varying directional conviction
@@ -47,8 +49,8 @@ held-out Sharpe performance is a common source of overoptimistic claims in the
 literature, and the most consistent failure mode to avoid.
 
 **Treat transaction-cost sensitivity as a go/no-go criterion.** The
-execution model used here is a mid-price proxy, and represents an upper
-bound on realizable returns. Spread-crossing costs are of similar magnitude
+execution model used here is a mid-price proxy and is optimistic relative to
+executable bid/ask prices. Spread-crossing costs are of similar magnitude
 to the price moves the agent targets, and the demonstrated edge does not
 survive at high cost levels, as the sensitivity analysis shows. Before
 treating any result as evidence of a deployable strategy, practitioners
