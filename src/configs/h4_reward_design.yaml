@@ -8,16 +8,16 @@
 # log_dir produced by `cli.py train --scenario <scenario>`.
 #
 # Run order to reproduce:
-#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected      # log-return baseline
-#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr  # DSR
+#   uv run python src/cli.py train --scenario pooled/td3_h4_reward_logreturn      # log-return baseline
+#   uv run python src/cli.py train --scenario pooled/td3_h4_reward_dsr  # DSR
 
 axes:
   - name: reward_design
     label: "Reward Function Design"
     scenarios:
       - label: "Log Return"
-        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+        log_dir: logs/td3_h4_reward_logreturn
         baseline: true
       - label: "Differential Sharpe (DSR)"
-        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+        log_dir: logs/td3_h4_reward_dsr
         baseline: false

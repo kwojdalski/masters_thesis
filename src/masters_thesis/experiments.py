@@ -76,24 +76,30 @@ _H1_SCENARIOS = [
 # training budget. It also meant the sweep did not measure the cost sensitivity
 # of the agent H1 actually reports. Both are fixed by sweeping the H1 agent.
 _H2_SCENARIOS = [
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",  # 0 bp = the H1 agent
+    "pooled/td3_h2_fees_0_dsr",  # 0 bp; byte-identical to the H1 scenario
     "pooled/td3_h2_fees_1e6_dsr",
     "pooled/td3_h2_fees_1e5_dsr",
     "pooled/td3_h2_fees_1e4_dsr",
 ]
 
-# Feature specification: minimal / selected / full state representations, holding
-# algorithm, reward, and cost fixed.
+# Feature specification: minimal / selected / full state representations. All
+# three arms now share the H1 train.yaml and differ only in observation.yaml, so
+# the feature set is the single varying factor. Previously the minimal arm also
+# carried a smaller network ([64, 32] vs [128, 64]), confounding feature count
+# with model capacity.
 _H3_SCENARIOS = [
     "pooled/td3_h3_features_minimal",
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # shared baseline
+    "pooled/td3_h3_features_selected",
     "pooled/td3_h3_features_full",
 ]
 
-# Reward-function design: log-return baseline vs Differential Sharpe Ratio.
+# Reward-function design. Both arms are the H1 configuration; only reward_type
+# and its scaling differ. The previous pair also differed in train_size (50000
+# vs null), actor_weight_decay and reward_scale, so no difference could be
+# attributed to the reward.
 _H4_SCENARIOS = [
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected",  # log-return baseline
-    "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",  # DSR
+    "pooled/td3_h4_reward_logreturn",
+    "pooled/td3_h4_reward_dsr",
 ]
 
 _SCENARIOS: dict[str, list[str]] = {

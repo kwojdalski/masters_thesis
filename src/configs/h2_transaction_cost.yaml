@@ -9,7 +9,7 @@
 # The 0 bp arm is the H1 agent; each fee arm differs from it by env.trading_fees alone.
 #
 # Run order to reproduce:
-#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr  # 0 bp = the H1 agent
+#   uv run python src/cli.py train --scenario pooled/td3_h2_fees_0_dsr  # 0 bp = the H1 agent
 #   uv run python src/cli.py train --scenario pooled/td3_h2_fees_1e6_dsr
 #   uv run python src/cli.py train --scenario pooled/td3_h2_fees_1e5_dsr
 #   uv run python src/cli.py train --scenario pooled/td3_h2_fees_1e4_dsr
@@ -19,7 +19,7 @@ axes:
     label: "Transaction Costs"
     scenarios:
       - label: "0 bp"
-        log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr
+        log_dir: logs/td3_h2_fees_0_dsr
         fees: 0.0
         baseline: true
       - label: "0.01 bp"
