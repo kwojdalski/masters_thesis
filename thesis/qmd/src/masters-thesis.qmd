@@ -36,6 +36,7 @@ format:
       - \usepackage{longtable}
       - \usepackage{pdflscape}
       - \usepackage{float}
+      - \floatplacement{table}{H}
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \usepackage{caption}
