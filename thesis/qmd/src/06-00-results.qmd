@@ -87,9 +87,10 @@ _audit = audit_plots_enabled()
 #| warning: false
 #| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random, under frictionless (mid-price, zero-fee) execution."
 
+import numpy as np
 import pandas as pd
 from IPython.display import HTML
-from thesis_mlflow_results import load_scenario_metrics
+from thesis_mlflow_results import load_scenario_metrics, load_scenario_per_symbol_metrics
 from thesis_tables import fmt_val, display_df, table_note
 
 _H1_AGENTS = [
@@ -100,9 +101,9 @@ _H1_AGENTS = [
 ]
 
 _H1_COLS = [
-    ("total_return",          "Return",    ".2e"),
+    ("total_return",          "Return",    ".2%"),
     ("annualized_volatility", "Ann. Vol",  ".4f"),
-    ("max_drawdown",          "Max DD",    ".2e"),
+    ("max_drawdown",          "Max DD",    ".2%"),
     ("sharpe_ratio",          "Sharpe",    ".3f"),
     ("sortino_ratio",         "Sortino",   ".3f"),
     ("win_rate",              "Win Rate",  ".2%"),
@@ -113,12 +114,61 @@ _H1_COLS = [
     ("pct_short",             "% Short",   ".2%"),
 ]
 
+# Per-symbol evaluations for the four agents were not all run over the same
+# window (TD3's re-evaluation used a 10% window to save time after a config
+# collision retrained it under the wrong settings; DDPG/PPO/Random ran the
+# full test split). Cumulative return compounds over the window, so comparing
+# it directly overstates the gap: a 10x shorter window understates Return by
+# roughly 10x even when the underlying per-step edge is the same (verified
+# directly -- TD3 and DDPG's mean per-step log-return are 0.0247 vs 0.0231 bp,
+# essentially identical, while their raw cumulative Returns differ by ~20x).
+# Rescale every agent's per-symbol Return to the longest window observed for
+# that symbol across agents, holding the per-step edge fixed. This is a
+# projection under a stationarity assumption, not a second measurement -- it
+# is marked with * and is superseded by a full-window TD3 re-run (Section 7.2).
+_per_symbol_by_agent = {
+    label: load_scenario_per_symbol_metrics(exp_name, split="test")
+    for exp_name, label in _H1_AGENTS
+}
+_ref_steps: dict[str, int] = {}
+for _sym_metrics in _per_symbol_by_agent.values():
+    for _sym, _m in _sym_metrics.items():
+        _n = _m.get("n_steps") or 0
+        _ref_steps[_sym] = max(_ref_steps.get(_sym, 0), _n)
+
+_rescaled_return: dict[str, float] = {}
+_was_rescaled: dict[str, bool] = {}
+for label, _sym_metrics in _per_symbol_by_agent.items():
+    if not _sym_metrics:
+        continue
+    _vals = []
+    _rescaled_any = False
+    for _sym, _m in _sym_metrics.items():
+        _n = _m.get("n_steps") or 0
+        _ret = _m.get("total_return")
+        _ref = _ref_steps.get(_sym, _n)
+        if not _n or _ret is None:
+            continue
+        if _n != _ref:
+            _rescaled_any = True
+        _bp_step = np.log1p(_ret) / _n
+        _vals.append(np.expm1(_bp_step * _ref))
+    if _vals:
+        _rescaled_return[label] = float(np.mean(_vals))
+        _was_rescaled[label] = _rescaled_any
+
 rows = []
 for exp_name, label in _H1_AGENTS:
     m = load_scenario_metrics(exp_name)
     row = {"Algorithm": label}
     for key, col, fmt in _H1_COLS:
-        row[col] = fmt_val(m.get(key), fmt)
+        if key == "total_return" and label in _rescaled_return:
+            cell = fmt_val(_rescaled_return[label], fmt)
+            if _was_rescaled.get(label):
+                cell = f"{cell}*"
+        else:
+            cell = fmt_val(m.get(key), fmt)
+        row[col] = cell
     rows.append(row)
 
 h1_df = pd.DataFrame(rows)
@@ -132,9 +182,11 @@ else:
             "All figures use mid-price execution with zero transaction cost and "
             "represent a signal ceiling, not net-of-cost performance; "
             "transaction-cost sensitivity is in Section 6.2 "
-            "(@tbl-h2-transaction-costs). The displayed values predate the "
-            "execution-realism audit and a re-export under the corrected "
-            "evaluation pipeline is pending (Section 7.2)."
+            "(@tbl-h2-transaction-costs). * Return rescaled to the longest "
+            "per-symbol evaluation window observed across the four agents, "
+            "holding the measured mean per-step log-return fixed; a projection "
+            "under a stationarity assumption, not an independent measurement, "
+            "pending a matched-window re-run (Section 7.2)."
         ),
     )
     show_table_meta(finished, audit=_audit)
