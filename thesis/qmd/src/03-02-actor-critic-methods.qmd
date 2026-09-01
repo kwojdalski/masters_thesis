@@ -142,9 +142,11 @@ through objective constraints, while TD3 achieves stability through
 target smoothing and delayed updates.
 
 The clipping mechanism prevents excessively large policy updates that would
-collapse performance, making PPO more robust to hyperparameter choices than
-earlier policy gradient methods such as Vanilla Policy Gradient [@Sutton2000]
-and Trust Region Policy Optimization (TRPO) [@Schulman2015]. Unlike TD3 and
+collapse performance, without the second-order machinery of Trust Region Policy
+Optimization (TRPO) [@Schulman2015], which pursues the same goal through an
+explicit trust-region constraint. PPO is correspondingly simpler to implement
+and empirically more sample-efficient than TRPO, while remaining more stable
+than an unconstrained policy gradient [@Sutton2000]. Unlike TD3 and
 DDPG, PPO is on-policy: it optimizes against the most recent policy and does
 not use a replay buffer. This trades sample efficiency for stability, which can
 be advantageous in environments where the value function is difficult to
@@ -223,8 +225,9 @@ landscape.
 Together, these three modifications produce an algorithm that is substantially
 more reliable than DDPG on standard continuous control benchmarks [@Fujimoto2018].
 Evidence from trading-adjacent settings is more limited and heterogeneous.
-Several deep RL strategies were compared in asset-holding tasks, finding TD3
-competitive with alternatives [@Mohammadshafie2024]; TD3 was also evaluated in
+Several deep RL algorithms were compared in asset-holding tasks, with A2C
+achieving the highest cumulative reward and TD3 and DDPG exhibiting more
+balanced, lower-turnover trading behaviour [@Mohammadshafie2024]; TD3 was also evaluated in
 cryptocurrency trading with explicit attention to backtest overfitting
 [@Gort2022].
 These results should not be read as establishing a general ranking: they span
