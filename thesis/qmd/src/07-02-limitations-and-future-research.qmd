@@ -32,7 +32,7 @@ confirming that the frictionless profit is a real signal harvested for free
 rather than bid–ask bounce available to any high-turnover policy. The direct
 next step, and the most important single extension, is to **retrain** and
 re-evaluate the agents under an explicit bid/ask fill rule with calibrated
-maker/taker fees and a slippage or market-impact model; because the training
+maker/taker fees and a slippage or market-impact model. Because the training
 reward shares the mid-price assumption, re-scoring the existing checkpoints is
 not sufficient.
 
@@ -67,7 +67,7 @@ instrument at a single venue. Price-relevant information that never reaches
 that book (derivatives and options-implied signals, unstructured data such
 as earnings and macro releases, and proprietary order flow visible only to
 systematic internalizers, market makers, and prime brokers) appears to the
-agent as unexplained noise, which both limits value-estimate precision and
+agent as unexplained noise. This noise both limits value-estimate precision and
 raises reward variance. This creates a structural information asymmetry
 between academic research, confined to public data, and well-resourced
 industry participants. The results here are best read as a lower bound on
@@ -97,10 +97,10 @@ and make cross-algorithm comparisons more reproducible.
 
 TD3's stability corrections are also not complete. Target policy smoothing
 regularizes the critic to be locally consistent around actions seen in the
-replay buffer, but it does not eliminate extrapolation error: once the actor
+replay buffer, but it does not eliminate extrapolation error. Once the actor
 begins producing actions in regions the critic has seen rarely or never, the
 critic's estimates there are extrapolations from the training distribution
-rather than reliable values, and the actor receives no signal that it has
+rather than reliable values. The actor receives no signal that it has
 left the buffer's support. This is distinct from the overestimation-bias
 correction discussed in Chapter 3 (@sec-td3-lineage). The twin-critic
 minimum addresses optimistic bias at the target computation, not exposure to
@@ -132,9 +132,9 @@ made here:
   a rich order book but not so deep that every pattern is immediately
   arbitraged, unlike the highly liquid large-caps used here. A more tractable intermediate step is a pair
   with an economically well-defined price anchor, such as dual-class shares
-  representing identical economic exposure to the same underlying business,
-  where deviations from parity are theoretically bounded and the learning
-  target becomes the spread rather than a directional price level.
+  representing identical economic exposure to the same underlying business.
+  For such a pair, deviations from parity are theoretically bounded and the
+  learning target becomes the spread rather than a directional price level.
 - **Algorithm and reward ablation.** Replacing TD3 with SAC or PPO, and the
   Differential Sharpe Ratio with a Sortino-based or drawdown-penalized
   reward, would test how much of the observed performance is attributable to

@@ -15,15 +15,11 @@ You run autonomously. You cannot ask the user mid-run, so when a rewrite would r
 
 ## The problem, measured
 
-Baseline measurement of the body chapters (`01-*` through `07-*`), as of 2026-09-01:
+The original baseline was **224 prose em-dashes** (~8.4 per 1000 words, against 1-2 in ordinary academic prose), 79 sentences with two or more, and 137 over 40 words. Two full passes have since brought the body to roughly **5 prose em-dashes, 0 multi-dash sentences, and 26 sentences over 40 words**.
 
-- **224 em-dashes in prose**, about **8.4 per 1000 words**. Ordinary academic prose runs 1-2.
-- **14% of sentences** contain an em-dash; **79 sentences contain two or more**.
-- **137 sentences (13%) exceed 40 words.**
+Do not treat those figures as current. **Other authors are actively writing this thesis**, and new prose arrives with new dashes: between the first and second pass, `03-02` went from 0 prose em-dashes back to 17 purely from newly added sections. Always re-measure at the start of a run rather than assuming prior cleanliness, and treat any chapter as potentially fresh material.
 
-A raw scan counts 305 em-dashes, but 81 of those are symbol-definition glosses that must not be touched (see **Never touch these**). The 224 figure is the real target, and is what the **Measuring** script reports.
-
-Two or more em-dashes in one sentence is the strongest single signal of the bloat this agent exists to fix. Start there.
+Two or more em-dashes in one sentence remains the strongest single signal of bloat. Start there, then work down the over-40-word list.
 
 Re-run the measurement before and after a pass (see **Measuring**) and report both numbers.
 
@@ -111,7 +107,12 @@ def clean(t):
     t = re.sub(r'\$\$.*?\$\$', ' ', t, flags=re.DOTALL)
     t = re.sub(r'<!--.*?-->', ' ', t, flags=re.DOTALL)
     t = re.sub(r'^#+\s.*$', ' ', t, flags=re.MULTILINE)
-    t = re.sub(r'^\s*[-*]\s+\$.*$', ' ', t, flags=re.MULTILINE)  # symbol lists
+    t = re.sub(r'^\s*[-*]\s+\$.*$', ' ', t, flags=re.MULTILINE)   # symbol lists
+    t = re.sub(r'^\s*\|.*$', ' ', t, flags=re.MULTILINE)          # markdown table rows
+    t = re.sub(r'\^\[(?:[^\[\]]|\[[^\]]*\])*\]', ' ', t)          # footnotes (1 nesting level)
+    t = re.sub(r'^\[\^[^\]]+\]:.*$', ' ', t, flags=re.MULTILINE)  # footnote definitions
+    t = re.sub(r'\*\*(.+?)\*\*', r'\1.', t)                       # bold lead-in = boundary
+    t = re.sub(r'\{[^}]*\}', ' ', t)                              # quarto attrs
     return re.sub(r'\s+', ' ', re.sub(r'\$[^$]+\$', 'X', t))
 em = sents = multi = long_ = 0
 for f in files:
@@ -123,6 +124,10 @@ for f in files:
 print(f"em-dashes={em}  sentences={sents}  multi-dash={multi}  over-40w={long_}")
 PYEOF
 ```
+
+**The counter over-reports if you weaken it.** The last five strip rules exist because a bare `.!?` splitter cannot see markdown structure: it glues a `**bold lead-in**`, a table row, a footnote body, or an equation's symbol list onto the following sentence and reports one long run-on where there are two normal ones. Before these rules were added the script claimed 42 sentences over 40 words where only 26 were real — a 38% false-positive rate, and three separate agents each wasted effort rediscovering it.
+
+So: **never treat a flagged sentence as a finding without reading it in the source first.** The counter selects candidates; your eyes decide. If a flag turns out to be a markdown artifact, skip it silently rather than contorting the prose to satisfy the number.
 
 ## Verifying
 

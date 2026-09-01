@@ -97,11 +97,11 @@ entropy bonuses rather than explicit noise injection.
 ```
 
 DDPG (Algorithm 3, Appendix @sec-appendix-baseline-algorithms) follows the
-same loop as Algorithm 2 with three simplifications: a single critic in
-place of the twin critics (so the Bellman target uses
-$Q_{\theta'}(s', \mu_{\phi'}(s'))$ directly, without the minimum), the actor
-updated every step rather than every `policy_delay` critic steps, and no
-target-action smoothing noise. PPO (Algorithm 4, same appendix section)
+same loop as Algorithm 2 with three simplifications. It uses a single critic in
+place of the twin critics, so the Bellman target uses
+$Q_{\theta'}(s', \mu_{\phi'}(s'))$ directly, without the minimum. The actor is
+updated every step rather than every `policy_delay` critic steps, and there is
+no target-action smoothing noise. PPO (Algorithm 4, same appendix section)
 instead follows the on-policy paradigm summarized above: batches are
 collected with the current stochastic policy, and GAE advantage estimates are
 computed. The clipped surrogate objective (@eq-ppo-clip), together with a
@@ -144,10 +144,10 @@ dataset are reported in Chapter 6.
 Beyond the ad-hoc checks above, a suite of automated tests guards the
 implementation against the failure modes most common in RL codebases.
 Learning health checks verify, after a single gradient update, that
-observations and rewards are finite, that every feature dimension varies
-across the batch (i.e., no collapsed or constant-valued feature), that
-the loss is finite, and that actor and critic parameters both change and
-remain finite. These four conditions are individually obvious but together
+observations and rewards are finite and that every feature dimension varies
+across the batch (i.e., no collapsed or constant-valued feature). They also
+confirm that the loss is finite and that actor and critic parameters both
+change and remain finite. These four conditions are individually obvious but together
 rule out the silent errors most likely to produce plausible-looking
 training curves without genuine learning. Pipeline integration tests run a
 short end-to-end training loop to detect regressions in data loading,

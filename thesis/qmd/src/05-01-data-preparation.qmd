@@ -8,13 +8,13 @@ and AVGO (Broadcom Inc.). All six are
 among the most liquid equities in US markets, with tight spreads, deep displayed
 depth, and continuous two-sided quoting throughout the trading session. The
 selection criterion was high but not extreme liquidity: instruments were chosen
-to ensure defensible price-taking assumptions and rich microstructure signals,
-while avoiding names whose order-book event density on the Nasdaq ITCH feed
+to ensure defensible price-taking assumptions and rich microstructure signals.
+Names whose order-book event density on the Nasdaq ITCH feed
 would be disproportionately inflated by factors unrelated to underlying
-economic activity. This
+economic activity were avoided. This
 liquidity profile ensures that the price-taking assumption embedded in the
 simulation (that agent trades do not move quoted prices) is empirically
-defensible, and that the microstructure features derived from the order book
+defensible. It also ensures that the microstructure features derived from the order book
 reflect genuine supply and demand rather than thin-market artifacts.
 
 Blue-chip selection also minimizes borrow costs, supporting the action
@@ -39,7 +39,7 @@ to idiosyncratic patterns in any single stock's order-flow sequence. It also
 encourages the model to capture universal microstructure signals (spread
 dynamics, order-flow imbalance, and depth asymmetries) that transfer across
 equities within the same class. The feature pipeline supports this directly:
-all inputs are z-score normalized per security, and the microstructure features
+all inputs are z-score normalized per security. The microstructure features
 in the state space (order-flow imbalance, relative spread, depth slope, queue
 imbalance) are inherently relative measures that carry the same semantic meaning
 regardless of the underlying price level or absolute volume.
@@ -55,7 +55,7 @@ information advantage.
 The data were obtained from Nasdaq via the DataBento API, using the MBP-10
 (Market By Price, 10 levels) feed. This is a hybrid order book format that sits
 between L2 (aggregated depth) and L3 (order-by-order) data, providing
-depth-of-book snapshots at up to ten price levels and additionally recording
+depth-of-book snapshots at up to ten price levels. It additionally records
 the order count at each level via `side_ct_xx` fields (e.g., `bid_ct_00` for
 the number of orders at the best bid).^[
 MBP-10 schema documentation: https://databento.com/docs/schemas-and-data-formats/mbp-10
@@ -71,13 +71,13 @@ in Appendix A.
 The pipeline consumes time-indexed LOB snapshot data. Each row represents an
 order-book event: a `timestamp` for ordering and temporal features; bid/ask
 price, resting size, and order count at each book level `NN` (00-09, feeding
-spread, imbalance, depth, and queue features respectively); `action`, `side`,
-and `size` describing the event itself (used for signed trade-flow features);
-and an auxiliary `close` series used only for reward and portfolio valuation.
+spread, imbalance, depth, and queue features respectively); and `action`, `side`,
+and `size` describing the event itself (used for signed trade-flow features).
+An auxiliary `close` series is used only for reward and portfolio valuation.
 Unless stated otherwise, all timestamps in this thesis are reported in UTC and
 all monetary values in US dollars.
 
-@tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The three events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book: the first event is a resting limit-order addition on the bid side at a non-top-of-book level; the second is a trade print that consumes displayed size at the best ask; the third and fourth are additions that refresh the ask side after the trade.
+@tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The three events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book. The first event is a resting limit-order addition on the bid side at a non-top-of-book level. The second is a trade print that consumes displayed size at the best ask. The third and fourth are additions that refresh the ask side after the trade.
 
 | Timestamp | Action | Side | Price | Size | Best Bid | Best Ask | Bid Sz | Ask Sz |
 |:---|:---:|:---:|---:|---:|---:|---:|---:|---:|
@@ -151,7 +151,7 @@ generalizability of the results is bounded accordingly.
 **Feature pipeline fitting.** All ten features in the selected set use online,
 strictly-causal normalization: the statistics that standardize the observation at
 step $t$ are accumulated from that session's own events up to $t-1$ only
-(@sec-feature-normalization-and-causality-preservation), and they reset at each
+(@sec-feature-normalization-and-causality-preservation). They also reset at each
 session break. For this feature set the separate fitting step over the
 concatenated training days is therefore inert (its output is never consulted at
 transform time), and the evaluation day is normalized entirely by its own
@@ -160,7 +160,7 @@ stronger than a train-fit-then-freeze scheme would provide: training-period data
 cannot leak into the evaluation representation because it does not enter it at
 all. This was confirmed directly. Normalizing the AAPL evaluation day with a
 pipeline fitted on a different security (TSLA) reproduces the AAPL-fitted output
-bit for bit, and a prefix-invariance check (normalizing the first 200,000 versus
+bit for bit. A prefix-invariance check (normalizing the first 200,000 versus
 the first 400,000 rows) leaves the overlapping rows unchanged.
 
 
@@ -169,7 +169,7 @@ the first 400,000 rows) leaves the overlapping rows unchanged.
 Normalization of microstructure features presents a methodological challenge for sequential learning: the conventional approach of fitting a standard scaler on the full training dataset and applying it globally introduces look-ahead bias. Each observation's normalized value would incorporate statistical information from future timesteps, violating the causal structure that a trading agent must respect in deployment. An agent at step $t$ can only condition on information available at time $t$. Allowing its inputs to be scaled using the mean and variance of the entire training set (including steps $t+1, t+2, \dots$) would, in effect, provide the agent with knowledge it cannot access.
 
 To preserve causality, this study employs a **cumulative running normalization**
-scheme: for each feature, the mean and variance used to standardize the
+scheme. For each feature, the mean and variance used to standardize the
 observation at step $t$ are updated incrementally from the mean and variance
 at step $t-1$, following Welford's online algorithm [@Welford1962]. This
 requires no buffer of past observations and no pass over future data, updates
@@ -201,8 +201,8 @@ An additional design choice concerns whether to weight observations by event cou
 
 This implementation also supports an optional **time-weighted normalization**
 mode, where each observation is weighted by the elapsed time since the
-previous event rather than counted equally, so the running mean and variance
-reflect a time-average of the feature's trajectory instead of an average
+previous event rather than counted equally. The running mean and variance
+then reflect a time-average of the feature's trajectory instead of an average
 across discrete events. For the main experiments, event-based weighting is
 used as the default, matching the standard approach in the RL literature
 [e.g., @Raffin2021; @Liang2018RLlib]; sensitivity analysis with time-weighted
@@ -253,7 +253,7 @@ slopes, queue depletion rates, VPIN, and rolling order-flow statistics.
 each engineered feature and the one-step-ahead log mid-price return, computed on
 the training split. Both measures capture strictly pairwise, marginal dependence:
 Pearson detects linear association, while Spearman detects any monotone
-relationship — including non-linear but rank-preserving ones.
+relationship, including non-linear but rank-preserving ones.
 
 All absolute correlations are below 0.005. Neither measure identifies any feature
 whose marginal distribution is reliably aligned with the direction of the next
@@ -268,7 +268,7 @@ includes logistic regression, ridge regression, and any other predictor that
 combines features through a weighted sum. The near-zero Pearson and Spearman correlations confirm that
 linearly combining even the full feature vector is unlikely to yield a useful
 directional signal. This directly motivates the use of a deep neural network as
-the function approximator inside the RL policy: the network can, in principle, learn
+the function approximator inside the RL policy. The network can, in principle, learn
 arbitrary non-linear mappings from the feature vector to action-value estimates,
 capturing the higher-order interactions that linear models cannot represent.
 

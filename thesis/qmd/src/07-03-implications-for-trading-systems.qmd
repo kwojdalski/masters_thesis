@@ -10,7 +10,7 @@ systems.
 performance gap between the extended and baseline feature sets shows that
 order-book-derived microstructure information (order flow imbalance, spread
 regime, book shape, temporal encoding) carries signal that aggregate
-snapshot quantities do not, consistent with the microstructure literature
+snapshot quantities do not. This finding is consistent with the microstructure literature
 reviewed in Chapter 2. Feature quality is at least as consequential as
 algorithm choice: a well-specified feature set with a standard actor-critic
 architecture will likely outperform a poorly-specified feature set with a
@@ -23,7 +23,7 @@ space.
 continuous action space let the agent express varying directional conviction
 through position size rather than binary buy/sell decisions, which matters
 when the economically correct position magnitude varies with signal
-strength; a discrete-action grid either loses this precision or reintroduces
+strength. A discrete-action grid either loses this precision or reintroduces
 the curse of dimensionality. TD3's stability mechanisms (clipped double
 Q-learning, delayed policy updates, target policy smoothing) proved
 important in this noisy reward environment. Without them, value
@@ -53,6 +53,6 @@ to the price moves the agent targets, and the demonstrated edge does not
 survive at high cost levels, as the sensitivity analysis shows. Before
 treating any result as evidence of a deployable strategy, practitioners
 should run the same evaluation across a range of cost levels (from zero to
-the realistic spread-plus-fee regime of the target venue) and check whether
+the realistic spread-plus-fee regime of the target venue). They should then check whether
 risk-adjusted return degrades gracefully or collapses abruptly. An edge that
 survives only at zero cost is not a tradeable strategy.
