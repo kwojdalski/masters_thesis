@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run H1, H2, H3, H4, or all hypothesis experiments.
+"""Run H1, H2, H3, H4, H5, or all hypothesis experiments.
 
 Steps for each hypothesis
 -------------------------
@@ -15,6 +15,7 @@ Examples
     uv run thesis-experiments h2 --skip-train
     uv run thesis-experiments h3 --parallel
     uv run thesis-experiments h4 --skip-train
+    uv run thesis-experiments h5
     uv run thesis-experiments all
     uv run thesis-experiments h2 --max-train-seconds 300
     uv run thesis-experiments h1 -o training.max_steps=50000
@@ -102,11 +103,33 @@ _H4_SCENARIOS = [
     "pooled/td3_h4_reward_dsr",
 ]
 
+# Execution latency. Each arm is the H1 configuration differing only by
+# `env.exec_latency_us`, which delays the fill by the number of rows spanning
+# that many microseconds: the agent observes rows [0 .. N-k-1] and is filled at
+# rows [k .. N-1].
+#
+# The ladder is specified in microseconds, not ticks, because inter-event
+# spacing varies roughly eight-fold across the six instruments (median gap
+# 21 us on TSLA against 173 us on META); a fixed tick count would mean a
+# different physical delay per symbol. FixedTimedLatency resolves the value
+# against each episode's own timestamps at reset.
+#
+# Latency requires the `tradingenv` streaming backend -- the gym_trading
+# backends raise on non-zero latency params rather than silently ignoring them
+# (envs/builder.py). Every H5 arm inherits `backend: tradingenv` from H1.
+_H5_SCENARIOS = [
+    "pooled/td3_h5_latency_0_dsr",  # 0 us; byte-identical to the H1 scenario
+    "pooled/td3_h5_latency_100us_dsr",
+    "pooled/td3_h5_latency_1ms_dsr",
+    "pooled/td3_h5_latency_5ms_dsr",
+]
+
 _SCENARIOS: dict[str, list[str]] = {
     "h1": _H1_SCENARIOS,
     "h2": _H2_SCENARIOS,
     "h3": _H3_SCENARIOS,
     "h4": _H4_SCENARIOS,
+    "h5": _H5_SCENARIOS,
 }
 
 _EVAL_ONLY: dict[str, list[str]] = {
@@ -124,6 +147,7 @@ _EVAL_ONLY: dict[str, list[str]] = {
     "h2": ["metrics"],
     "h3": ["metrics"],
     "h4": ["metrics"],
+    "h5": ["metrics"],
 }
 
 # Values are argv tails for scripts/<name>; _run_report splices in the
@@ -134,6 +158,11 @@ _REPORT_SCRIPTS: dict[str, list[str]] = {
     "h2": ["sensitivity_report.py", "--config", "src/configs/h2_transaction_cost.yaml"],
     "h3": ["h3_feature_sensitivity_report.py"],
     "h4": ["sensitivity_report.py", "--config", "src/configs/h4_reward_design.yaml"],
+    "h5": [
+        "sensitivity_report.py",
+        "--config",
+        "src/configs/h5_execution_latency.yaml",
+    ],
 }
 
 
@@ -823,6 +852,48 @@ def h4(
     )
 
 
+@app.command()
+def h5(
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
+    verbose: _Verbose = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
+    max_train_seconds: _MaxTrainSeconds = None,
+) -> None:
+    """Test how execution latency affects TD3 performance.
+
+    Sweeps the delay between observing the order book and reaching the market
+    from 0 to 5 ms on an otherwise identical configuration, then reports the
+    effect on performance and policy behaviour.
+    """
+    run_hypothesis(
+        "h5",
+        _apply_experiment_set(
+            RunArgs(
+                skip_train=skip_train,
+                skip_eval=skip_eval,
+                parallel=parallel,
+                max_parallel=max_parallel,
+                verbose=verbose,
+                skip_guardrails=skip_guardrails,
+                overrides=overrides or [],
+                dev=dev,
+                dev_steps=dev_steps,
+                max_train_seconds=max_train_seconds,
+            ),
+            set_name,
+            debug,
+        ),
+    )
+
+
 @app.command(name="all")
 def run_all(
     skip_train: _SkipTrain = False,
@@ -838,7 +909,7 @@ def run_all(
     debug: _DebugSet = False,
     max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
-    """Run [bold]H1[/bold] through [bold]H4[/bold] in sequence."""
+    """Run [bold]H1[/bold] through [bold]H5[/bold] in sequence."""
     args = _apply_experiment_set(
         RunArgs(
             skip_train=skip_train,
@@ -855,7 +926,7 @@ def run_all(
         set_name,
         debug,
     )
-    for hyp in ("h1", "h2", "h3", "h4"):
+    for hyp in ("h1", "h2", "h3", "h4", "h5"):
         run_hypothesis(hyp, args)
     _con.print("\n[bold green]All done.[/bold green]")
 

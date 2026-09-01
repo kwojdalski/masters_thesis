@@ -1,0 +1,143 @@
+seed: 42
+data:
+  data_paths:
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-02-27_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-25_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-26_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-02-27_raw_mbp-10_us_hours.parquet
+  val_data_paths:
+  - ./data/raw/stocks/daily/AAPL/AAPL_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AMZN/AMZN_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/AVGO/AVGO_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/META/META_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/MSFT/MSFT_2026-03-02_raw_mbp-10_us_hours.parquet
+  - ./data/raw/stocks/daily/TSLA/TSLA_2026-03-02_raw_mbp-10_us_hours.parquet
+  data_path: ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
+  download_data: false
+  train_size: null
+  validation_size: null
+  test_size: null
+  lazy_load: true
+  prepared_data_dir: ./data/prepared/pooled_daily_6sym_selected
+  memmap_dir: ./data/memmap/pooled_daily_6sym_selected
+  feature_cache_dir: .cache/feature_transformation
+  filter_lob_levels: 5
+  eval_symbol_selection: first
+env:
+  backend: tradingenv
+  trading_fees: 0.0
+  price_column: close
+  include_position_feature: true
+  streaming_episode_length: 10000
+  obs_clip: 5.0
+  reward_type: differential_sharpe
+  reward_eta: 0.01
+  reward_scale: 1.0
+  execution_price: mid
+  # Deliberate signal-ceiling arm of Hypothesis 1: frictionless execution
+  # measures how large the learnable microstructure signal is, not deployable
+  # performance. Acknowledges the _check_frictionless_microstructure guardrail.
+  allow_frictionless: true
+  bid_column: bid_px_00
+  ask_column: ask_px_00
+  obs_latency_ticks: 0
+  exec_latency_ticks: 0
+  obs_latency_us: 0.0
+  exec_latency_us: 0.0
+network:
+  actor_hidden_dims:
+  - 128
+  - 64
+  value_hidden_dims:
+  - 128
+  - 64
+training:
+  algorithm: TD3
+  temp_eval:
+    interval: 100000
+    max_steps: 50000
+  actor_lr: 0.0001
+  value_lr: 0.0001
+  value_weight_decay: 2.0e-06
+  actor_weight_decay: 2.0e-06
+  max_steps: 3000000
+  checkpoint_interval: 100000
+  init_rand_steps: 5000
+  frames_per_batch: 200
+  optim_steps_per_batch: 5
+  sample_size: 128
+  buffer_size: 100000
+  save_buffer: true
+  gamma: 0.9
+  tau: 0.005
+  loss_function: smooth_l1
+  eval_interval: 1000
+  log_interval: 100
+  td3:
+    policy_noise: 0.2
+    noise_clip: 0.3
+    policy_delay: 2
+    delay_actor: true
+    delay_qvalue: true
+    exploration_noise_std: 0.3
+evaluation:
+  eval_fraction: 1.0
+
+logging:
+  log_level: INFO
+  save_plots: false
+explainability:
+  enabled: false
+  n_steps: 500
+  methods:
+  - permutation
+benchmarks:
+  enabled:
+    - buy_and_hold
+    - twap
+    - vwap
+    - random_actions
+
+metrics:
+  enabled:
+    - total_return
+    - annualized_volatility
+    - sharpe_ratio
+    - sortino_ratio
+    - omega_ratio
+    - max_drawdown
+    - average_drawdown
+    - max_drawdown_duration
+    - recovery_time_from_max_drawdown
+    - var_95
+    - cvar_95
+    - downside_deviation
+    - return_skewness
+    - return_kurtosis
+    - win_rate
+    - lose_rate
+    - profit_factor
+    - payoff_ratio
+    - expectancy_per_period
+    - turnover
+    - average_holding_period
+    - pct_long
+    - pct_short
+    - beta
+    - alpha
+    - information_ratio
+    - tracking_error

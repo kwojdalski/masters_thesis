@@ -1,0 +1,43 @@
+# H5 Execution-Latency Sensitivity Configuration
+#
+# H5: Empirical performance is materially sensitive to the zero-latency
+# assumption; the learned edge degrades as the delay between observing the
+# book and reaching the market grows.
+#
+# One sensitivity axis: the shared 0 us baseline plus the latency ladder. Every
+# variant points to a log_dir produced by `cli.py train --scenario <scenario>`.
+# The 0 us arm is the H1 configuration; each latency arm differs from it by
+# env.exec_latency_us alone.
+#
+# Latency is specified in microseconds rather than ticks because inter-event
+# spacing varies roughly eight-fold across the six instruments (median gap
+# 21 us on TSLA against 173 us on META), so a fixed tick count would mean a
+# different physical delay per symbol. FixedTimedLatency resolves the
+# microsecond value to a row offset from each episode's own timestamps.
+#
+# Run order to reproduce:
+#   uv run python src/cli.py train --scenario pooled/td3_h5_latency_0_dsr  # 0 us = the H1 configuration
+#   uv run python src/cli.py train --scenario pooled/td3_h5_latency_100us_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h5_latency_1ms_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h5_latency_5ms_dsr
+
+axes:
+  - name: execution_latency
+    label: "Execution Latency"
+    scenarios:
+      - label: "0 us"
+        log_dir: logs/td3_h5_latency_0_dsr
+        exec_latency_us: 0.0
+        baseline: true
+      - label: "100 us"
+        log_dir: logs/td3_h5_latency_100us_dsr
+        exec_latency_us: 100.0
+        baseline: false
+      - label: "1 ms"
+        log_dir: logs/td3_h5_latency_1ms_dsr
+        exec_latency_us: 1000.0
+        baseline: false
+      - label: "5 ms"
+        log_dir: logs/td3_h5_latency_5ms_dsr
+        exec_latency_us: 5000.0
+        baseline: false

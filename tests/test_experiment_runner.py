@@ -15,6 +15,7 @@ from masters_thesis import experiments
         ("h2", "transaction-cost assumption affects TD3 performance"),
         ("h3", "observation feature set affects TD3 performance"),
         ("h4", "reward function changes the learned policy"),
+        ("h5", "execution latency affects TD3 performance"),
     ],
 )
 def test_hypothesis_help_describes_the_research_question(
@@ -38,6 +39,7 @@ def runner() -> ModuleType:
         ("h2", experiments._H2_SCENARIOS),
         ("h3", experiments._H3_SCENARIOS),
         ("h4", experiments._H4_SCENARIOS),
+        ("h5", experiments._H5_SCENARIOS),
     ],
 )
 def test_each_list_hypothesis_trains_its_own_scenarios(
@@ -81,7 +83,7 @@ def test_no_scenario_is_shared_between_hypotheses() -> None:
     listed the h1 scenario and destroyed h1's 3M-step evaluation mid-run.
     """
     seen: dict[str, str] = {}
-    for hypothesis in ("h1", "h2", "h3", "h4"):
+    for hypothesis in ("h1", "h2", "h3", "h4", "h5"):
         for scenario in experiments._SCENARIOS[hypothesis]:
             assert scenario not in seen, (
                 f"{scenario} is in both {seen[scenario]} and {hypothesis}; "
@@ -90,7 +92,7 @@ def test_no_scenario_is_shared_between_hypotheses() -> None:
             seen[scenario] = hypothesis
 
 
-def test_run_all_covers_the_four_list_hypotheses(
+def test_run_all_covers_every_list_hypothesis(
     runner: ModuleType, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     seen: list[str] = []
@@ -99,7 +101,7 @@ def test_run_all_covers_the_four_list_hypotheses(
     result = CliRunner().invoke(runner.app, ["all", "--skip-train", "--skip-eval"])
 
     assert result.exit_code == 0, result.stdout
-    assert seen == ["h1", "h2", "h3", "h4"]
+    assert seen == ["h1", "h2", "h3", "h4", "h5"]
 
 
 @pytest.mark.parametrize(
@@ -107,6 +109,7 @@ def test_run_all_covers_the_four_list_hypotheses(
     [
         ("h2", "src/configs/h2_transaction_cost.yaml"),
         ("h4", "src/configs/h4_reward_design.yaml"),
+        ("h5", "src/configs/h5_execution_latency.yaml"),
     ],
 )
 def test_sensitivity_report_config_flag_is_spliced_into_the_command(
@@ -145,7 +148,7 @@ def test_h1_report_takes_no_config_flag(
     assert "--config" not in cmd
 
 
-@pytest.mark.parametrize("command", ["h1", "h2", "h3", "h4", "all"])
+@pytest.mark.parametrize("command", ["h1", "h2", "h3", "h4", "h5", "all"])
 def test_max_train_seconds_is_offered_by_every_hypothesis_command(
     command: str,
 ) -> None:
@@ -161,7 +164,7 @@ def test_max_train_seconds_is_offered_by_every_hypothesis_command(
     assert "--max-train-seconds" in result.stdout
 
 
-@pytest.mark.parametrize("hypothesis", ["h1", "h2", "h3", "h4"])
+@pytest.mark.parametrize("hypothesis", ["h1", "h2", "h3", "h4", "h5"])
 def test_max_train_seconds_reaches_the_train_command(
     runner: ModuleType, monkeypatch: pytest.MonkeyPatch, hypothesis: str
 ) -> None:
@@ -187,3 +190,45 @@ def test_max_train_seconds_reaches_the_train_command(
     )
 
     assert "training.max_train_seconds=240" in extras[0]
+
+
+def test_h5_latency_scenarios_sweep_exec_latency_only() -> None:
+    """Every H5 arm must be the H1 configuration with one field changed.
+
+    The ladder only measures latency if `env.exec_latency_us` is the single
+    varying factor; a drifting feature set, reward or fee would confound it the
+    way the pre-isolation H2 ladder was confounded by train_size and reward.
+    """
+    import yaml
+
+    scenarios = experiments._H5_SCENARIOS
+    assert scenarios == [
+        "pooled/td3_h5_latency_0_dsr",
+        "pooled/td3_h5_latency_100us_dsr",
+        "pooled/td3_h5_latency_1ms_dsr",
+        "pooled/td3_h5_latency_5ms_dsr",
+    ]
+
+    root = experiments._REPO_ROOT / "src" / "configs" / "scenarios"
+    baseline_dir = root / "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+
+    expected_us = [0.0, 100.0, 1000.0, 5000.0]
+    for scenario, want_us in zip(scenarios, expected_us, strict=True):
+        arm_dir = root / scenario
+        arm = yaml.safe_load((arm_dir / "train.yaml").read_text())
+        base = yaml.safe_load((baseline_dir / "train.yaml").read_text())
+
+        assert arm["env"]["exec_latency_us"] == want_us, scenario
+        # Latency modelling is only honoured by the tradingenv streaming
+        # backend; the gym_trading backends raise on non-zero latency.
+        assert arm["env"]["backend"] == "tradingenv", scenario
+
+        # Everything else must match the H1 baseline byte for byte.
+        arm["env"].pop("exec_latency_us")
+        base["env"].pop("exec_latency_us")
+        assert arm == base, f"{scenario} differs from the H1 baseline beyond latency"
+
+        for side in ("observation.yaml", "evaluate.yaml"):
+            assert (arm_dir / side).read_text() == (baseline_dir / side).read_text(), (
+                f"{scenario}/{side} differs from the H1 baseline"
+            )

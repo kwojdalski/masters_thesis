@@ -21,6 +21,12 @@ hypotheses:
     - pooled/td3_h4_reward_logreturn
     - pooled/td3_h4_reward_dsr
 
+  h5:  # execution latency (arms differ only in exec_latency_us)
+    - pooled/td3_h5_latency_0_dsr
+    - pooled/td3_h5_latency_100us_dsr
+    - pooled/td3_h5_latency_1ms_dsr
+    - pooled/td3_h5_latency_5ms_dsr
+
 overrides:
   - data.data_paths=[./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet]
   - data.val_data_paths=[./data/raw/stocks/daily/AAPL/AAPL_2026-03-02_raw_mbp-10_us_hours.parquet]
