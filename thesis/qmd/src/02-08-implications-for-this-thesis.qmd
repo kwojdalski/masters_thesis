@@ -21,7 +21,7 @@ Fourth, the applied RL literature motivates the use of continuous-control
 actor-critic methods and risk-aware reward design, while also requiring caution
 about reported performance. Prior studies show that RL trading results are
 sensitive to transaction costs, benchmark choice, random seeds, and validation
-protocol. For that reason, the later empirical chapters separate training reward
+protocol [@Henderson2018; @Gort2022; @Liang2018]. For that reason, the later empirical chapters separate training reward
 from financial evaluation metrics and assess the learned policy on held-out
 data.
 

@@ -59,7 +59,7 @@ Feature & Group & Formula & Param & In model & Citation \\
 \endhead
 \bottomrule
 \endlastfoot
-\texttt{hft\_book\_pressure} & Imbalance & $(V^{bid}_i - V^{ask}_i)/(V^{bid}_i + V^{ask}_i)$ & $i \in \{0,1,2\}$ & level 0 & Cao et al.\ (2004); Biais et al.\ (1995) \\
+\texttt{hft\_book\_pressure} & Imbalance & $(V^{bid}_i - V^{ask}_i)/(V^{bid}_i + V^{ask}_i)$ & $i \in \{0,1,2\}$ & level 0 & Cao et al.\ (2009); Biais et al.\ (1995) \\
 \texttt{hft\_order\_book\_imbalance} & Imbalance & $\dfrac{\sum_{i<N}(V^{bid}_i-V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & $\checkmark$ & Cont et al.\ (2014) \\
 \texttt{hft\_order\_count\_imbalance} & Imbalance & $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ & $i=0$ & level 0 & Biais et al.\ (1995) \\
 \texttt{hft\_microprice} & Fair value & $(V^{ask}_0 P^{bid}_0 + V^{bid}_0 P^{ask}_0)/(V^{bid}_0+V^{ask}_0)$ & --- & $\checkmark$ & Stoikov (2018) \\
