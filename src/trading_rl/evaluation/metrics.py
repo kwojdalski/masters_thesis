@@ -21,6 +21,14 @@ _REPORTING_LADDER: list[ReportingFrequency] = [
 ]
 _MIN_SR_OBSERVATIONS = 50
 
+# Shortest sample, in trading years, from which an annualised ratio is reported.
+# 20 trading days (~1 month). Below this, scaling a per-bar ratio by √ppy is
+# arithmetic without statistical content: the h1 test split is 247 one-minute
+# bars (4.1 hours, 0.0025 y), and √98 280 turns a per-bar Sharpe of 7.3 into an
+# "annualised" 2 297. Such figures are suppressed rather than published; the raw
+# per-bar ratio and the window length are reported instead.
+_MIN_ANNUALIZATION_YEARS = 20.0 / 252.0
+
 
 def _compound_return_chunks(
     simple_returns: np.ndarray,
@@ -103,6 +111,18 @@ class MetricReport:
     n_periods: float = _NAN  # number of raw return observations
     n_bars: float = _NAN  # number of bars after frequency aggregation
     periods_per_year_used: float = _NAN  # effective ppy used for annualised ratios
+    # Sample length in trading years (n_bars / periods_per_year_used). Annualised
+    # ratios are only emitted when this clears _MIN_ANNUALIZATION_YEARS -- see
+    # sample_too_short_to_annualize.
+    sample_years: float = _NAN
+    # 1.0 when the window is too short to annualise (annualised ratios suppressed),
+    # 0.0 when it is long enough. Float rather than bool so it survives the
+    # numeric-metric serialisation path unchanged.
+    sample_too_short_to_annualize: float = _NAN
+    # Count of bars with a return below the risk-free rate. 0.0 with n_bars > 0
+    # means Sortino is undefined because the strategy had *no* downside at the
+    # reporting frequency -- not because the metric failed to compute.
+    downside_bars: float = _NAN
 
     # Return / growth
     total_return: float = _NAN
@@ -405,22 +425,40 @@ def build_metric_report(
     mu = float(np.mean(r))
     sigma = float(np.std(r, ddof=1)) if r.size > 1 else 0.0
 
+    # Sample length in trading years, used to decide whether annualising is
+    # defensible at all (see _MIN_ANNUALIZATION_YEARS).
+    _sample_years = float(r.size) / periods_per_year if _can_annualize else np.nan
+    _too_short = bool(_can_annualize and _sample_years < _MIN_ANNUALIZATION_YEARS)
+
     if _can_annualize:
         annual_vol = sigma * np.sqrt(periods_per_year)
         downside = np.minimum(r - rf_per_period, 0.0)
         _dd_raw = float(np.sqrt(np.mean(np.square(downside))))
+        # A count, not a magnitude: _dd_raw == 0.0 with _downside_bars == 0 means
+        # every bar cleared the risk-free rate, so Sortino is undefined because
+        # there was no downside -- a finding about the strategy, not a failure of
+        # the metric. Reported so consumers can say so instead of printing "--".
+        _downside_bars = float(np.count_nonzero(downside < 0.0))
         downside_dev_annualized = _dd_raw * np.sqrt(periods_per_year)
         # When annualised vol is negligibly small the equity curve is essentially flat
         # (e.g. an untrained agent with near-constant actions). mu/sigma is then
         # dominated by numerical noise, not signal, producing absurd ratios like 4000+.
         _MIN_ANNUAL_VOL = 1e-3
         if annual_vol >= _MIN_ANNUAL_VOL:
+            # Per-bar ratios stay: they are honest descriptions of the sample at
+            # its reporting frequency. Only the √ppy-scaled variants are gated.
             sharpe = sharpe_raw(mu - rf_per_period, sigma)
             sortino = sortino_raw(mu - rf_per_period, _dd_raw)
-            sharpe_ann = sharpe_annualized(mu - rf_per_period, sigma, periods_per_year)
-            sortino_ann = sortino_annualized(
-                mu - rf_per_period, _dd_raw, periods_per_year
-            )
+            if _too_short:
+                sharpe_ann = np.nan
+                sortino_ann = np.nan
+            else:
+                sharpe_ann = sharpe_annualized(
+                    mu - rf_per_period, sigma, periods_per_year
+                )
+                sortino_ann = sortino_annualized(
+                    mu - rf_per_period, _dd_raw, periods_per_year
+                )
         else:
             sharpe = np.nan
             sortino = np.nan
@@ -429,6 +467,7 @@ def build_metric_report(
     else:
         annual_vol = np.nan
         _dd_raw = np.nan
+        _downside_bars = np.nan
         downside_dev_annualized = np.nan
         sharpe = np.nan
         sortino = np.nan
@@ -601,6 +640,9 @@ def build_metric_report(
         cvar_99=cvar_99,
         downside_deviation=_dd_raw,
         downside_deviation_annualized=downside_dev_annualized,
+        downside_bars=_downside_bars,
+        sample_years=_sample_years,
+        sample_too_short_to_annualize=float(_too_short),
         tail_ratio=tail_ratio,
         return_skewness=skew,
         return_kurtosis=kurt,

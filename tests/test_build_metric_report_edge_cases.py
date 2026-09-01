@@ -32,7 +32,7 @@ class TestBuildMetricReportEdgeCases:
         report = _report([])
 
         assert all(np.isnan(v) for v in report.to_dict().values())
-        assert len(report.to_dict()) == 46  # All metric keys should be present
+        assert len(report.to_dict()) == 49  # All metric keys should be present
 
     def test_single_return(self):
         """Single return should work correctly."""
@@ -335,6 +335,9 @@ class TestBuildMetricReportEdgeCases:
             "cvar_99",
             "downside_deviation",
             "downside_deviation_annualized",
+            "downside_bars",
+            "sample_years",
+            "sample_too_short_to_annualize",
             "tail_ratio",
             "return_skewness",
             "return_kurtosis",
