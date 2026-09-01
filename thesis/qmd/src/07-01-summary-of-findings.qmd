@@ -8,7 +8,7 @@ section summarizes the empirical evidence for each.
 **Hypothesis 1: a TD3 agent learns an assumption-sensitive risk-adjusted edge
 from order-book microstructure.** Under frictionless mid-price execution, the
 agent learns a directionally coherent, low-turnover, drawdown-controlled policy
-that beats passive benchmarks on this held-out window (Section 6.3). TD3, DDPG,
+that beats passive benchmarks on this held-out window (Section 6.5). TD3, DDPG,
 and PPO also separate cleanly from a random policy while remaining
 indistinguishable from one another (Section 6.1). These results support a
 learnable relationship under the specified simulator. They do not establish
@@ -37,7 +37,7 @@ both saturated at an action bound with zero position changes, at opposite
 bounds, so their near-zero returns reflect a held position rather than a learned
 decision. Because two of the three arms did not train, the comparison does not
 isolate the effect of the feature set, and no conclusion about feature quality
-can be drawn from it. Section 6.2 sets out the evidence in full.
+can be drawn from it. Section 6.3 sets out the evidence in full.
 
 **Hypothesis 4: the reward objective materially shapes the learned policy.**
 This hypothesis is also unresolved, for the same reason. The Differential Sharpe
