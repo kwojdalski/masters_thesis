@@ -31,7 +31,7 @@ jobs:
     timeout-minutes: 45
     env:
       # AUDIT_PLOTS: "1"   # temporarily off: suppresses the "commit .. | exported .." provenance note under tables and figures
-      THESIS_DEBUG_ASSETS: "1"
+      # THESIS_DEBUG_ASSETS: "1"   # temporarily off: suppresses the "Asset Provenance Audit Log" appendix section
       PYTHONPATH: ${{ github.workspace }}/thesis/qmd/src
       MPLBACKEND: Agg
 
