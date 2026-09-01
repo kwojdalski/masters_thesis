@@ -51,10 +51,10 @@ This misalignment is most consequential at high frequencies, where turnover cost
 consume a large fraction of gross returns. At lower frequencies (daily or weekly
 rebalancing), the cost of turning over a position is small relative to the
 forecast signal, and well-specified supervised models remain competitive. Factor-based
-strategies in the Fama-French tradition, momentum screens, and several recent
-deep-learning forecasting papers achieve meaningful net alpha precisely because the
-prediction horizon is long enough for transaction costs to be a second-order
-concern. The advantage of direct optimization narrows as the cost-to-signal ratio
+strategies in the Fama-French tradition, momentum screens, and lower-frequency
+deep-learning forecasting approaches operate at horizons where transaction costs
+are a second-order concern, so a predict-then-trade pipeline is not obviously
+handicapped in that setting. The advantage of direct optimization narrows as the cost-to-signal ratio
 decreases. At tick frequency, where the present thesis operates, this ratio is
 unfavorable for a predict-then-trade pipeline. The cost of crossing the spread on
 each position change can exceed the directional signal per step, making the

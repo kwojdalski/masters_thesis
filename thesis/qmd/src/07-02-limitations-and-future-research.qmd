@@ -107,11 +107,11 @@ noise directly, since tick-level returns are dominated by bid-ask bounce and
 transient order-flow effects the agent cannot attribute to a cause. This
 constraint on learning exists independently of algorithm or reward
 choice, and action-frequency sub-sampling (acting every $N$ ticks
-rather than every tick) could partially diagnose it at low cost. Several of the
-engineered features have been shown in the microstructure literature to
-carry predictive content over horizons of minutes, not just the next event,
-so a lower-frequency action interval might reveal signal the current
-tick-level setup discards as noise.
+rather than every tick) could partially diagnose it at low cost. If several of the
+engineered features carry predictive content over horizons longer than the next
+event, a lower-frequency action interval might reveal signal the current
+tick-level setup discards as noise; whether they do is an open question this
+thesis does not test.
 
 ### Training Workflow
 <!-- [PLACEHOLDER] -->
