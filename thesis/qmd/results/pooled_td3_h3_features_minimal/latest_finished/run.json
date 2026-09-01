@@ -3,7 +3,7 @@
   "run_name": "pooled_td3_h3_features_minimal",
   "status": "EXPORTED",
   "start_time": null,
-  "end_time": "2026-09-01T08:04:05.359164+00:00",
+  "end_time": "2026-09-01T15:42:21.952649+00:00",
   "artifact_uri": null,
   "experiment_name": "pooled_td3_h3_features_minimal",
   "experiment_id": null,
@@ -11,8 +11,8 @@
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_minimal",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_minimal/results.json",
-    "results_file_mtime_utc": "2026-09-01T08:04:05.359164+00:00",
-    "exported_at_utc": "2026-09-01T08:36:20.445835+00:00"
+    "results_file_mtime_utc": "2026-09-01T15:42:21.952649+00:00",
+    "exported_at_utc": "2026-09-01T16:44:31.434919+00:00"
   },
   "files": {
     "params": "params.json",
@@ -25,62 +25,62 @@
   "per_symbol_results": {
     "val_AAPL": {
       "split": "val_AAPL",
-      "final_reward": 0.397003173828125,
+      "final_reward": -52.982059478759766,
       "n_steps": 96921
     },
     "test_AAPL": {
       "split": "test_AAPL",
-      "final_reward": -14.900376319885254,
+      "final_reward": 12.845355987548828,
       "n_steps": 96921
     },
     "val_AMZN": {
       "split": "val_AMZN",
-      "final_reward": -99.59505462646484,
+      "final_reward": 81.70808410644531,
       "n_steps": 112842
     },
     "test_AMZN": {
       "split": "test_AMZN",
-      "final_reward": 12.388472557067871,
+      "final_reward": 24.91079330444336,
       "n_steps": 112842
     },
     "val_AVGO": {
       "split": "val_AVGO",
-      "final_reward": 34.607872009277344,
+      "final_reward": -18.69194793701172,
       "n_steps": 21969
     },
     "test_AVGO": {
       "split": "test_AVGO",
-      "final_reward": -25.793312072753906,
+      "final_reward": -51.73997497558594,
       "n_steps": 21969
     },
     "val_META": {
       "split": "val_META",
-      "final_reward": -142.68353271484375,
+      "final_reward": -12.369518280029297,
       "n_steps": 13667
     },
     "test_META": {
       "split": "test_META",
-      "final_reward": 22.940074920654297,
+      "final_reward": 15.90966796875,
       "n_steps": 13667
     },
     "val_MSFT": {
       "split": "val_MSFT",
-      "final_reward": -75.59844970703125,
+      "final_reward": -10.321523666381836,
       "n_steps": 38031
     },
     "test_MSFT": {
       "split": "test_MSFT",
-      "final_reward": 20.04650115966797,
+      "final_reward": -34.02985763549805,
       "n_steps": 38031
     },
     "val_TSLA": {
       "split": "val_TSLA",
-      "final_reward": -108.16682434082031,
+      "final_reward": 25.88066864013672,
       "n_steps": 83910
     },
     "test_TSLA": {
       "split": "test_TSLA",
-      "final_reward": -3.873570442199707,
+      "final_reward": -2.740234375,
       "n_steps": 83910
     }
   }

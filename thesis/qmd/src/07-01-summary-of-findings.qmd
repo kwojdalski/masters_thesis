@@ -37,23 +37,32 @@ parameter often left implicit is why robustness analysis precedes any economic
 claim in this thesis.
 
 **Hypothesis 3: a broader microstructure-aware feature set improves out-of-sample
-performance relative to a simpler snapshot-based state representation.** The
-feature-set comparison confirms this hypothesis, and feature specification was
-the dominant determinant of policy quality. Setups using only snapshot-level
-quantities produced weaker, short-biased, less stable policies than those using
-the microstructure-aware feature set. That set supplements top-of-book snapshot
-quantities with order-flow imbalance, spread-regime features, book-shape
-measures, and temporal encodings. The improvement was visible not only in
-summary metrics but in policy behavior (lower-turnover, more stable
-positioning). The full 33-feature set did not improve further on the selected
-10-feature set, so the benefit comes from adding relevant microstructure
-information, not from maximizing feature count.
+performance relative to a simpler snapshot-based state representation.** This
+hypothesis is unresolved. Of the three feature specifications, only the selected
+10-feature representation converged to a trading policy (turnover $0.53$, profit
+factor $3.64$, cumulative return $+13.4\%$). The 3-feature and 33-feature arms
+both saturated at an action bound with zero position changes, at opposite
+bounds, so their near-zero returns reflect a held position rather than a learned
+decision. Because two of the three arms did not train, the comparison does not
+isolate the effect of the feature set, and no conclusion about feature quality
+can be drawn from it. Section 6.2 sets out the evidence in full.
 
-**Hypothesis 4: the reward objective materially shapes the learned policy.** The
-reward-design comparison confirms this hypothesis. Replacing the log-return
-reward with a Differential Sharpe Ratio reward increased cumulative return and
-profit factor, reduced maximum drawdown, and moved the policy from an 86.7%
-long bias to an approximately neutral long/short split, under otherwise
-identical training and evaluation conditions. Direct risk-adjusted optimization
-therefore changes both performance and the policy's directional exposure, not
-just the training signal's scale.
+**Hypothesis 4: the reward objective materially shapes the learned policy.**
+This hypothesis is also unresolved, for the same reason. The Differential Sharpe
+arm trained normally and traded both sides of the market; the log-return arm did
+not train, holding a fully long position across every instrument with zero
+position changes and turnover of order $10^{-5}$. Its returns are passive drift.
+The two arms therefore differ in whether optimization succeeded, not
+demonstrably in what the reward objective rewards, and alternative reward
+scalings tried during development did not recover the log-return arm.
+Establishing whether the log-return objective is unsuitable in this setting or
+merely mis-configured requires the training-stability work identified in
+Section 7.2.
+
+That two of the four hypotheses reduce to the same failure is itself the more
+substantial finding. Four separately configured arms across Hypotheses 3 and 4
+collapsed to a constant, saturated position under an identical architecture,
+budget, and dataset, two pinned long and two pinned short. This locates the
+binding constraint on the present results in training stability rather than in
+feature or reward design, and it is the first thing a continuation of this work
+should address.
