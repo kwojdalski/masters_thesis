@@ -1,0 +1,87 @@
+{
+  "run_id": null,
+  "run_name": "pooled_td3_h4_reward_dsr",
+  "status": "EXPORTED",
+  "start_time": null,
+  "end_time": "2026-09-01T14:47:53.037358+00:00",
+  "artifact_uri": null,
+  "experiment_name": "pooled_td3_h4_reward_dsr",
+  "experiment_id": null,
+  "source": {
+    "type": "evaluate_cli",
+    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h4_reward_dsr",
+    "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h4_reward_dsr/results.json",
+    "results_file_mtime_utc": "2026-09-01T14:47:53.037358+00:00",
+    "exported_at_utc": "2026-09-01T15:21:12.185504+00:00"
+  },
+  "files": {
+    "params": "params.json",
+    "latest_metrics": "latest_metrics.json",
+    "evaluation_report": "evaluation_report.json",
+    "statistical_tests": "statistical_tests.json",
+    "hyperparams": "hyperparams.json"
+  },
+  "evaluation_plots": {},
+  "per_symbol_results": {
+    "val_AAPL": {
+      "split": "val_AAPL",
+      "final_reward": 21.644121170043945,
+      "n_steps": 96921
+    },
+    "test_AAPL": {
+      "split": "test_AAPL",
+      "final_reward": -2.2985267639160156,
+      "n_steps": 96921
+    },
+    "val_AMZN": {
+      "split": "val_AMZN",
+      "final_reward": -163.14987182617188,
+      "n_steps": 112842
+    },
+    "test_AMZN": {
+      "split": "test_AMZN",
+      "final_reward": 49.834510803222656,
+      "n_steps": 112842
+    },
+    "val_AVGO": {
+      "split": "val_AVGO",
+      "final_reward": -16.203765869140625,
+      "n_steps": 21969
+    },
+    "test_AVGO": {
+      "split": "test_AVGO",
+      "final_reward": -31.657119750976562,
+      "n_steps": 21969
+    },
+    "val_META": {
+      "split": "val_META",
+      "final_reward": -14.457317352294922,
+      "n_steps": 13667
+    },
+    "test_META": {
+      "split": "test_META",
+      "final_reward": -22.325977325439453,
+      "n_steps": 13667
+    },
+    "val_MSFT": {
+      "split": "val_MSFT",
+      "final_reward": -88.91880798339844,
+      "n_steps": 38031
+    },
+    "test_MSFT": {
+      "split": "test_MSFT",
+      "final_reward": -111.82128143310547,
+      "n_steps": 38031
+    },
+    "val_TSLA": {
+      "split": "val_TSLA",
+      "final_reward": -197.43809509277344,
+      "n_steps": 83910
+    },
+    "test_TSLA": {
+      "split": "test_TSLA",
+      "final_reward": -265.3546142578125,
+      "n_steps": 83910
+    }
+  }
+}
