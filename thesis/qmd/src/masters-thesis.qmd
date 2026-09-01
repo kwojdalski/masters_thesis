@@ -40,8 +40,13 @@ format:
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \usepackage{caption}
-      - \captionsetup[figure]{position=above,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
-      - \captionsetup[table]{justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
+      # format=hang satisfies WNE UW rules 10 and 11, which require a table
+      # title or figure caption running past one line to be wrapped
+      # "z odsadzeniem uwidaczniajacym slowa" -- indented so "Table 4." /
+      # "Figure 3." stay visible. Without it the caption package returns
+      # continuation lines flush to the left margin, hiding the label.
+      - \captionsetup[figure]{format=hang,position=above,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
+      - \captionsetup[table]{format=hang,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
       - \setcounter{tocdepth}{3}
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
