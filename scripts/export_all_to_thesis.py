@@ -36,19 +36,19 @@ SCENARIOS: dict[str, list[str]] = {
         "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr",
     ],
     "h2": [  # transaction-cost sensitivity (0 bp arm is the H1 agent)
-        "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/td3_h2_fees_0_dsr",
         "pooled/td3_h2_fees_1e6_dsr",
         "pooled/td3_h2_fees_1e5_dsr",
         "pooled/td3_h2_fees_1e4_dsr",
     ],
     "h3": [  # feature specification
         "pooled/td3_h3_features_minimal",
-        "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
+        "pooled/td3_h3_features_selected",
         "pooled/td3_h3_features_full",
     ],
     "h4": [  # reward-function design
-        "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
-        "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/td3_h4_reward_logreturn",
+        "pooled/td3_h4_reward_dsr",
     ],
 }
 

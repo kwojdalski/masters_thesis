@@ -67,9 +67,27 @@ def test_each_list_hypothesis_trains_its_own_scenarios(
 
 def test_h4_reward_scenarios_are_the_logreturn_and_dsr_baselines() -> None:
     assert experiments._H4_SCENARIOS == [
-        "pooled/td3_hft_lob_state_space_pooled_streaming_selected",
-        "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "pooled/td3_h4_reward_logreturn",
+        "pooled/td3_h4_reward_dsr",
     ]
+
+
+def test_no_scenario_is_shared_between_hypotheses() -> None:
+    """Two hypotheses sharing a scenario share its output directory.
+
+    The runner derives log_dir from the scenario name, so when h3 and h4 both
+    listed `td3_hft_lob_state_space_pooled_streaming_selected`, the second to
+    run overwrote the first's results.json, checkpoints and rollouts. h4 also
+    listed the h1 scenario and destroyed h1's 3M-step evaluation mid-run.
+    """
+    seen: dict[str, str] = {}
+    for hypothesis in ("h1", "h2", "h3", "h4"):
+        for scenario in experiments._SCENARIOS[hypothesis]:
+            assert scenario not in seen, (
+                f"{scenario} is in both {seen[scenario]} and {hypothesis}; "
+                "they would write the same logs/<scenario> directory"
+            )
+            seen[scenario] = hypothesis
 
 
 def test_run_all_covers_the_four_list_hypotheses(

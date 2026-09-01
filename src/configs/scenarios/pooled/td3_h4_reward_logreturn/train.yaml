@@ -44,9 +44,8 @@ env:
   include_position_feature: true
   streaming_episode_length: 10000
   obs_clip: 5.0
-  reward_type: differential_sharpe
-  reward_eta: 0.01
-  reward_scale: 1.0
+  reward_type: log_return
+  reward_scale: 10000.0
   execution_price: mid
   # Deliberate signal-ceiling arm of Hypothesis 1: frictionless execution
   # measures how large the learnable microstructure signal is, not deployable

@@ -28,7 +28,7 @@ data:
   - ./data/raw/stocks/daily/TSLA/TSLA_2026-03-02_raw_mbp-10_us_hours.parquet
   data_path: ./data/raw/stocks/daily/AAPL/AAPL_2026-02-25_raw_mbp-10_us_hours.parquet
   download_data: false
-  train_size: 50000
+  train_size: null
   validation_size: null
   test_size: null
   lazy_load: true
@@ -36,7 +36,7 @@ data:
   memmap_dir: ./data/memmap/pooled_daily_6sym_selected
   feature_cache_dir: .cache/feature_transformation
   filter_lob_levels: 5
-  eval_symbol_selection: rotated
+  eval_symbol_selection: first
 env:
   backend: tradingenv
   trading_fees: 0.0
@@ -44,10 +44,14 @@ env:
   include_position_feature: true
   streaming_episode_length: 10000
   obs_clip: 5.0
-  reward_type: log_return
-  # 10000.0 achieves ~10000x amplification of raw tick-level log returns (reward_scale is multiplicative).
-  reward_scale: 10000.0
+  reward_type: differential_sharpe
+  reward_eta: 0.01
+  reward_scale: 1.0
   execution_price: mid
+  # Deliberate signal-ceiling arm of Hypothesis 1: frictionless execution
+  # measures how large the learnable microstructure signal is, not deployable
+  # performance. Acknowledges the _check_frictionless_microstructure guardrail.
+  allow_frictionless: true
   bid_column: bid_px_00
   ask_column: ask_px_00
   obs_latency_ticks: 0
@@ -56,19 +60,20 @@ env:
   exec_latency_us: 0.0
 network:
   actor_hidden_dims:
+  - 128
   - 64
-  - 32
   value_hidden_dims:
+  - 128
   - 64
-  - 32
 training:
   algorithm: TD3
   temp_eval:
     interval: 100000
+    max_steps: 50000
   actor_lr: 0.0001
   value_lr: 0.0001
   value_weight_decay: 2.0e-06
-  actor_weight_decay: 0.0
+  actor_weight_decay: 2.0e-06
   max_steps: 3000000
   checkpoint_interval: 100000
   init_rand_steps: 5000
@@ -97,6 +102,15 @@ logging:
   save_plots: false
 explainability:
   enabled: false
+  n_steps: 500
+  methods:
+  - permutation
+benchmarks:
+  enabled:
+    - buy_and_hold
+    - twap
+    - vwap
+    - random_actions
 
 metrics:
   enabled:

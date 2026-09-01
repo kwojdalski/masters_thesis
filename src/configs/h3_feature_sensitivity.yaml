@@ -9,7 +9,7 @@
 #
 # Run order (all share the same prepared cache — first run rebuilds it):
 #   uv run python src/cli.py train --scenario pooled/td3_h3_features_minimal
-#   uv run python src/cli.py train --scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected
+#   uv run python src/cli.py train --scenario pooled/td3_h3_features_selected
 #   uv run python src/cli.py train --scenario pooled/td3_h3_features_full
 #
 # For multi-seed robustness add --seed 42 / 123 / 456 to each command and
@@ -22,7 +22,7 @@ scenarios:
     description: "spread_bps, book_pressure_l0, microprice"
     baseline: false
   - label: "Selected (10 features)"
-    log_dir: logs/td3_hft_lob_state_space_pooled_streaming_selected
+    log_dir: logs/td3_h3_features_selected
     n_features: 10
     description: "IC-selected microstructure features"
     baseline: true
