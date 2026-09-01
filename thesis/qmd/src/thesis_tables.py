@@ -31,17 +31,17 @@ from IPython.display import HTML, Markdown, display
 # particular % Long / % Short and Lose Rate are needed here because the H3/H4
 # prose diagnoses the saturated-policy arms by their pinned exposure.
 RESULTS_TABLE_COLS: list[tuple[str, str, str]] = [
-    ("total_return",          "Return",    ".2%"),
-    ("annualized_volatility", "Ann. Vol",  ".4f"),
-    ("max_drawdown",          "Max DD",    ".2%"),
-    ("sharpe_ratio",          "Sharpe",    ".3f"),
-    ("sortino_ratio",         "Sortino",   ".3f"),
-    ("win_rate",              "Win Rate",  ".2%"),
-    ("lose_rate",             "Lose Rate", ".2%"),
-    ("profit_factor",         "PF",        ".3f"),
-    ("turnover",              "Turnover",  ".4f"),
-    ("pct_long",              "% Long",    ".2%"),
-    ("pct_short",             "% Short",   ".2%"),
+    ("total_return", "Return", ".2%"),
+    ("annualized_volatility", "Ann. Vol", ".4f"),
+    ("max_drawdown", "Max DD", ".2%"),
+    ("sharpe_ratio", "Sharpe", ".3f"),
+    ("sortino_ratio", "Sortino", ".3f"),
+    ("win_rate", "Win Rate", ".2%"),
+    ("lose_rate", "Lose Rate", ".2%"),
+    ("profit_factor", "PF", ".3f"),
+    ("turnover", "Turnover", ".4f"),
+    ("pct_long", "% Long", ".2%"),
+    ("pct_short", "% Short", ".2%"),
 ]
 
 # Delta-sign convention for the metrics above (used by build_comparison_rows).
@@ -462,7 +462,9 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
     # block it runs most of a page. Split it into two side-by-side blocks
     # (ranks 1..17 left, 18..33 right, keeping the |Pearson|-descending order)
     # so the table is about half as tall.
-    _triples = list(df[["Feature", "Pearson", "Spearman"]].itertuples(index=False, name=None))
+    _triples = list(
+        df[["Feature", "Pearson", "Spearman"]].itertuples(index=False, name=None)
+    )
     _half = (len(_triples) + 1) // 2
     _left = _triples[:_half]
     _right = _triples[_half:] + [("", "", "")] * (_half - len(_triples[_half:]))
@@ -484,17 +486,29 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
     )
 
     # ── HTML version ──────────────────────────────────────────────────
-    _hdr = "<tr>" + "".join(
-        f"<th>{h}</th>" for h in ("Feature", "Pearson", "Spearman") * 2
-    ) + "</tr>"
+    # Numeric columns right-align so the +/- signs and decimal points line up;
+    # the feature names stay left. Mirrors the LaTeX column spec below.
+    _align = ("left", "right", "right") * 2
+    _hdr = (
+        "<tr>"
+        + "".join(
+            f'<th style="text-align:{a}">{h}</th>'
+            for h, a in zip(("Feature", "Pearson", "Spearman") * 2, _align, strict=True)
+        )
+        + "</tr>"
+    )
     _body = "".join(
         "<tr>"
-        + "".join(f"<td>{v}</td>" for v in (*lrow, *rrow))
+        + "".join(
+            f'<td style="text-align:{a}">{v}</td>'
+            for v, a in zip((*lrow, *rrow), _align, strict=True)
+        )
         + "</tr>"
         for lrow, rrow in zip(_left, _right, strict=True)
     )
     html_table = (
-        f'<table class="dataframe"><thead>{_hdr}</thead><tbody>{_body}</tbody></table>'
+        '<table class="dataframe" style="font-size:0.85em">'
+        f"<thead>{_hdr}</thead><tbody>{_body}</tbody></table>"
     )
     note_p = f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note}</em></p>'
     html_block = (
@@ -513,14 +527,19 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
         " & ".join(_esc(str(v)) for v in (*lrow, *rrow)) + r" \\"
         for lrow, rrow in zip(_left, _right, strict=True)
     ]
-    _head_cell = r"\multicolumn{1}{c}{\textbf{Feature}} & \multicolumn{1}{c}{\textbf{Pearson}} & \multicolumn{1}{c}{\textbf{Spearman}}"
+    # Headers take the alignment of their own column: feature names left, the
+    # two numeric columns right, so each header sits over its data.
+    _head_cell = r"\multicolumn{1}{l}{\textbf{Feature}} & \multicolumn{1}{r}{\textbf{Pearson}} & \multicolumn{1}{r}{\textbf{Spearman}}"
     latex_block = "\n".join(
         [
             r"\begin{table}[htbp]",
             f"\\caption{{{_esc(caption)}}}",
             r"\label{tbl-feature-correlations}",
             r"\centering",
-            r"\small",
+            # 15% below \small, which is 10.95pt in this 12pt class. Set
+            # explicitly because the size ladder has no step at that ratio:
+            # \footnotesize would be only 9% smaller.
+            r"\fontsize{9.3pt}{11.6pt}\selectfont",
             r"\begin{tabular}{l r r @{\hspace{2.5em}} l r r}",
             r"\toprule",
             _head_cell + " & " + _head_cell + r" \\",
@@ -692,10 +711,7 @@ def lob_events_table(df: pd.DataFrame) -> None:
 
     tbl = pd.DataFrame(
         {
-            "Timestamp": win["ts_event"]
-            .dt.strftime("%H:%M:%S.%f")
-            .str[:-3]
-            .values,
+            "Timestamp": win["ts_event"].dt.strftime("%H:%M:%S.%f").str[:-3].values,
             "Best Bid": win["bid_px_00"].round(2).values,
             "Best Ask": win["ask_px_00"].round(2).values,
             "Bid Size": win["bid_sz_00"].astype(int).values,
@@ -704,9 +720,7 @@ def lob_events_table(df: pd.DataFrame) -> None:
             "Order Imbalance": win["feature_hft_order_book_imbalance_3l"]
             .round(3)
             .values,
-            "QWM Deviation": win["feature_hft_microprice_divergence"]
-            .round(3)
-            .values,
+            "QWM Deviation": win["feature_hft_microprice_divergence"].round(3).values,
             "OFI": win["feature_hft_ofi"].round(3).values,
         },
         index=[f"E{i}" for i in range(1, 13)],
