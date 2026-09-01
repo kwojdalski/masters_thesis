@@ -144,8 +144,8 @@ strategies remain useful as interpretable baselines. Any advantage attributed
 to reinforcement learning should therefore be tested under matched conditions.
 
 **Overfitting and generalization.**
-Published deep RL trading strategies were shown to often fail to
-generalize out-of-sample due to backtest overfitting, motivating a
+In cryptocurrency markets, published deep RL trading strategies were shown to
+often fail to generalize out-of-sample due to backtest overfitting, motivating a
 probability-of-overfitting estimator to reject overfit agents before
 deployment [@Gort2022]. The implication is that evaluation methodology (strict temporal
 splits, multi-seed reporting, realistic cost assumptions) matters as much as
