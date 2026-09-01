@@ -16,6 +16,11 @@ format:
     linestretch: 1.5
     lof: false
     lot: false
+    colorlinks: true
+    linkcolor: black
+    citecolor: black
+    urlcolor: black
+    toccolor: black
     header-includes:
       - \raggedbottom
       - \setlength{\parindent}{1cm}
