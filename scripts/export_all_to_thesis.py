@@ -50,6 +50,12 @@ SCENARIOS: dict[str, list[str]] = {
         "pooled/td3_h4_reward_logreturn",
         "pooled/td3_h4_reward_dsr",
     ],
+    "h5": [  # execution latency
+        "pooled/td3_h5_latency_0_dsr",
+        "pooled/td3_h5_latency_100us_dsr",
+        "pooled/td3_h5_latency_1ms_dsr",
+        "pooled/td3_h5_latency_5ms_dsr",
+    ],
 }
 
 _EXPORT_SCRIPT = _REPO_ROOT / "scripts" / "export_eval_to_thesis.py"
@@ -74,10 +80,10 @@ def main() -> int:
     p.add_argument(
         "--hypothesis",
         nargs="+",
-        choices=["h1", "h2", "h3", "h4"],
-        default=["h1", "h2", "h3", "h4"],
+        choices=["h1", "h2", "h3", "h4", "h5"],
+        default=["h1", "h2", "h3", "h4", "h5"],
         metavar="HYP",
-        help="Which hypotheses to export (h1 h2 h3 h4). Defaults to all.",
+        help="Which hypotheses to export (h1 h2 h3 h4 h5). Defaults to all.",
     )
     p.add_argument(
         "--verbose",
