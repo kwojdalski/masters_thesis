@@ -71,13 +71,11 @@ order-flow features it conditions on. Section 7.2
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
-reward accounting, but it implies that reported backtest returns are an upper
-bound on achievable net performance. Real execution must cross the spread, and
-realized returns are further reduced by maker/taker fees, queue position, and
-partial fills. Section 4.3 (@sec-execution-model-signal-friction) shows why this
-assumption is decisive for a microstructure feature set: the predictive content
-of the features is bounded by the very half-spread that mid-price execution
-declines to charge.
+reward accounting, but it makes the reported backtest returns optimistic for
+the evaluated action path. Real execution may cross the spread and incur
+maker/taker fees, queue uncertainty, partial fills, and slippage. Section 4.3
+(@sec-execution-model-signal-friction) explains this assumption, while Chapter
+6 measures how the small per-step edge responds to modeled transaction costs.
 
 **Zero latency.** Observations are assumed to be acted on immediately, with no
 transport, decision, or matching-engine delay between state observation and

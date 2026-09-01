@@ -49,31 +49,25 @@ execution assumption stated in @sec-simulation-assumptions. Baseline runs set
 $c = 0$, so a buy and a sell settle at the same mid, no spread is crossed, and
 the friction term vanishes. The reward is then the signal term alone.
 
-The features that carry the agent's directional signal (microprice, microprice
-divergence, order-flow imbalance, queue imbalance) are functions of
-top-of-book prices and sizes. The microprice is a convex combination of the best
-bid and ask, so its divergence from the mid satisfies
-$|\text{microprice}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$,
-the half-spread, at **every tick**. This is an exact algebraic bound, verified
-on the full sample (see @sec-limitations-and-future-research). Because that divergence
-is the one-step-ahead predictor of the mid move, the largest **per-tick** edge
-this class of features can express is exactly one half-spread — the same
-quantity a spread-crossing fill would cost. Mid-price execution waives that
-cost, so the frictionless reward measures a **signal ceiling**: the most that
-could be captured if execution were free, not what a strategy that crosses the
-spread would realise. (This is a per-tick, next-mid-move bound on the tradable
-edge, not a claim that the features lack predictive value. Chapter 2 attributes
-them genuine predictive content over longer horizons.)
+The state includes a queue-weighted midpoint and its divergence from the
+ordinary midpoint. The implementation retains the legacy `microprice` feature
+name. Because the queue-weighted midpoint is a convex combination of the best
+bid and ask, its divergence satisfies
+$|\text{QWM}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$ at
+every tick. This exact algebraic result bounds the instantaneous scale of one
+input feature. It does not bound a future mid-price change, the relation learned
+from the full state, the policy's holding period, or the strategy's profit.
+Consequently, it cannot establish a theoretical ceiling on the edge available
+to the agent.
 
-The transaction-cost sweep in @tbl-h2-transaction-costs varies $c$ and locates
-this ceiling against realistic cost. The reported edge is positive at zero fee
-and turns negative once the per-trade fee approaches a fraction of a basis
-point — the scale of the half-spread on these instruments. Hypothesis 1 is
-therefore an existence-and-magnitude claim (the signal is real, TD3 learns it,
-its size is of the order of one half-spread). Hypothesis 2 maps how performance
-responds as that cost is charged. The training reward uses the same mid-price
-valuation, so the learned policy is optimal for the frictionless objective;
-retraining under an explicit spread-crossing cost is left as future work
+The transaction-cost sweep in @tbl-h2-transaction-costs varies $c$. The
+reported edge is positive at zero fee and turns negative once the per-trade fee
+approaches a fraction of a basis point. This empirical sensitivity, rather than
+the bound on one feature, qualifies Hypothesis 1. Its results provide evidence
+of learnable performance under the specified frictionless simulator.
+Hypothesis 2 measures how that performance changes when a proportional fee is
+introduced. Because training also uses mid-price valuation, retraining under an
+explicit spread-crossing cost remains necessary
 (@sec-limitations-and-future-research).
 
 ### Log-Return

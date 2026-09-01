@@ -80,36 +80,31 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
-The transaction-cost comparison is where the reworded Hypothesis 1 is decided.
-Hypothesis 1 claims the learned edge is real but of the same order of magnitude
-as the cost of trading on it, and the fee sweep tests exactly that. The policy
-trades actively at 0 and 0.01 basis points; turnover collapses to essentially
-zero at 0.1 and 1 basis points, and cumulative return follows the same break.
-This is a per-trade cost of a few hundredths to a few tenths of a basis
-point, which is the scale of the bid–ask half-spread on these instruments. The
-half-spread is the maximum edge the microstructure feature set can express
-(Section 4.3, @sec-execution-model-signal-friction). The fee sweep and the
-half-spread bound therefore locate the learned edge from opposite directions: it
-is positive but approximately one half-spread per trade, captured under
-frictionless execution and eliminated by realistic spread-crossing cost. That is
-the evidential content of Hypothesis 1 as reworded.
+The transaction-cost comparison determines how far the frictionless Hypothesis
+1 result can be interpreted economically. The policy trades actively at 0 and
+0.01 basis points. Turnover collapses to essentially zero at 0.1 and 1 basis
+points, and cumulative return follows the same break. These fees are on the
+scale of a few hundredths to a few tenths of a basis point per trade. The
+comparison therefore shows that the result is highly sensitive to modest
+modeled costs. The half-spread provides a useful scale comparison, but it is not
+a formal bound on the return expressible by the feature set or policy (Section
+4.3, @sec-execution-model-signal-friction). The evidence supports a positive
+result under frictionless execution, not a cost-independent or deployable edge.
 
 The break between 0.01 and 0.1 basis points is not just a sign flip in the
 reported return; it is the point at which the policy stops trading altogether,
 which admits a more direct mechanical explanation. The minimum price increment
 for these instruments is one cent, so the smallest possible move in the
 mid-price, when only one side of the book updates, is half a cent. At the mean
-price of each instrument over the evaluation window this sets a break-even fee
--- the proportional cost at which a one-sided minimum-tick move stops covering
-the fee -- ranging from roughly 0.08 basis points for the highest-priced
+price of each instrument over the evaluation window this gives a reference fee
+-- the proportional cost equal to a one-sided minimum-tick move -- ranging from
+roughly 0.08 basis points for the highest-priced
 instrument to roughly 0.24 basis points for the lowest-priced one
 (@tbl-tick-breakeven-fee). The observed break sits below every one of these
-break-even points, which is consistent with Section 4.3's framing of the
-half-spread as a ceiling on the expressible edge rather than the edge the agent
-actually realizes on a given trade: the policy stops scalping before the fee
-mathematically exceeds the largest possible tick-driven move, not only after.
-This is a plausible reading of the current fee-ladder run, not a confirmed
-mechanism, and the per-instrument breakdown does not fully support it. If the
+reference points. This reinforces that the learned margin is small relative to
+quote-scale movements, but it does not identify a theoretical maximum edge or
+the mechanism causing the policy to stop trading. The per-instrument breakdown
+also does not support a simple tick-size explanation. If the
 break-even fee were set independently per instrument, turnover should collapse
 first for the highest-priced instruments and last for the lowest-priced ones.
 Instead, turnover collapses to zero for all six instruments simultaneously,
@@ -117,10 +112,9 @@ between the same two fee levels. This is consistent with how the policy is
 trained: one network is shared across all six instruments, and the input
 features are z-score normalized per symbol before the policy ever sees them, so
 the model has no access to an instrument's absolute price level and cannot
-condition its trading threshold on it. The tick-size arithmetic explains why a
-break exists somewhere in this fee range at all; it does not explain, and on
-this evidence cannot explain, why the six instruments break together rather
-than in sequence.
+condition its trading threshold on it. The tick-size arithmetic supplies a
+scale comparison. On this evidence, it cannot explain why the six instruments
+break together rather than in sequence.
 
 For Hypothesis 2 itself, the same table carries a distinct conclusion: empirical
 performance is materially sensitive to the transaction-cost assumption (a

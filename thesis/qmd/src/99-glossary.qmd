@@ -33,8 +33,8 @@ expand the section beyond its practical purpose.
 | **LOB** | Limit Order Book. The electronic record of all outstanding buy (bid) and sell (ask) limit orders at each price level, maintained by an exchange. |
 | **Market maker** | A liquidity provider that continuously posts limit orders on both sides of the book, profiting from the bid-ask spread while bearing inventory and adverse selection risk. |
 | **MFT** | Medium-Frequency Trading. Trading strategies operating at intraday bar (minute to hour) timescales, as distinct from high-frequency tick-level strategies. |
-| **Microprice** | A volume-weighted estimate of the next transaction price, derived from top-of-book bid and ask quantities [@Stoikov2018]. Adjusts the mid-price for queue imbalance. |
-| **MicroDiv (Microprice Divergence)** | The difference between the microprice and the mid-price; a stationary signal capturing the directional imbalance embedded in the top-of-book queues. |
+| **Micro-price (Stoikov)** | A model-based estimate of a future midpoint conditional on the current midpoint, queue imbalance, and spread [@Stoikov2018]. It is distinct from the static weighted mid-price. |
+| **Microprice / MicroDiv (legacy feature names)** | Implementation names retained for result provenance. In this thesis they denote the static queue-weighted midpoint and its divergence from the ordinary midpoint, not Stoikov's full micro-price model. |
 | **Mid-price** | The arithmetic average of the best bid and best ask prices; commonly used as a reference fair value when the spread is symmetric. |
 | **NLV (Net Liquidation Value)** | The current market value of all open positions plus available cash in a trading account. Used in this thesis as the basis for computing true portfolio returns during evaluation, as opposed to per-step reward signals. |
 | **OBI (Order Book Imbalance)** | Normalized difference in resting volume between bid and ask sides, aggregated across multiple depth levels. |
@@ -42,6 +42,7 @@ expand the section beyond its practical purpose.
 | **OFI (Order Flow Imbalance)** | Net directional pressure exerted on the best bid and ask queues by limit order arrivals, cancellations, and executions [@Cont2014]. The empirically dominant contemporaneous predictor of short-term price changes. |
 | **OHLCV** | Open, High, Low, Close, Volume. The standard aggregated price bar representation used in low- and medium-frequency trading; does not capture intra-bar queue dynamics. |
 | **Odd-lot** | A trade smaller than the standard round lot size (typically below 100 shares). Predominantly reflects retail and algorithmic small-lot activity. |
+| **Queue-weighted midpoint** | A static weighted average of the best bid and ask using the displayed opposing queue sizes [@Stoikov2018]. It summarizes current top-of-book imbalance and remains inside the quoted spread. |
 | **Queue depletion** | The rate at which the best-bid or best-ask queue is consumed by incoming market orders across consecutive snapshots; a leading indicator of imminent price movement. |
 | **RSI** | Relative Strength Index. A momentum oscillator measuring the speed and magnitude of price changes; used in rule-based and technical trading strategies. |
 | **Spread ratio** | The current bid-ask spread divided by its recent rolling mean; a regime signal separating absolute spread level from elevated adverse selection conditions. |

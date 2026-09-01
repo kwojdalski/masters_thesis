@@ -1428,7 +1428,11 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
         ),
         (
             "Feature set",
-            "Selected causal LOB microstructure set: book pressure L0, three-level OBI, order-count imbalance L0, microprice, microprice divergence, bid/ask slope, OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime position",
+            "Selected causal LOB microstructure set: book pressure L0, "
+            "three-level OBI, order-count imbalance L0, queue-weighted midpoint "
+            "and its divergence (legacy microprice feature names), bid/ask slope, "
+            "OFI, 50-event rolling OFI, 50-event signed trade flow, and runtime "
+            "position",
         ),
         ("Environment backend", "Continuous single-asset trading environment"),
         ("Episode length", f"{episode_len:,} event-time steps (streaming)"),

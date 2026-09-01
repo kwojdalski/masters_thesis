@@ -78,21 +78,17 @@ inventory risk, mechanically pushing the mid-price upward. The OFI feature in
 the feature design is included primarily as a state variable summarizing current
 order-flow pressure.
 
-**Fair value estimation from the order book.**
-The microprice is derived as the theoretically optimal estimate of the
-next transaction price given the current state of the top-of-book queues
-[@Stoikov2018]. The key observation is that the mid-price (the arithmetic
-average of best bid and ask) is an inadequate fair value estimate when the
-queues are imbalanced. This is because the side with the thinner queue is more likely
-to be depleted first by incoming market orders, pulling the next transaction
-price toward the opposite side. The microprice corrects for this by
-volume-weighting the best quotes. When the bid side is heavier than
-the ask, the estimate is pulled toward the ask, the side more likely to
-move (exact formula and implementation in Appendix A). The microprice
-divergence from mid captures this adjustment as a stationary signal and
-serves as the primary fair value feature in Chapter 4. Its limitation is
-that it is a top-of-book fair-value proxy; it does not incorporate deeper
-queue dynamics, hidden liquidity, or the agent's own execution priority.
+**Top-of-book price adjustment.**
+The weighted mid-price shifts the ordinary midpoint according to the displayed
+sizes at the best bid and ask. Stoikov distinguishes this static quantity from
+the model-based micro-price, which estimates a future midpoint conditional on
+the current midpoint, queue imbalance, and spread [@Stoikov2018]. This thesis
+implements only the static weighted mid-price, referred to here as the
+queue-weighted midpoint. The implementation retains the legacy feature name
+`hft_microprice`. Its divergence from the midpoint summarizes current
+top-of-book imbalance. It is not treated as a theoretically optimal forecast of
+the next transaction price. The measure also omits deeper queue dynamics,
+hidden liquidity, and the agent's execution priority.
 
 Taken together, these four theoretical frameworks identify several mechanisms
 that may be relevant for state design in limit-order-book markets. The spread
@@ -101,8 +97,8 @@ encodes adverse selection risk
 Kyle's lambda [@Kyle1985]; the shape of the full book encodes the information
 content at each depth level [@Glosten1994]; and OFI is the dominant
 contemporaneous predictor of short-term price changes [@Cont2014]. The
-microprice [@Stoikov2018] provides a theoretically optimal fair value estimate
-that conditions on the current queue imbalance.
+queue-weighted midpoint summarizes the current top-of-book imbalance
+[@Stoikov2018].
 
 These mechanisms are not independent: they all reflect aspects of information
 aggregation through order flow, motivating the candidate feature families

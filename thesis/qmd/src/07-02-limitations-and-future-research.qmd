@@ -6,21 +6,18 @@
 
 The central limitation of the empirical setup is its execution model:
 mid-price-proxy valuation and reward computation, zero market impact, zero
-latency, and no baseline fee. For a microstructure strategy this assumption is
-close to the whole result. The microprice divergence that drives the agent's
-directional calls is a convex combination of the best bid and ask, so
-$|\text{microprice}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$
-holds identically. This is an exact algebraic bound, verified on 100% of the
-2.4-million-row AAPL sample. The largest per-tick edge the feature set can
-express is therefore exactly one half-spread, which is precisely what a
-spread-crossing fill would cost; mid-price execution deletes that liability and
-leaves the signal as pure profit. This is the mechanism behind the signal-ceiling
-framing of Hypothesis 1 (Section 4.3), not merely a statement that "frictions
-could matter".
+latency, and no baseline fee. These assumptions materially favor a
+microstructure strategy. The implemented queue-weighted midpoint lies between
+the best bid and ask, so its divergence from the ordinary midpoint is bounded
+by half the spread. This identity was verified across the 2.4-million-row AAPL
+sample. It describes the scale of one contemporaneous input feature. It does
+not bound future price changes, the policy's combined signal, or strategy
+profit. The execution limitation must therefore be assessed through the
+empirical sensitivity tests, not through a theoretical signal-ceiling claim.
 
-Order-of-magnitude figures on the exported Hypothesis 1 test window: the spread a
-crossing environment would have charged is roughly ten times the gross profit,
-and the breakeven proportional fee is on the order of $4 \times 10^{-6}$.
+For the evaluated Hypothesis 1 action path, the estimated spread-crossing cost
+is roughly ten times the gross profit, and the breakeven proportional fee is on
+the order of $4 \times 10^{-6}$.
 This is consistent with the Hypothesis 2 fee sweep turning negative between
 $1 \times 10^{-6}$ and $1 \times 10^{-5}$. Re-pricing the identical action path
 under bid/ask execution instead of the mid moves the total return from roughly
@@ -28,8 +25,8 @@ $+2.3$ to roughly $-10.6$ in net-liquidation-value units: the same signal, the
 opposite sign. These figures are indicative rather than final: they come from
 re-pricing a fixed policy, not from retraining. A control in which random
 actions run through the same frictionless environment returns $-0.033\%$,
-confirming that the frictionless profit is a real signal harvested for free
-rather than bid–ask bounce available to any high-turnover policy. The direct
+which shows that random action alone does not reproduce the learned result. It
+does not identify the source of the edge or establish deployability. The direct
 next step, and the most important single extension, is to **retrain** and
 re-evaluate the agents under an explicit bid/ask fill rule with calibrated
 maker/taker fees and a slippage or market-impact model. Because the training
@@ -40,23 +37,20 @@ Two further assumptions in @sec-simulation-assumptions bear on the same
 question and have not been quantified here. The first is zero latency: the
 agent acts on an observation with no transport, decision, or matching-engine
 delay. The median inter-event gap on the test split is roughly 33
-microseconds, so even a modest few-hundred-microsecond round trip -- well
-inside what a non-co-located system would incur -- spans multiple order-book
-updates before the corresponding action could reach the market. Because the
-microprice-mid divergence is a one-step-ahead prediction of the next update,
-not a persistent state, a delayed action risks arriving after the predicted
-move has already occurred, or after a faster participant observing the same
-imbalance has already traded on it. Zero latency therefore does not merely
-omit an engineering cost; it assumes the agent wins every such race, which is
-the specific competitive margin that determines whether this class of
-signal is exploitable in practice.
+microseconds, so a few-hundred-microsecond round trip spans multiple order-book
+updates before the corresponding action could reach the market. The
+queue-weighted-midpoint divergence is a contemporaneous imbalance measure, not
+a validated one-step forecast. Its useful horizon has not been estimated here.
+Zero latency nevertheless gives the policy access to the freshest possible
+state and may overstate how much short-lived information remains tradable. A
+latency sweep is required to quantify that effect.
 
 The second is the absence of any effect of the agent's own trading on the
 book. @sec-simulation-assumptions defends this on position-size grounds: at
 this scale, trades are small relative to displayed depth, so walking the book
 is not a concern. That defense addresses price impact from order size, but not
 a separate channel: the features the policy conditions on (order-flow
-imbalance, queue depletion, microprice divergence) are themselves signatures
+imbalance, queue depletion, queue-weighted-midpoint divergence) are themselves signatures
 of recent trading in the book, and the agent trades on them at close to every
 step (turnover of roughly 0.4-0.5 across instruments in the Hypothesis 1
 agent). A real venue would reflect each fill back into queue depth and
