@@ -295,10 +295,12 @@ performance optimistic relative to realistic spread-crossing execution.
 the training, validation, and test subsets for the pooled six-asset
 dataset used in the primary experiment. Row counts reflect the number
 of order-book events that pass the level-0–4 filter after chronological
-validation. The validation and test subsets are each bounded at 50,000
-events by the configured `validation_size` and `test_size` parameters;
-the training subset comprises all remaining events from the three
-training days across the six instruments.
+validation. No split is truncated: `train_size`, `validation_size` and
+`test_size` are all unset, so training uses every qualifying event from
+the three training days across the six instruments, and the single
+evaluation day is split at its midpoint into validation and test.
+Counts are reported per split across all six instruments pooled, not
+per instrument.
 
 ```{python}
 #| label: tbl-dataset-splits
@@ -313,7 +315,7 @@ from thesis_tables import fmt_duration, display_df, missing_data_notice, table_n
 
 _PEEK_DIR = (
     repo_root()
-    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/peek"
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/peek"
 )
 _splits_path = _PEEK_DIR / "splits.json"
 
@@ -340,10 +342,10 @@ else:
     missing_data_notice(
         "splits.json not found — run: "
         "`uv run python src/cli.py peek dataset "
-        "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected/ "
+        "-c src/configs/scenarios/pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr/ "
         "--skip 500 --export`, then: "
         "`uv run python scripts/export_peek_to_thesis.py "
-        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected`"
+        "--scenario pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr`"
     )
 ```
 
