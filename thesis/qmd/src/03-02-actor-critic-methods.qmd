@@ -36,10 +36,9 @@ portfolio settings.
 
 A distinct class of algorithms avoids the maximization problem by
 parameterizing the policy directly and optimizing it through gradient ascent on
-expected cumulative reward. The foundational result establishes that policy parameters can be updated by
-gradient ascent on expected cumulative reward: REINFORCE introduced this
-approach [@Williams1992], and the policy gradient theorem was established in
-the general function approximation setting [@Sutton2000]. The gradient takes the form:
+expected cumulative reward. REINFORCE introduced this approach
+[@Williams1992], and the policy gradient theorem was established in the
+general function approximation setting [@Sutton2000]. The gradient takes the form:
 
 $$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot G_t\right]$$ {#eq-reinforce-gradient}
 
