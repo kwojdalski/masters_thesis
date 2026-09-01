@@ -646,10 +646,12 @@ def h1(
     debug: _DebugSet = False,
     max_train_seconds: _MaxTrainSeconds = None,
 ) -> None:
-    """Test whether TD3 outperforms DDPG, PPO, and a random-policy baseline.
+    """Test whether continuous-control agents beat a random-policy baseline.
 
-    Trains and evaluates the four agents with the selected LOB state space and
-    differential-Sharpe reward, then generates the H1 performance comparison.
+    Trains and evaluates TD3, DDPG, PPO, and Random with the selected LOB state
+    space and differential-Sharpe reward, then generates the H1 performance
+    comparison. The learners are not expected to separate from each other; the
+    comparison tests the learned-versus-unlearned boundary.
     """
     run_hypothesis(
         "h1",
