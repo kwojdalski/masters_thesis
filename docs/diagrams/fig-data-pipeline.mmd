@@ -1,0 +1,25 @@
+%% Print version of the data-preparation pipeline, for Appendix I of the thesis.
+%% WNE UW formal requirement 12 ("grafika nie powinna zawierac znacznych
+%% fragmentow tekstu") rules out putting the full pipeline on a printed page:
+%% data_pipeline.mmd in this directory carries 51 labels and 328 words, which
+%% at A4 text width renders at ~3 pt. This version keeps only what the figure
+%% caption claims -- that normalisation is fitted on the training split alone
+%% and then applied to all three splits -- and defers the rest to that file.
+%% Keep the two in step when the pipeline changes.
+%%{init: {'theme': 'base', 'themeVariables': {'fontSize': '14px'}, 'flowchart': {'nodeSpacing': 30, 'rankSpacing': 34, 'padding': 8, 'useMaxWidth': true}}}%%
+flowchart TD
+    RAW["<b>Raw LOB data</b><br/>6 symbols × 4 sessions"]
+    SPLIT["<b>Chronological split, no shuffling</b><br/>train: 25-27 Feb 2026<br/>validation / test: two halves of 2 Mar 2026"]
+    FIT["<b>Fit normalisation</b><br/>training split only, per symbol<br/>Welford online statistics<br/>reset at session boundaries"]
+    XFORM["<b>Apply the fitted transform</b><br/>to train, validation and test"]
+    CHECK["<b>Validate</b><br/>splits non-empty · required columns present<br/>no NaN in the training split"]
+    OUT["<b>PreparedDataset</b><br/>train_df · val_df · test_df"]
+
+    RAW --> SPLIT
+    SPLIT -->|"train only"| FIT
+    FIT -->|"fitted statistics"| XFORM
+    SPLIT -->|"train · validation · test"| XFORM
+    XFORM --> CHECK
+    CHECK --> OUT
+
+    style FIT fill:#e8e8e8,stroke:#333
