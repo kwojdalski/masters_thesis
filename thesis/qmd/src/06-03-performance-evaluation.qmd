@@ -242,26 +242,21 @@ two-sided exposure limits the loss any single directional move can inflict.
 These figures are measured under frictionless mid-price execution and inherit
 the Hypothesis 1 caveat in full: the comparison establishes that the policy
 extracts a real signal the passive benchmarks do not, not that the resulting
-edge survives the cost of trading on it. Section 6.2 shows it does not.
+edge survives the cost of trading on it. Section 6.4 shows it does not.
 
 Taken together, the benchmark comparison establishes that the agent's
-outperformance is structural: near-neutral positioning that incidentally
-reduces exposure during a period when all passive long strategies lost money,
-rather than a sign of correctly timed directional bets. Its trade-level
-quality metrics (win rate, profit factor) are substantially worse than even a
-passive strategy, so the positive relative total return
-($-0.014\%$ versus $-0.057\%$ to $-0.070\%$) is entirely attributable to the
-neutral position stance, not profitable active trading. The Hypothesis 1 verdict
-from the benchmark comparison is therefore two-sided. The agent clears a weak
-feasibility bar: it does not commit capital to a sustained wrong-direction bet,
-and its relative total return over this declining window is better than passive
-long exposure. The mechanism, however, is near-neutral positioning, not profitable
-directional trading, and the comparison is run under mid-price execution with
-zero fees. That is not a neutral choice: zero-cost execution is a subsidy
+outperformance is not a positioning artefact. Win rate ($25.1\%$ against
+approximately $6.1\%$) and profit factor ($3.45$ against $1.01$) both exceed
+every passive benchmark by a wide margin, so the return gap reflects the
+quality of individual position changes rather than a fortunate net exposure.
+The Hypothesis 1 verdict from the benchmark comparison is therefore two-sided.
+The agent clears the existence bar: it extracts a signal the passive benchmarks
+do not, with better trade-level economics and a shallower maximum drawdown. The
+comparison is, however, run under mid-price execution with zero fees. That is not a neutral choice: zero-cost execution is a subsidy
 proportional to turnover, so a comparison whose only asymmetry is the spread the
 active arm does not pay favours the higher-turnover reinforcement learning policy
 over the near-static passive benchmarks. Any spread-crossing cost both erases the
-agent's own frictionless return (Section 6.2) and narrows its measured advantage
+agent's own frictionless return (Section 6.4) and narrows its measured advantage
 over buy-and-hold. The benchmark comparison thus supports the existence half of
 Hypothesis 1 (a coherent, risk-controlled policy) but not a claim of
 benchmark-dominating or deployable performance. The economic magnitude is
