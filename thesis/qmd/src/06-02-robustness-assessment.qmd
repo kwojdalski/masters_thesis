@@ -165,9 +165,9 @@ from thesis_tables import (
 # dedicated td3_h3_features_selected scenario defined in _H3_SCENARIOS, not the
 # superseded shared baseline that an earlier revision of this cell referenced.
 _FEATURE_SCENARIOS = [
-    ("pooled_td3_h3_features_minimal",  "Minimal (3 features)",   False),
-    ("pooled_td3_h3_features_selected", "Selected (10 features)", True),
-    ("pooled_td3_h3_features_full",     "Full (33 features)",     False),
+    ("pooled_td3_h3_features_minimal",  "Minimal",  False),
+    ("pooled_td3_h3_features_selected", "Selected", True),
+    ("pooled_td3_h3_features_full",     "Full",     False),
 ]
 
 # Same column spec as the H1 comparison (06-00) and the H2/H4 tables, so the
@@ -188,6 +188,7 @@ else:
 
 ::: {.table-note}
 **Source:** Author's own calculations.
+**Feature sets:** *Minimal* (3 features): best-level spread in basis points, best-level book pressure, and the queue-weighted midpoint. *Selected* (10 features): book pressure, three-level order-book imbalance, order-count imbalance, the queue-weighted midpoint and its divergence, bid and ask depth slopes, instantaneous and 50-event rolling OFI, and 50-event signed trade flow. *Full* (33 features): the selected set plus deeper book-pressure levels, volume-weighted mid-price skew and VAMP, spread ratio, bid/ask convexity, depth ratio, multi-level and autocorrelation OFI, bid/ask queue depletion, trade-arrival rate, cancel-to-trade ratio, VPIN, large-trade and odd-lot ratios, inter-event time, mid-price acceleration, and cyclical hour encodings. All three also append the agent's runtime position.
 **Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
 :::
 
@@ -252,14 +253,14 @@ zero transaction cost), holding the algorithm and data fixed.
 # objective is the single varying factor. _SENS_COLS is the shared
 # RESULTS_TABLE_COLS spec defined in the Hypothesis 2 cell above.
 _reward_scenarios = [
-    ("pooled_td3_h4_reward_logreturn", "Log Return (baseline)"),
-    ("pooled_td3_h4_reward_dsr",       "Differential Sharpe (DSR)"),
+    ("pooled_td3_h4_reward_logreturn", "Log Return"),
+    ("pooled_td3_h4_reward_dsr",       "DSR"),
 ]
 
 rows = []
 for exp, label in _reward_scenarios:
     m = load_scenario_metrics(exp)
-    row = {"Variant": label}
+    row = {"Reward Function": label}
     for key, col, fmt in _SENS_COLS:
         row[col] = fmt_val(m.get(key), fmt)
     rows.append(row)
@@ -274,6 +275,7 @@ else:
 ```
 
 ::: {.table-note}
+**Reward functions:** *Log Return*: the per-step change in log portfolio value (the baseline objective), multiplied by a fixed scale factor. *DSR*: the Differential Sharpe Ratio, the online single-step contribution to the Sharpe ratio computed from exponentially decaying estimates of the first two return moments ($\eta = 0.01$); self-normalizing, so no scale factor is applied. The construction is given in Section 4.3.
 **Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
 :::
 
