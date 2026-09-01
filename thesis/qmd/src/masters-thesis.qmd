@@ -67,8 +67,17 @@ csl: ../../bibliography/apa.csl
 # The appendix feature table renders its Citation column as literal LaTeX text
 # rather than Pandoc @keys, so sources appearing only there never reach the
 # reference list. Most are also cited by key in Chapter 4.2; these two are not.
+# Every source cited by the appendix feature table. That table is raw LaTeX, so
+# Pandoc never sees its citations and would otherwise drop from the reference
+# list any source cited only there. Keep in step with CITATION_KEYS in
+# feature_table_citations.py; `uv run python -c "from feature_table_citations
+# import nocite_keys; print(', '.join('@'+k for k in nocite_keys()))"` prints
+# the current list. Most are also cited by key in Chapter 4.2; Foucault2005 and
+# Abergel2016 are not, and appear in the bibliography only because of this.
 nocite: |
-  @Foucault2005, @Abergel2016
+  @Cao2004, @Biais1995, @Cont2014, @Stoikov2018, @Bouchaud2002, @Kyle1985,
+  @GlostenMilgrom1985, @Easley2012, @Foucault2005, @LeeReady1991,
+  @Boehmer2021, @Engle2000, @Abergel2016, @Wood1985
 filters:
   - pseudocode
   - tablenote.lua
