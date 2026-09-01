@@ -148,6 +148,78 @@ else:
 ```
 :::
 
+### Per-Instrument Decomposition {#sec-h1-per-instrument}
+
+Each pooled scenario is evaluated one instrument at a time, so the aggregate
+above averages six independent evaluations. Reporting only that average would
+conceal how far the instruments diverge — and, more importantly, would
+misattribute the reason they do.
+
+```{python}
+#| label: tbl-h1-per-symbol
+#| echo: false
+#| warning: false
+#| tbl-cap: "Hypothesis 1 per-instrument test-split results for the TD3 agent, with the cumulative return restated as a mean edge per decision."
+
+import numpy as np
+import pandas as pd
+from thesis_mlflow_results import load_scenario_per_symbol_metrics
+from thesis_tables import display_df, fmt_val, table_note
+
+_per_symbol = load_scenario_per_symbol_metrics(_H1_EXPERIMENT, split="test")
+
+if not _per_symbol:
+    print("No per-instrument Hypothesis 1 results available. Run: uv run thesis-experiments h1")
+else:
+    _rows = []
+    for _sym, _m in _per_symbol.items():
+        _n = _m.get("n_steps") or 0
+        # Mean log return per environment step, in basis points. Cumulative
+        # return conflates edge quality with how many decisions the window
+        # afforded; this separates them.
+        _bp = (np.log1p(_m["total_return"]) / _n * 1e4) if _n else float("nan")
+        _rows.append({
+            "Instrument": _sym,
+            "Steps": f"{_n:,}",
+            "Return": fmt_val(_m.get("total_return"), ".2f"),
+            "bp/step": fmt_val(_bp, ".4f"),
+            "Win Rate": fmt_val(_m.get("win_rate"), ".2%"),
+            "PF": fmt_val(_m.get("profit_factor"), ".2f"),
+            "Max DD": fmt_val(_m.get("max_drawdown"), ".2e"),
+        })
+    display_df(pd.DataFrame(_rows))
+    table_note(
+        source="Author's own calculations.",
+        note=(
+            "bp/step is the mean log return per environment step in basis points, "
+            "log(1 + Return) / Steps. All figures use mid-price execution with zero "
+            "transaction cost."
+        ),
+    )
+    show_table_meta(finished, audit=_audit)
+```
+
+The cumulative-return column spans a factor of twenty, from $+33.4\%$ on META
+to $+675.3\%$ on AMZN, which invites the reading that the strategy works on
+some instruments and not others. The per-step column shows that reading is
+wrong. Expressed per decision the six instruments occupy a narrow band —
+roughly $0.016$ to $0.036$ basis points per step — and the ordering does not
+match the cumulative one: META, the weakest instrument on cumulative return,
+carries a *higher* per-step edge ($0.0211$ bp) than AMZN, the strongest
+($0.0181$ bp).
+
+What separates them is the number of decisions the evaluation window afforded.
+AMZN records 1,128,425 environment steps against META's 136,676, an
+eight-fold difference in opportunity over the same wall-clock session, because
+message-level event counts differ across instruments. Compounding a similar
+per-step edge over eight times as many steps produces the twenty-fold gap in
+the cumulative column. Holding META's per-step edge fixed and applying AMZN's
+step count would imply a cumulative return near $+980\%$ — above AMZN's own
+figure. Cumulative return over a fixed session therefore measures event
+frequency at least as much as it measures skill, and the per-step figure is the
+quantity that should be compared across instruments and carried into the
+transaction-cost analysis.
+
 ### Key Empirical Questions
 
 The results below are read through the theoretical lens from Chapter 3:
@@ -212,15 +284,17 @@ structure in the state-action mapping that goes beyond randomness, even if the
 absolute magnitude of that advantage is modest at the zero-fee evaluation horizon
 studied here.
 
-The comparison does not separate the three learning algorithms. TD3 and DDPG are
-indistinguishable on cumulative return (3.548 versus 3.599), PPO posts the
-highest per-bar Sharpe ratio (7.53) on the lowest return (2.522), and the
-ordering is not stable across splits: DDPG leads on validation as well as on
-test. Reading these three as a ranking would over-interpret a single evaluation
-window. What separates cleanly is the learned-versus-unlearned boundary — all
-three learners return above 250% while the random policy returns $-0.49\%$ — and
-the algorithms differ mainly in how they reach that outcome, PPO trading roughly
-three times as often as TD3 (731,830 versus 233,082 position changes) for a
+The comparison does not separate the three learning algorithms. On AAPL, the
+common instrument for which all four agents have been evaluated, TD3 and DDPG
+are indistinguishable on cumulative return ($3.548$ versus $3.599$), PPO posts
+the highest per-bar Sharpe ratio ($7.53$) on the lowest return ($2.522$), and
+the ordering is not stable across splits: DDPG leads on validation as well as on
+test. Reading these three as a ranking would over-interpret a single instrument
+and a single evaluation window. What separates cleanly is the
+learned-versus-unlearned boundary — all three learners return above $250\%$
+while the random policy returns $-0.49\%$ — and the algorithms differ mainly in
+how they reach that outcome, PPO changing position roughly three times as often
+as TD3 ($731{,}830$ versus $233{,}082$ steps with a position change) for a
 smaller gross result.
 
 That convergence is more informative than a ranking would have been. TD3 and
@@ -238,12 +312,14 @@ existence half of the claim. Under frictionless mid-price execution every
 learned agent extracts a directionally coherent, risk-controlled edge that the
 random policy does not, so a learnable microstructure signal is present in this
 window. What the comparison does not establish is that the edge is economically
-large. Expressed per decision rather than per window, TD3's cumulative 3.548
-over 969,218 evaluation steps is a mean log return of $1.56 \times 10^{-6}$ per
-step — approximately 0.016 basis points per tick, with DDPG at 0.0157 and PPO at
-0.0130 — while the underlying instruments moved $-0.43\%$ over the same window.
-The headline figure is the compounding of a per-tick edge far smaller than one
-tick of spread, not evidence of a large exploitable inefficiency. Section 4.3
+large. Expressed per decision rather than per window, the TD3 agent's edge is a
+mean log return of roughly $1.6$ to $3.6 \times 10^{-6}$ per step across the six
+instruments — approximately $0.016$ to $0.036$ basis points, itemised in
+@tbl-h1-per-symbol — over sessions in which buy-and-hold on the same instruments
+ranged from $-0.68\%$ (MSFT) to $+1.07\%$ (AVGO), that is, sessions with no
+material directional move to capture. The headline cumulative figures are the
+compounding of a per-step edge far smaller than one tick of spread, not evidence
+of a large exploitable inefficiency. Section 4.3
 (@sec-execution-model-signal-friction) explains why that magnitude is the
 decisive quantity for a microstructure feature set: the features carrying the
 signal cannot express an edge larger than one half-spread per trade, which is
