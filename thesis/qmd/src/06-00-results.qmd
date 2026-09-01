@@ -233,11 +233,11 @@ else:
         _rows.append({
             "Instrument": _sym,
             "Steps": f"{_n:,}",
-            "Return": fmt_val(_m.get("total_return"), ".2f"),
+            "Return": fmt_val(_m.get("total_return"), ".2%"),
             "bp/step": fmt_val(_bp, ".4f"),
             "Win Rate": fmt_val(_m.get("win_rate"), ".2%"),
             "PF": fmt_val(_m.get("profit_factor"), ".2f"),
-            "Max DD": fmt_val(_m.get("max_drawdown"), ".2e"),
+            "Max DD": fmt_val(_m.get("max_drawdown"), ".2%"),
         })
     display_df(pd.DataFrame(_rows))
     table_note(
@@ -299,15 +299,15 @@ of $3.64$ and a Sharpe ratio of $4.96$. **PPO** returns $205.5\%$ on the highest
 profit factor of the three, $4.59$, and the highest per-bar Sharpe, $5.44$, at
 the lowest turnover, $0.36$. **TD3** returns $13.9\%$ with a profit factor of
 $3.73$ and a Sharpe of $2.99$, at the lowest maximum drawdown of any arm,
-$-4.5 \times 10^{-4}$, an order of magnitude shallower than DDPG's or PPO's
-$-4.5 \times 10^{-3}$ and $-4.7 \times 10^{-3}$. The ordering on cumulative
+$-0.04\%$, an order of magnitude shallower than DDPG's or PPO's
+$-0.45\%$ and $-0.47\%$. The ordering on cumulative
 return is therefore not the ordering on risk-adjusted return or on drawdown, and
 no single arm dominates across the three.
 
 The **random baseline** returns $0.25\%$ with a profit factor of $1.006$, which
 is what noise looks like: gross gains and gross losses almost exactly offset. It
 does so at the highest turnover, $0.67$, and the deepest drawdown,
-$-5.9 \times 10^{-3}$. The separation from the learned arms is therefore large
+$-0.59\%$. The separation from the learned arms is therefore large
 and consistent. Each learner clears the random policy by two to three orders of
 magnitude on cumulative return and by a factor of three to five on profit
 factor, while trading less. That gap, rather than any difference among TD3,

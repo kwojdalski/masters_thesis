@@ -234,9 +234,9 @@ and its win rate is $25.1\%$ against approximately $6.1\%$ for each passive
 benchmark. The passive profit factors sit barely above unity, which is what a
 flat market produces mechanically. The agent's does not.
 
-On drawdown, the agent's maximum drawdown of $-2.8 \times 10^{-4}$ ($-0.028\%$)
-is roughly an order of magnitude shallower than buy-and-hold's
-$-2.4 \times 10^{-3}$ ($-0.24\%$), despite the far higher turnover. Balanced
+On drawdown, the agent's maximum drawdown of $-0.028\%$ is roughly an order of
+magnitude shallower than buy-and-hold's $-0.24\%$, despite the far higher
+turnover. Balanced
 two-sided exposure limits the loss any single directional move can inflict.
 
 These figures are measured under frictionless mid-price execution and inherit
