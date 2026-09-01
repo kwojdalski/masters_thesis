@@ -10,6 +10,16 @@ of `thesis/qmd/src/07-02-limitations-and-future-research.qmd` via a
 `TODO(thesis-writer)` HTML comment. Check the target chapter for such comments
 before writing that section from scratch.
 
+**2026-09-01 — hypothesis numbering changed.** The audits below predate a
+renumber. New scheme: **H1** = algorithm/signal (unchanged), **H2** =
+transaction-cost sensitivity (was the fee sub-axis of the old H3), **H3** =
+feature specification (was H2), **H4** = reward design (was the reward sub-axis
+of the old H3). The old H4 "learning progression check" was dropped. The runner
+keys `thesis-experiments hN` and `experiment_sets/*.yaml` were remapped to
+match; scenario directory names (`td3_h3_features_*`, `td3_h3_fees_*`,
+`..._h4_n5`) keep their original tokens. Where an entry below says "h3 fee
+sweep" / "h3's reward axis" / "h4", read it against the old numbering.
+
 | Date | Scope | Command | CRIT/HIGH | Verdict headline | File |
 |---|---|---|---|---|---|
 | 2026-08-31 | h1 leakage and bias sweep (six bias families) | static audit + 5 numerical checks, no run | 0 / 0 | No leakage. Features exactly prefix-invariant (diff 0.0 on all 10); TWAP causal, VWAP ex-post but already disclosed; selection ran on train days only; test split untouched until final eval. Two thesis claims about normalization are false but harmless. | [2026-08-31-h1-leakage-and-bias-sweep.md](2026-08-31-h1-leakage-and-bias-sweep.md) |

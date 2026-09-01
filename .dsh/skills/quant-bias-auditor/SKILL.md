@@ -33,8 +33,8 @@ consequential first):
 4. **Model-selection / hyperparameter leakage** — checkpoint selection, early
    stopping, or periodic eval touching the test split; hyperparameters or
    scenario configs chosen by peeking at test-split performance across a
-   sweep (h2/h3 are explicit sweeps — were any of their axes chosen *after*
-   seeing which one wins?).
+   sweep (h2 fee ladder, h3 feature sets, h4 reward types are explicit sweeps —
+   were any of their levels chosen *after* seeing which one wins?).
 5. **Survivorship / selection bias** — the symbol universe, date range, or
    scenario subset was chosen in a way correlated with the outcome (e.g. only
    liquid large-caps that happened to trend during the sample window).
@@ -74,11 +74,13 @@ file you may write is your own audit log — see Persist below.
   log_return.
   `src/trading_rl/trainers/` — periodic eval (`temp_eval` config) and
   checkpoint-selection logic: confirm which split each touches.
-- `src/masters_thesis/experiments.py` — h2/h3 sweep definitions
-  (`_H2_SCENARIOS`, `_H3_SCENARIOS`) and `scripts/h1_performance_report.py`
-  through `h4_learning_progression_report.py` — is there any evidence a
-  reported "winning" configuration was chosen after observing test-split
-  results across the sweep, rather than the sweep being reported in full?
+- `src/masters_thesis/experiments.py` — the sweep definitions (`_H2_SCENARIOS`
+  fee ladder, `_H3_SCENARIOS` feature sets, `_H4_SCENARIOS` reward types) and
+  the report scripts (`h1_performance_report.py`,
+  `h3_feature_sensitivity_report.py`, `sensitivity_report.py`) — is there any
+  evidence a reported "winning" configuration was chosen after observing
+  test-split results across the sweep, rather than the sweep being reported in
+  full?
 - `src/configs/scenarios/**/train.yaml` `data.data_paths` — the symbol/date
   selection itself: was AAPL/AMZN/AVGO/META/MSFT/TSLA and this specific
   3-day window chosen for a stated methodological reason (liquidity,

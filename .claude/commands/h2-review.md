@@ -1,54 +1,48 @@
-Review **Hypothesis 2** (a broader microstructure-aware feature set improves out-of-sample performance relative to a simpler snapshot-based representation) by reading only the relevant thesis sections and result files.
+Review **Hypothesis 2** (empirical performance is materially sensitive to the transaction-cost assumption: the learned edge is positive under zero fee but changes sign once the per-trade cost reaches a fraction of a basis point) by reading only the relevant thesis sections and result files.
 
 ## Step 1 — Read the thesis prose for H2
 
 Read the H2 section inside:
-- `thesis/qmd/src/06-02-robustness-assessment.qmd` — read only the `## H2: Feature Specification Sensitivity` section (stop at `## H3`)
-- `thesis/qmd/src/07-01-summary-of-findings.qmd` — read only the H2 paragraph (stop at H3)
+- `thesis/qmd/src/01-01-scope-and-objectives.qmd` (the formal H2 statement — item 2 of the hypothesis list)
+- `thesis/qmd/src/04-03-reward-function.qmd` (the "Execution Model and the Signal–Friction Decomposition" subsection — the half-spread ceiling)
+- `thesis/qmd/src/06-02-robustness-assessment.qmd` — read only the `## Hypothesis 2: Transaction-Cost Sensitivity` section (stop at `## Hypothesis 3`)
+- `thesis/qmd/src/07-01-summary-of-findings.qmd` — read only the Hypothesis 2 paragraph (stop at Hypothesis 3)
 
-## Step 2 — Read the result data for the three H2 scenarios
+## Step 2 — Read the result data for the fee ladder
 
-The H2 comparison uses three feature-set configurations. For each, read its thesis snapshot evaluation report:
+The H2 comparison sweeps proportional fee levels on the shared baseline. For each, read its thesis snapshot evaluation report:
 
 ```bash
-# Minimal (3 features)
-cat thesis/qmd/results/pooled_td3_h3_features_minimal/latest_finished/evaluation_report.json
-
-# Selected (10 features) — the baseline
+# 0 bp — the shared baseline
 cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/latest_finished/evaluation_report.json
-
-# Full (33 features)
-cat thesis/qmd/results/pooled_td3_h3_features_full/latest_finished/evaluation_report.json
+# 0.01 bp
+cat thesis/qmd/results/pooled_td3_h3_fees_1e6/latest_finished/evaluation_report.json
+# 0.1 bp
+cat thesis/qmd/results/pooled_td3_h3_fees_1e5/latest_finished/evaluation_report.json
+# 1 bp
+cat thesis/qmd/results/pooled_td3_h3_fees_1e4/latest_finished/evaluation_report.json
 ```
 
-If a snapshot directory is missing, run:
-```bash
-ls thesis/qmd/results/
-```
-to see what is available, and note any missing scenarios as gaps.
+The scenario directories keep their legacy `td3_h3_fees_*` names. If a snapshot directory is missing, run `ls thesis/qmd/results/` and note it as a gap.
 
 ## Step 3 — Cross-check numbers
 
-The H2 section cites specific comparison values. Verify each against the JSON data:
+For every specific number cited in the prose (total_return, max_drawdown, win_rate, profit_factor, Sharpe, Sortino, turnover), verify it matches the value in the JSON. Flag any mismatch with: `MISMATCH: prose says X, data says Y`.
 
-Key metrics to compare across scenarios:
-- `total_return`
-- `sharpe_ratio`, `sortino_ratio`
-- `max_drawdown`
-- `win_rate`, `profit_factor`
-- `pct_long`, `pct_short`
-
-Flag any mismatch with: `MISMATCH: prose says X, data says Y`.
+Key checks:
+- `total_return` at each fee level — is it positive at 0 bp, marginal at 0.01 bp, negative from 0.1 bp?
+- `profit_factor` monotonically weakening as the fee rises
+- the fee level at which the sign flips (should be between 0.01 and 0.1 bp)
 
 ## Step 4 — Evaluate the H2 verdict
 
 Answer these questions explicitly:
 
-1. Does the **selected (10-feature) set outperform the minimal (3-feature) set** on total return and risk-adjusted metrics?
-2. Does the **full (33-feature) set outperform the selected set**? If not, does the prose correctly explain why (feature quality vs quantity)?
-3. Is the direction of improvement consistent across metrics, or mixed?
-4. Is the stated H2 verdict — "supported for minimal→selected transition, not for every broader set" — justified by the numbers?
-5. Are there any metrics where H2 goes in the wrong direction that the prose should acknowledge?
+1. Is the **transaction-cost sensitivity monotone** (performance degrades as costs increase)?
+2. Is the **zero-profit threshold between 0.01 bp and 0.1 bp**, i.e. a fraction of a basis point?
+3. Does the prose tie that threshold to the **bid–ask half-spread ceiling** on the microstructure signal (Section 4.3)?
+4. Is **H2 (how fast the reported result moves) kept distinct from H1 (existence + magnitude of the edge)**, while making clear the two meet at the same quantity?
+5. Is the stated H2 verdict consistent with the fee ladder?
 
 ## Step 5 — Create GitHub issues for findings
 
@@ -79,23 +73,23 @@ Track the issue numbers created.
 ## H2 Review
 
 ### Data available
-- [x/missing] pooled_td3_h3_features_minimal
-- [x/missing] pooled_td3_hft_lob_state_space_pooled_streaming_selected
-- [x/missing] pooled_td3_h3_features_full
+- [x/missing] pooled_td3_hft_lob_state_space_pooled_streaming_selected (0 bp baseline)
+- [x/missing] pooled_td3_h3_fees_1e6 (0.01 bp)
+- [x/missing] pooled_td3_h3_fees_1e5 (0.1 bp)
+- [x/missing] pooled_td3_h3_fees_1e4 (1 bp)
 
-### Comparison table (from data)
-| Metric       | Minimal | Selected | Full |
-|--------------|---------|----------|------|
-| total_return | ...     | ...      | ...  |
-| sharpe_ratio | ...     | ...      | ...  |
-| ...          |         |          |      |
+### Fee ladder (from data)
+| Metric        | 0 bp | 0.01 bp | 0.1 bp | 1 bp |
+|---------------|------|---------|--------|------|
+| total_return  | ...  | ...     | ...    | ...  |
+| profit_factor | ...  | ...     | ...    | ...  |
 
 ### Number verification
-| Metric | Scenario | Prose value | Data value | Status |
-|--------|----------|-------------|------------|--------|
+| Claim | Prose value | Data value | Status |
+|-------|-------------|------------|--------|
 
 ### Verdict assessment
-[Is H2 supported as stated? What nuance is missing?]
+[Is H2 supported as stated? Is the sign-flip location and its link to the half-spread ceiling accurate?]
 
 ### Gaps and recommendations
 - [List issues created: #N, #N, ...]
