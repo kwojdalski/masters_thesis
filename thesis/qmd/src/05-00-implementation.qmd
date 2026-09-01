@@ -37,7 +37,8 @@ is immediately deployable without further execution modeling.
 **Simulation engine.** The portfolio accounting layer is built on
 `tradingenv` [@XAIAssetManagement2024TradingEnv], an open-source
 event-driven market simulator developed by XAI Asset Management that
-implements the OpenAI Gymnasium protocol. The library models a broker
+implements the Gymnasium API, the Farama Foundation's maintained successor
+to OpenAI Gym. The library models a broker
 with configurable transaction fees, handles continuous portfolio
 rebalancing, and records a full trade history for post-episode analysis.
 It was integrated into the training pipeline via a custom wrapper
