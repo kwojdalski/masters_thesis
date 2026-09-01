@@ -91,7 +91,7 @@ import numpy as np
 import pandas as pd
 from IPython.display import HTML
 from thesis_mlflow_results import load_scenario_metrics, load_scenario_per_symbol_metrics
-from thesis_tables import fmt_val, display_df, table_note
+from thesis_tables import RESULTS_TABLE_COLS, fmt_val, display_df, table_note
 
 _H1_AGENTS = [
     ("pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr",    "TD3"),
@@ -100,19 +100,8 @@ _H1_AGENTS = [
     ("pooled_random_hft_lob_state_space_pooled_streaming_selected_dsr", "Random"),
 ]
 
-_H1_COLS = [
-    ("total_return",          "Return",    ".2%"),
-    ("annualized_volatility", "Ann. Vol",  ".4f"),
-    ("max_drawdown",          "Max DD",    ".2%"),
-    ("sharpe_ratio",          "Sharpe",    ".3f"),
-    ("sortino_ratio",         "Sortino",   ".3f"),
-    ("win_rate",              "Win Rate",  ".2%"),
-    ("lose_rate",             "Lose Rate", ".2%"),
-    ("profit_factor",         "PF",        ".3f"),
-    ("turnover",              "Turnover",  ".4f"),
-    ("pct_long",              "% Long",    ".2%"),
-    ("pct_short",             "% Short",   ".2%"),
-]
+# Shared across the H1/H2/H3/H4 results tables so they compare row-for-row.
+_H1_COLS = RESULTS_TABLE_COLS
 
 # Per-symbol evaluations for the four agents were not all run over the same
 # window (TD3's re-evaluation used a 10% window to save time after a config

@@ -22,6 +22,45 @@ import pandas as pd
 from IPython.display import HTML, Markdown, display
 
 # ---------------------------------------------------------------------------
+# Shared results-table column spec
+# ---------------------------------------------------------------------------
+
+# Every hypothesis results table -- the H1 algorithm comparison in 06-00 and the
+# H2/H3/H4 sensitivity tables in 06-02 -- reports these metrics, in this order
+# and these formats, so a reader can compare the tables row-for-row. In
+# particular % Long / % Short and Lose Rate are needed here because the H3/H4
+# prose diagnoses the saturated-policy arms by their pinned exposure.
+RESULTS_TABLE_COLS: list[tuple[str, str, str]] = [
+    ("total_return",          "Return",    ".2%"),
+    ("annualized_volatility", "Ann. Vol",  ".4f"),
+    ("max_drawdown",          "Max DD",    ".2%"),
+    ("sharpe_ratio",          "Sharpe",    ".3f"),
+    ("sortino_ratio",         "Sortino",   ".3f"),
+    ("win_rate",              "Win Rate",  ".2%"),
+    ("lose_rate",             "Lose Rate", ".2%"),
+    ("profit_factor",         "PF",        ".3f"),
+    ("turnover",              "Turnover",  ".4f"),
+    ("pct_long",              "% Long",    ".2%"),
+    ("pct_short",             "% Short",   ".2%"),
+]
+
+# Delta-sign convention for the metrics above (used by build_comparison_rows).
+# Keys absent here default to "higher is better"; % Long / % Short have no
+# directional preference and are left to that default since their delta rows
+# are secondary.
+RESULTS_TABLE_HIGHER_BETTER: dict[str, bool] = {
+    "total_return": True,
+    "annualized_volatility": False,
+    "max_drawdown": False,
+    "sharpe_ratio": True,
+    "sortino_ratio": True,
+    "win_rate": True,
+    "lose_rate": False,
+    "profit_factor": True,
+    "turnover": False,
+}
+
+# ---------------------------------------------------------------------------
 # Value formatters
 # ---------------------------------------------------------------------------
 

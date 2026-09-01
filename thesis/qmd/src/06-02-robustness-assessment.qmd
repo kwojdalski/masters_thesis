@@ -32,6 +32,12 @@ algorithm, feature set, and reward fixed, on a baseline with the selected
 locates the fee level at which the learned edge disappears, and it is the
 decisive test of the reworded Hypothesis 1.
 
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\begin{landscape}
+```
+:::
+
 ```{python}
 #| label: tbl-h2-transaction-costs
 #| echo: false
@@ -40,17 +46,11 @@ decisive test of the reworded Hypothesis 1.
 
 import pandas as pd
 from thesis_mlflow_results import load_scenario_metrics
-from thesis_tables import fmt_val, display_df, table_note
+from thesis_tables import RESULTS_TABLE_COLS, fmt_val, display_df, table_note
 
-_SENS_COLS = [
-    ("sharpe_ratio",  "Sharpe",   ".3f"),
-    ("sortino_ratio", "Sortino",  ".3f"),
-    ("total_return",  "Return",   ".2%"),
-    ("max_drawdown",  "Max DD",   ".2%"),
-    ("win_rate",      "Win Rate", ".2%"),
-    ("profit_factor", "PF",       ".3f"),
-    ("turnover",      "Turnover", ".4f"),
-]
+# Same column spec as the H1 comparison (06-00) and the H3/H4 tables below, so
+# the four hypothesis tables read row-for-row.
+_SENS_COLS = RESULTS_TABLE_COLS
 
 # The 0 bp arm is a clone of the H1 configuration (same features, reward,
 # train_size), differing only by env.trading_fees, so the ladder is a
@@ -79,6 +79,16 @@ else:
     table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 ```
+
+::: {.table-note}
+**Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
+:::
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\end{landscape}
+```
+:::
 
 The transaction-cost comparison determines how far the frictionless Hypothesis
 1 result can be interpreted economically. The policy trades actively at 0 and
@@ -143,7 +153,12 @@ out-of-sample performance.
 #| warning: false
 #| tbl-cap: "Hypothesis 3 feature sensitivity: test-split metrics for minimal (3), selected (10), and full (33) feature sets."
 
-from thesis_tables import build_comparison_rows, comparison_table_html
+from thesis_tables import (
+    RESULTS_TABLE_COLS,
+    RESULTS_TABLE_HIGHER_BETTER,
+    build_comparison_rows,
+    comparison_table_html,
+)
 
 # All three arms share the H1 train.yaml and differ only in observation.yaml,
 # so the feature set is the single varying factor. The "selected" arm is the
@@ -155,21 +170,11 @@ _FEATURE_SCENARIOS = [
     ("pooled_td3_h3_features_full",     "Full (33 features)",     False),
 ]
 
-_FEATURE_COLS = [
-    ("sharpe_ratio",          "Sharpe",   ".3f"),
-    ("sortino_ratio",         "Sortino",  ".3f"),
-    ("total_return",          "Return",   ".2%"),
-    ("max_drawdown",          "Max DD",   ".2%"),
-    ("win_rate",              "Win Rate", ".2%"),
-    ("profit_factor",         "PF",       ".3f"),
-    ("turnover",              "Turnover", ".4f"),
-    ("annualized_volatility", "Ann. Vol", ".4f"),
-]
-
-_HIGHER_BETTER = {
-    "sharpe_ratio": True, "sortino_ratio": True, "total_return": True,
-    "max_drawdown": False, "win_rate": True, "profit_factor": True, "annualized_volatility": False,
-}
+# Same column spec as the H1 comparison (06-00) and the H2/H4 tables, so the
+# four hypothesis tables read row-for-row. % Long / % Short in particular make
+# the saturated-arm diagnosis below visible in the table itself.
+_FEATURE_COLS = RESULTS_TABLE_COLS
+_HIGHER_BETTER = RESULTS_TABLE_HIGHER_BETTER
 
 scenario_metrics = [(label, load_scenario_metrics(exp), is_base) for exp, label, is_base in _FEATURE_SCENARIOS]
 rows = build_comparison_rows(scenario_metrics, _FEATURE_COLS, index_col="Feature Set", higher_better=_HIGHER_BETTER)
@@ -183,7 +188,7 @@ else:
 
 ::: {.table-note}
 **Source:** Author's own calculations.
-**Legend:** Sharpe: mean excess return / std (not annualized). Sortino: mean excess return / downside deviation (not annualized). Return: cumulative simple return. Max DD: maximum drawdown. Win Rate: fraction of positive-return steps. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. Ann. Vol: annualized volatility.
+**Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
 :::
 
 ::: {.content-visible when-format="pdf"}
@@ -230,6 +235,12 @@ This section compares the log-return baseline against the Differential Sharpe
 Ratio reward on an otherwise identical configuration (selected 10-feature set,
 zero transaction cost), holding the algorithm and data fixed.
 
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\begin{landscape}
+```
+:::
+
 ```{python}
 #| label: tbl-h4-reward-design
 #| echo: false
@@ -238,7 +249,8 @@ zero transaction cost), holding the algorithm and data fixed.
 
 # Both arms are clones of the H1 configuration differing only in reward_type
 # and its scaling, trained at a matched 500k-step budget, so the reward
-# objective is the single varying factor.
+# objective is the single varying factor. _SENS_COLS is the shared
+# RESULTS_TABLE_COLS spec defined in the Hypothesis 2 cell above.
 _reward_scenarios = [
     ("pooled_td3_h4_reward_logreturn", "Log Return (baseline)"),
     ("pooled_td3_h4_reward_dsr",       "Differential Sharpe (DSR)"),
@@ -260,6 +272,16 @@ else:
     table_note(source="Author's own calculations.")
     show_table_meta(finished, audit=_audit)
 ```
+
+::: {.table-note}
+**Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Sortino: mean excess return / downside deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
+:::
+
+::: {.content-visible when-format="pdf"}
+```{=latex}
+\end{landscape}
+```
+:::
 
 The comparison cannot be read as a like-for-like performance result, because
 the log-return arm did not produce a functioning policy. Across all six
