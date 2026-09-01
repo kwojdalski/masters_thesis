@@ -647,10 +647,13 @@ def lob_events_table(df: pd.DataFrame) -> None:
 
     win = df.iloc[best_start : best_start + 12].copy()
 
+    # Timestamps are UTC and prices are in US dollars by the document-wide
+    # convention stated in Section 5.1, so the column heads carry no unit
+    # suffix.
     RAW_COLS = [
-        "Timestamp (UTC)",
-        "Best Bid ($)",
-        "Best Ask ($)",
+        "Timestamp",
+        "Best Bid",
+        "Best Ask",
         "Bid Size",
         "Ask Size",
     ]
@@ -659,12 +662,12 @@ def lob_events_table(df: pd.DataFrame) -> None:
 
     tbl = pd.DataFrame(
         {
-            "Timestamp (UTC)": win["ts_event"]
+            "Timestamp": win["ts_event"]
             .dt.strftime("%H:%M:%S.%f")
             .str[:-3]
             .values,
-            "Best Bid ($)": win["bid_px_00"].round(2).values,
-            "Best Ask ($)": win["ask_px_00"].round(2).values,
+            "Best Bid": win["bid_px_00"].round(2).values,
+            "Best Ask": win["ask_px_00"].round(2).values,
             "Bid Size": win["bid_sz_00"].astype(int).values,
             "Ask Size": win["ask_sz_00"].astype(int).values,
             "Book Pressure": win["feature_hft_book_pressure_l0"].round(3).values,
