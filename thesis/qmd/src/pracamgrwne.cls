@@ -43,6 +43,42 @@
 % requires (the list of lists is treated like the table of contents).
 \renewcommand{\cftlaptitlefont}{\cftloftitlefont}
 
+% Annex D p. 15 sets the whole list-of-lists block at the body's 12 pt: its
+% "LIST OF APPENDICES" heading and its "List of shorts" / "List of tables" /
+% "List of pictures" sub-headings all measure 12.0 pt bold at the 25 mm left
+% margin, consistent with "Font of thesis: Times New Roman, size 12 points.
+% The same applies to the font of chapters and subsections" (p. 5). These
+% three titles printed at 17.2 pt, tocloft's \Large default, which also made
+% them inconsistent with BIBLIOGRAPHY and the glossary heading in this same
+% document at 12 pt.
+\renewcommand{\cfttoctitlefont}{\normalsize\bfseries}
+\renewcommand{\cftlottitlefont}{\normalsize\bfseries}
+\renewcommand{\cftloftitlefont}{\normalsize\bfseries}
+
+% Annex D prints its entries as "Tabel 1. Zestawienie wartosci ... 23" and
+% "Pic. 1. Schemat ... 12" -- the label word is part of the entry. WNE UW
+% rule 15 assumes it is there, asking that wrapped lines be indented so
+% "Table 12." or "Fig. 13." stays visible. These lists printed a bare "1.",
+% so there was no label to keep visible. The words match the body captions
+% ("Table N." / "Figure N."), so the two agree.
+% tocloft's \cfttabpresnum / \cftfigpresnum cannot be used for this: line 379
+% below redefines \numberline globally to typeset "#1." in a fixed box, which
+% is what puts the period after each number throughout the contents, and it
+% bypasses tocloft's prefix mechanism entirely. The label is therefore added
+% by wrapping \l@table and \l@figure, which receive the already-formatted
+% entry and can prepend to it.
+\let\@oldlottable\l@table
+\renewcommand*\l@table[2]{\@oldlottable{Table~#1}{#2}}
+\let\@oldlotfigure\l@figure
+\renewcommand*\l@figure[2]{\@oldlotfigure{Figure~#1}{#2}}
+% Room for the widest label plus its number, or tocloft truncates it.
+\settowidth{\cfttabnumwidth}{Table 88.\quad}
+\settowidth{\cftfignumwidth}{Figure 88.\quad}
+% Annex D starts its entries at the 25 mm left margin, not indented.
+\setlength{\cfttabindent}{0pt}
+\setlength{\cftfigindent}{0pt}
+\setlength{\cftappendicesindent}{0pt}
+
 % tocloft's own \listoffigures/\listoftables definitions are deferred via
 % \AtBeginDocument (see tocloft.sty), which runs after any ordinary preamble
 % \renewcommand -- so redefining these commands here must ALSO be deferred
