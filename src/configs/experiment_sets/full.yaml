@@ -35,4 +35,10 @@ hypotheses:
     - pooled/td3_h5_latency_1ms_dsr
     - pooled/td3_h5_latency_5ms_dsr
 
+  h5e:  # execution staleness in order-book events (exec_latency_ticks only)
+    - pooled/td3_h5_events_k1_dsr
+    - pooled/td3_h5_events_k2_dsr
+    - pooled/td3_h5_events_k4_dsr
+    - pooled/td3_h5_events_k8_dsr
+
 overrides: []

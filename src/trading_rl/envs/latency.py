@@ -189,16 +189,25 @@ def _us_to_ticks(
     ns_vals: np.ndarray = timestamps.asi8  # zero-copy int64 ns view
     target_ns = int(latency_us * 1_000)  # us -> ns
 
-    # Probe start points spread across the window; the last probe leaves room
-    # for the search to run past it.
-    starts = np.unique(np.linspace(0, max(0, n - 2), num=min(n_probes, n - 1)).astype(int))
-    offsets = []
-    for t in starts:
-        rel = ns_vals[t:] - ns_vals[t]
+    def _offset_from(t: int) -> int:
         # side="right" then step back one: the last event at or before arrival.
-        k = int(np.searchsorted(rel, target_ns, side="right")) - 1
-        offsets.append(max(0, k))
-    return int(min(np.median(offsets), n - 1))
+        rel = ns_vals[t:] - ns_vals[t]
+        return max(0, int(np.searchsorted(rel, target_ns, side="right")) - 1)
+
+    # Probe several start points so one long gap cannot dominate, but only
+    # where the window is long enough for later probes to have runway. A probe
+    # starting near the end would resolve short simply because the window runs
+    # out, which would bias the median down rather than make it representative.
+    span_ns = int(ns_vals[-1] - ns_vals[0])
+    if n < 64 or span_ns <= 2 * target_ns:
+        return min(_offset_from(0), n - 1)
+
+    # Keep every probe at least `target_ns` clear of the window end.
+    usable = int(np.searchsorted(ns_vals - ns_vals[0], span_ns - target_ns, side="right"))
+    starts = np.unique(
+        np.linspace(0, max(0, usable - 1), num=min(n_probes, max(1, usable))).astype(int)
+    )
+    return int(min(np.median([_offset_from(t) for t in starts]), n - 1))
 
 
 class FixedTimedLatency(LatencyModel):

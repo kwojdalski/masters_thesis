@@ -133,12 +133,32 @@ _H5_SCENARIOS = [
     "pooled/td3_h5_latency_5ms_dsr",
 ]
 
+# Execution latency expressed directly in order-book events. Each arm differs
+# from the H1 configuration only by `env.exec_latency_ticks`, which offsets the
+# fill by exactly that many rows with no timestamp resolution involved.
+#
+# This complements _H5_SCENARIOS rather than replacing it. The two ladders
+# answer different questions and neither substitutes for the other. Events are
+# a mechanically exact unit -- k is k on every instrument -- and isolate how
+# many book updates of staleness the signal survives. They are not a physical
+# unit: one event is roughly 24 us on TSLA against 173 us on META, so an event
+# ladder applies a different wall-clock delay per symbol and cannot on its own
+# support a claim about latency budgets. Microseconds are the physical unit and
+# carry that claim; events isolate the mechanism.
+_H5_EVENT_SCENARIOS = [
+    "pooled/td3_h5_events_k1_dsr",
+    "pooled/td3_h5_events_k2_dsr",
+    "pooled/td3_h5_events_k4_dsr",
+    "pooled/td3_h5_events_k8_dsr",
+]
+
 _SCENARIOS: dict[str, list[str]] = {
     "h1": _H1_SCENARIOS,
     "h2": _H2_SCENARIOS,
     "h3": _H3_SCENARIOS,
     "h4": _H4_SCENARIOS,
     "h5": _H5_SCENARIOS,
+    "h5e": _H5_EVENT_SCENARIOS,
 }
 
 _EVAL_ONLY: dict[str, list[str]] = {
@@ -157,6 +177,7 @@ _EVAL_ONLY: dict[str, list[str]] = {
     "h3": ["metrics"],
     "h4": ["metrics"],
     "h5": ["metrics"],
+    "h5e": ["metrics"],
 }
 
 # Values are argv tails for scripts/<name>; _run_report splices in the
@@ -171,6 +192,11 @@ _REPORT_SCRIPTS: dict[str, list[str]] = {
         "sensitivity_report.py",
         "--config",
         "src/configs/h5_execution_latency.yaml",
+    ],
+    "h5e": [
+        "sensitivity_report.py",
+        "--config",
+        "src/configs/h5_event_offset.yaml",
     ],
 }
 
@@ -884,6 +910,48 @@ def h5(
     """
     run_hypothesis(
         "h5",
+        _apply_experiment_set(
+            RunArgs(
+                skip_train=skip_train,
+                skip_eval=skip_eval,
+                parallel=parallel,
+                max_parallel=max_parallel,
+                verbose=verbose,
+                skip_guardrails=skip_guardrails,
+                overrides=overrides or [],
+                dev=dev,
+                dev_steps=dev_steps,
+                max_train_seconds=max_train_seconds,
+            ),
+            set_name,
+            debug,
+        ),
+    )
+
+
+@app.command()
+def h5e(
+    skip_train: _SkipTrain = False,
+    skip_eval: _SkipEval = False,
+    parallel: _Parallel = False,
+    max_parallel: _MaxParallel = 2,
+    verbose: _Verbose = False,
+    skip_guardrails: _SkipGuardrails = False,
+    overrides: _Overrides = None,
+    dev: _Dev = False,
+    dev_steps: _DevSteps = 2000,
+    set_name: _SetName = "full",
+    debug: _DebugSet = False,
+    max_train_seconds: _MaxTrainSeconds = None,
+) -> None:
+    """Test how staleness measured in order-book events affects TD3.
+
+    Offsets the fill by a fixed number of events rather than a wall-clock
+    delay, so the offset is identical on every instrument. Complements the
+    microsecond ladder in `h5`, which carries the physical-latency claim.
+    """
+    run_hypothesis(
+        "h5e",
         _apply_experiment_set(
             RunArgs(
                 skip_train=skip_train,

@@ -1,0 +1,43 @@
+# H5 (event-offset variant): sensitivity to staleness measured in order-book events.
+#
+# Companion to h5_execution_latency.yaml. Each arm offsets the fill by exactly
+# k rows via env.exec_latency_ticks, with no timestamp resolution involved, so
+# k is identical on every instrument.
+#
+# The two ladders answer different questions. Events isolate how many book
+# updates of staleness the signal survives, which is a clean mechanical
+# question. They are not a physical unit -- one event is roughly 24 us on TSLA
+# against 173 us on META -- so an event ladder applies a different wall-clock
+# delay per symbol and cannot on its own support a claim about latency budgets.
+# The microsecond ladder carries that claim.
+#
+# Run order to reproduce:
+#   uv run python src/cli.py train --scenario pooled/td3_h5_events_k1_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h5_events_k2_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h5_events_k4_dsr
+#   uv run python src/cli.py train --scenario pooled/td3_h5_events_k8_dsr
+
+axes:
+  - name: event_offset
+    label: "Fill Offset (order-book events)"
+    scenarios:
+      - label: "0 events"
+        log_dir: logs/td3_h5_latency_0_dsr
+        exec_latency_ticks: 0
+        baseline: true
+      - label: "1 event"
+        log_dir: logs/td3_h5_events_k1_dsr
+        exec_latency_ticks: 1
+        baseline: false
+      - label: "2 events"
+        log_dir: logs/td3_h5_events_k2_dsr
+        exec_latency_ticks: 2
+        baseline: false
+      - label: "4 events"
+        log_dir: logs/td3_h5_events_k4_dsr
+        exec_latency_ticks: 4
+        baseline: false
+      - label: "8 events"
+        log_dir: logs/td3_h5_events_k8_dsr
+        exec_latency_ticks: 8
+        baseline: false
