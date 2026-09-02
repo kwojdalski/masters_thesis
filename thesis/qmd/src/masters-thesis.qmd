@@ -1,8 +1,13 @@
 ---
 title: Microstructure-Aware Reinforcement Learning for High-Frequency Trading
 author: Krzysztof Wojdalski
+# Annex D dates the title page "Warsaw, July 2020" -- place, month, year. The
+# previous format printed a wall-clock build time ("September 2, 2026 02:13
+# UTC"), which changed on every render and read as a build artifact on a
+# submitted document. Replace `now` with the actual submission month once it
+# is fixed.
 date: now
-date-format: "MMMM D, YYYY HH:mm [UTC]"
+date-format: "[Warsaw,] MMMM YYYY"
 fig-cap-location: top
 format:
   pdf:
