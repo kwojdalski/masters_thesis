@@ -56,7 +56,7 @@ Section 7.2. Section 6.4 sets out the evidence in full.
 That two of the four hypotheses reduce to the same failure is itself the more
 substantial finding. Four separately configured arms across Hypotheses 3 and 4
 collapsed to a constant, saturated position under an identical architecture,
-budget, and dataset, two pinned long and two pinned short. This locates the
+budget, and dataset, three pinned long and one pinned short. This locates the
 binding constraint on the present results in training stability rather than in
 feature or reward design, and it is the first thing a continuation of this work
 should address.
