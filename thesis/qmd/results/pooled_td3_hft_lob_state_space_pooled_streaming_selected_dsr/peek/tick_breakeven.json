@@ -2,31 +2,43 @@
   {
     "symbol": "META",
     "mean_price": 652.8946783455492,
-    "breakeven_fee_bp": 0.07658203023909031
+    "breakeven_fee_bp": 0.07658203023909031,
+    "half_spread_bp_mean": 1.861175932328794,
+    "half_spread_bp_median": 1.6067698569977609
   },
   {
     "symbol": "TSLA",
     "mean_price": 400.0987392079451,
-    "breakeven_fee_bp": 0.12496915161238056
+    "breakeven_fee_bp": 0.12496915161238056,
+    "half_spread_bp_mean": 0.6970974465373021,
+    "half_spread_bp_median": 0.6225642174984689
   },
   {
     "symbol": "MSFT",
     "mean_price": 398.48231887853893,
-    "breakeven_fee_bp": 0.1254760817009812
+    "breakeven_fee_bp": 0.1254760817009812,
+    "half_spread_bp_mean": 0.9307197969972887,
+    "half_spread_bp_median": 0.874617354907143
   },
   {
     "symbol": "AVGO",
     "mean_price": 315.48697341409974,
-    "breakeven_fee_bp": 0.15848514903457311
+    "breakeven_fee_bp": 0.15848514903457311,
+    "half_spread_bp_mean": 2.182952856326256,
+    "half_spread_bp_median": 1.909854851031394
   },
   {
     "symbol": "AAPL",
     "mean_price": 264.3717590390341,
-    "breakeven_fee_bp": 0.18912761401499614
+    "breakeven_fee_bp": 0.18912761401499614,
+    "half_spread_bp_mean": 0.5548661685879921,
+    "half_spread_bp_median": 0.3798670465333677
   },
   {
     "symbol": "AMZN",
     "mean_price": 207.96955012806984,
-    "breakeven_fee_bp": 0.2404198113099224
+    "breakeven_fee_bp": 0.2404198113099224,
+    "half_spread_bp_mean": 0.6793427333456629,
+    "half_spread_bp_median": 0.4844257133171107
   }
 ]
