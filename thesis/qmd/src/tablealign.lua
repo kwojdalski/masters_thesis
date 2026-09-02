@@ -32,6 +32,15 @@ a neutral placeholder, and at least one is an actual number. Anything else
 (a status word, a timestamp, prose) leaves the column untouched.
 --]]
 
+-- Trailing units that do not make a value non-numeric. fmt_duration in
+-- thesis_tables renders inter-event times as "16.57 ms", "39.1 µs" and
+-- "1.250 s". Longest first, so "ms" is tried before the bare "s". Both
+-- encodings of mu are listed -- U+00B5 MICRO SIGN and U+03BC GREEK SMALL
+-- LETTER MU render identically and are easy to mix up. A Lua character
+-- class cannot hold either: they are two UTF-8 bytes, and the class would
+-- match only one byte of the pair.
+local UNITS = { "\u{00B5}s", "\u{03BC}s", "ms", "ns", "s" }
+
 -- Values that neither confirm nor disqualify a column as numeric: the
 -- missing-data placeholders and empty cells these tables use.
 local PLACEHOLDERS = {
@@ -53,6 +62,24 @@ local function classify(text)
   s = s:gsub("^[%-%+]", "")      -- ASCII sign
   s = s:gsub("^\u{2212}", "")    -- U+2212 MINUS SIGN
   s = s:gsub("^\u{2013}", "")    -- U+2013 EN DASH used as a minus
+
+  -- A trailing unit does not make a value non-numeric. thesis_tables
+  -- .fmt_duration renders inter-event times as "16.57 ms", "39.1 µs" and
+  -- "1.250 s", which left the Mean and Median columns of the raw-file
+  -- inventory ranged left while Events and Trades beside them were ranged
+  -- right. Only this closed set is stripped, and only directly after a digit,
+  -- so a genuine text column is still disqualified: "Train", "N/A per symbol"
+  -- and the like do not match. µ is accepted in both its encodings, U+00B5
+  -- MICRO SIGN and U+03BC GREEK SMALL LETTER MU, which render identically and
+  -- are easy to mix up.
+  for _, unit in ipairs(UNITS) do
+    if #s > #unit and s:sub(-#unit) == unit then
+      local head = s:sub(1, #s - #unit)
+      -- Only a digit immediately before the unit counts. That keeps genuine
+      -- text out: "Events" ends in "s" but has no digit in front of it.
+      if head:match("%d$") then s = head break end
+    end
+  end
 
   if s == "" then return nil end
   if s:match("^%d+%.?%d*$") then return true end                    -- 12  12.34
