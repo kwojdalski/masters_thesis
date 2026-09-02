@@ -847,10 +847,18 @@ def export_experiment_snapshot(
         if _write_asset_meta:
             _write_asset_meta(_parquet_path, generator="thesis_mlflow_results.py")
         _json_path = output_dir / "runs_overview.json"
+        # to_json only emits a trailing newline with lines=True, so append one
+        # to match the empty-runs branch below, which writes the same filename
+        # through _write_json. Kept on to_json rather than routed through the
+        # helper because pandas and json.dumps serialise differently ("k":v vs
+        # "k": v, and float formatting); switching would rewrite every
+        # committed runs_overview.json wholesale.
         runs_df.assign(
             start_time=runs_df["start_time"].astype(str),
             end_time=runs_df["end_time"].astype(str),
         ).to_json(_json_path, orient="records", indent=2)
+        with _json_path.open("a", encoding="utf-8") as _fh:
+            _fh.write("\n")
         if _write_asset_meta:
             _write_asset_meta(_json_path, generator="thesis_mlflow_results.py")
     else:
