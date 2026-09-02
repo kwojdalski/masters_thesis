@@ -65,7 +65,7 @@ if _is_placeholder:
 ```{python}
 #| echo: false
 #| label: tbl-benchmark-comparison
-#| tbl-cap: "Benchmark Strategy Performance Comparison"
+#| tbl-cap: "Benchmark strategy performance comparison on the test split."
 
 from IPython.display import HTML
 from thesis_tables import table_note
