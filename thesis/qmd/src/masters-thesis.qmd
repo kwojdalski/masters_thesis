@@ -139,24 +139,27 @@ evaluation.
 
 ```{=latex}
 \makeatletter
+% Annex D centres every element of this page except the summary body: the
+% bold headings and, below each of them, the value itself. Measured off the
+% Annex D PDF, "Economics (14300)" sits at 88.4 mm left / 87.6 mm right on a
+% 596 pt page. These four values were previously flush left against centred
+% headings. The summary above is the one block Annex D sets full width,
+% justified and unindented.
 {\centering\bfseries Key words\par}
-% The model thesis specifies "words centered" for the keyword line. The
-% English keywords were previously set flush left while the Polish ones
-% below them were centred, so the two disagreed.
 {\centering\@keywords\par}
 {\centering(\textit{Słowa kluczowe: \keywordspl})\par}
 
 \vspace{6pt}
 {\centering\bfseries Field of the thesis (codes according to the Erasmus program)\par}
-\noindent\@dziedzina\par
+{\centering\@dziedzina\par}
 
 \vspace{6pt}
 {\centering\bfseries Thematic classification\par}
-\noindent\@klasyfikacja\par
+{\centering\@klasyfikacja\par}
 
 \vspace{6pt}
 {\centering\bfseries The title of the thesis in Polish\par}
-\noindent\@tytulang\par
+{\centering\@tytulang\par}
 \makeatother
 ```
 
