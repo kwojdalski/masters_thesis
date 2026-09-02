@@ -120,13 +120,25 @@ def main() -> int:
     obs = {a: h[1].get("n_obs") for a, h in found.items()}
     syms = {a: tuple(h[1].get("symbols") or []) for a, h in found.items()}
     if len(set(obs.values())) != 1 or len(set(syms.values())) != 1:
-        print(f"\nrollouts are not comparable: n_obs={obs} symbols={syms}", file=sys.stderr)
+        print(
+            f"\nrollouts are not comparable: n_obs={obs} symbols={syms}",
+            file=sys.stderr,
+        )
         return 1
-    print(f"\n  matched: {list(syms.values())[0]} over {list(obs.values())[0]:,} steps")
+    # Every value is identical here -- the comparability check above returned
+    # otherwise -- so take the first of each.
+    matched_syms = next(iter(syms.values()))
+    matched_obs = next(iter(obs.values()))
+    print(f"\n  matched: {matched_syms} over {matched_obs:,} steps")
 
     dest = (
-        REPO_ROOT / "thesis" / "qmd" / "results" / DEST_EXPERIMENT
-        / "evaluation_plots_comparison" / args.split
+        REPO_ROOT
+        / "thesis"
+        / "qmd"
+        / "results"
+        / DEST_EXPERIMENT
+        / "evaluation_plots_comparison"
+        / args.split
     )
     dest.mkdir(parents=True, exist_ok=True)
 
@@ -159,7 +171,9 @@ def main() -> int:
         merged.to_parquet(out, index=False)
         written += 1
         series = ", ".join(merged["Run"].unique())
-        print(f"  {frame:<11} {len(merged):>7,} rows  [{series}]  {out.stat().st_size/1e3:.0f} kB")
+        print(
+            f"  {frame:<11} {len(merged):>7,} rows  [{series}]  {out.stat().st_size / 1e3:.0f} kB"
+        )
 
     # The figures read axis labels and the symbol list from this sidecar.
     for meta in found[REFERENCE][0].glob("*_plot_meta.json"):
@@ -172,11 +186,12 @@ def main() -> int:
                 "checkpoint_step": args.checkpoint_step,
                 "split": args.split,
                 "stride": args.stride,
-                "n_obs": list(obs.values())[0],
-                "symbols": list(syms.values())[0],
+                "n_obs": matched_obs,
+                "symbols": list(matched_syms),
             },
             indent=2,
         )
+        + "\n"
     )
     print(f"\nexported {written} frames to {dest.relative_to(REPO_ROOT)}")
     return 0
