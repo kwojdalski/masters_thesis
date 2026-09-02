@@ -265,6 +265,15 @@ timing per symbol and split, before the level-0-4 filter described in
 training days per symbol (February 25-27, 2026); validation and test each
 cover one chronological half of the March 2 session.
 
+```{=latex}
+% Table 12 fits on one page but its source and note did not, so longtable
+% spilled and emitted a second chunk carrying a repeated caption and header
+% with no rows under it -- which also produced two entries numbered 12 in
+% the List of Tables. Starting the block on a fresh page leaves room for the
+% table and its note together.
+\clearpage
+```
+
 ```{python}
 #| label: tbl-raw-file-inventory
 #| tbl-cap: "Raw MBP-10 event counts and inter-event timing per symbol and split."

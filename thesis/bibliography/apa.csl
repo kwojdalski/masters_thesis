@@ -2244,7 +2244,12 @@
       </choose>
     </group>
   </macro>
-  <bibliography entry-spacing="0" et-al-min="21" et-al-use-first="19" et-al-use-last="true" hanging-indent="true" line-spacing="2">
+  <!-- entry-spacing 1, not the upstream 0: WNE UW requirement 14 asks for "a
+       blank line with single spacing between entries". Pandoc maps this to the
+       CSLReferences list \itemsep as entry-spacing x \baselineskip, so 0 ran
+       every entry together with no separation. Re-apply if apa.csl is
+       refreshed from the upstream CSL repository. -->
+  <bibliography entry-spacing="1" et-al-min="21" et-al-use-first="19" et-al-use-last="true" hanging-indent="true" line-spacing="2">
     <sort>
       <key macro="author-sort"/>
       <key macro="date-sort-group"/>
