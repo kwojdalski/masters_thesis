@@ -51,7 +51,7 @@ demonstrably in what the reward objective rewards, and alternative reward
 scalings tried during development did not recover the log-return arm.
 Establishing whether the log-return objective is unsuitable in this setting or
 merely mis-configured requires the training-stability work identified in
-Section 7.2.
+Section 7.2. Section 6.4 sets out the evidence in full.
 
 That two of the four hypotheses reduce to the same failure is itself the more
 substantial finding. Four separately configured arms across Hypotheses 3 and 4
