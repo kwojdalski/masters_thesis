@@ -67,10 +67,14 @@ if _is_placeholder:
 #| label: tbl-benchmark-comparison
 #| tbl-cap: "Benchmark strategy performance comparison on the test split."
 
-from IPython.display import HTML
+from IPython.display import HTML, display
 from thesis_tables import table_note
 
-HTML(benchmark_df.to_html(index=False))
+# display(), not a bare HTML(...) expression: Jupyter auto-renders only the
+# last expression of a cell, and this one is followed by the table_note and
+# show_table_meta calls. The table was being built and discarded, so Table 9
+# printed as a caption and a source line with nothing between them.
+display(HTML(benchmark_df.to_html(index=False)))
 table_note(
     source="Author's own calculations.",
     note=(
@@ -230,7 +234,7 @@ if _plot_data.get("rewards") is not None:
     )
     show_plot(_p, _plot_data, frame="rewards", fig_label="fig-eval-rewards",
               fig_cap="Cumulative reward over the held-out test split.",
-              audit=_audit, render_base_size=11)
+              audit=_audit, render_base_size=11, width=7.5)
 else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Reward"), command=_RERUN_CMD)
@@ -263,7 +267,7 @@ if _plot_data.get("actions") is not None:
     )
     show_plot(_p, _plot_data, frame="actions", fig_label="fig-eval-positions",
               fig_cap="Portfolio allocation over the held-out test split.",
-              audit=_audit, render_base_size=11)
+              audit=_audit, render_base_size=11, width=7.5)
 else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Action/position"), command=_RERUN_CMD)
