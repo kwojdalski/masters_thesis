@@ -1,0 +1,1 @@
+{"is_portfolio": true, "stride": 19, "date_str": "2026-03-02 16:53:17 \u2013 2026-03-02 20:59:59", "reward_type": "differential_sharpe", "training_episodes": 300, "training_steps": 3000000, "symbols": ["AAPL"], "initial_portfolio_value": 10000.0, "n_obs": 969218, "allocation_ma_window": 500, "n_total_symbols": null, "policy_mode": "deterministic"}

@@ -1,0 +1,15 @@
+{
+  "runs": {
+    "TD3": "d7c200923b694f1c81e0ef7186ab0c00",
+    "DDPG": "79495cce7e1b4f3aa1dc08610414664d",
+    "PPO": "4ba06d69e2cc4ceebc128bb8fe44446f",
+    "Random": "936aca366f084bdfaaf26ba480ad154c"
+  },
+  "checkpoint_step": 3000000,
+  "split": "test",
+  "stride": 25,
+  "n_obs": 969218,
+  "symbols": [
+    "AAPL"
+  ]
+}

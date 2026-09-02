@@ -25,6 +25,13 @@ PALETTE: dict[str, str] = {
     "TWAP": "#56B4E9",  # sky blue
     "VWAP": "#D55E00",  # vermillion
     "Short-and-Hold": "#CC79A7",  # pink
+    # Named learners, for figures that compare the algorithms against each
+    # other rather than one policy against the passive benchmarks. TD3 keeps
+    # "Deterministic"'s red so the same agent reads the same colour across
+    # figures; the other two take unused Wong hues.
+    "TD3": "#CC0000",  # red, matching Deterministic
+    "DDPG": "#0072B2",  # blue
+    "PPO": "#009E73",  # green
 }
 
 # Line-type mapping for equity-curve plots.
@@ -40,6 +47,14 @@ LINETYPE: dict[str, str] = {
     "Max Profit (Unleveraged)": "dashdot",
     "TWAP": "dashdot",
     "VWAP": "dashed",
+    # Learners are solid: the eye should read the dashed lines as the passive
+    # references and the solid ones as trained policies. They stay separable
+    # by colour. A series missing from this map raises TypeError inside
+    # scale_linetype_manual rather than falling back to a default, so any new
+    # series label has to be added here as well as to PALETTE.
+    "TD3": "solid",
+    "DDPG": "solid",
+    "PPO": "solid",
 }
 
 # Single figure width that fits inside A4 / US-Letter thesis margins

@@ -342,6 +342,7 @@ def find_plot_run_in_experiment(
 
 def find_exported_plot_data(
     experiment_name: str,
+    subdir: str = "evaluation_plots",
 ) -> tuple[dict[str, Any], dict[str, Any]] | tuple[dict[str, Any], None]:
     """Load rollout plot data from the committed snapshot under thesis/qmd/results.
 
@@ -355,11 +356,11 @@ def find_exported_plot_data(
     ``find_plot_run_in_experiment``, so the caller can caption the figures
     identically whichever source supplied them.
     """
-    root = _experiment_snapshot_dir(experiment_name) / "evaluation_plots"
+    root = _experiment_snapshot_dir(experiment_name) / subdir
     if not root.is_dir():
         return {}, None
 
-    data = find_evaluation_plot_data(str(root.parent), artifact_subdir="evaluation_plots")
+    data = find_evaluation_plot_data(str(root.parent), artifact_subdir=subdir)
     if not data:
         return {}, None
 
@@ -370,15 +371,29 @@ def find_exported_plot_data(
         "n_obs": data.get("n_obs"),
         "date_str": data.get("date_str"),
     }
+
     # The exporter records which run the parquets came from. The figures name
     # it in their captions, and with no MLflow database there is nothing else
     # to read it from.
     meta_path = root / "provenance.json"
+    if not meta_path.exists():
+        meta_path = root.parent / f"{subdir}_provenance.json"
     if meta_path.exists():
         try:
             import json
 
-            provenance["run_id"] = str(json.loads(meta_path.read_text()).get("run_id", ""))
+            recorded = json.loads(meta_path.read_text())
+            provenance["run_id"] = str(recorded.get("run_id", ""))
+            # The comparison export records which algorithms it merged and
+            # what it matched them on. The caller needs both to caption the
+            # figure honestly, since the reader is being invited to read one
+            # line against another.
+            if isinstance(recorded.get("runs"), dict):
+                provenance["runs"] = list(recorded["runs"])
+                provenance["checkpoint_step"] = recorded.get("checkpoint_step")
+            for key in ("n_obs", "symbols"):
+                if recorded.get(key) is not None:
+                    provenance[key] = recorded[key]
         except Exception as exc:
             _log_fallback("reading exported rollout provenance", exc)
 
