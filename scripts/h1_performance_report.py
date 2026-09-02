@@ -21,9 +21,10 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from _results_io import SplitEntry, basis_warning, load_split_entry
 from rich.console import Console
 from rich.table import Table
+
+from trading_rl.evaluation.results_io import SplitEntry, basis_warning, load_split_entry
 
 _DEFAULT_CONFIG = Path("src/configs/h1_performance.yaml")
 
@@ -78,9 +79,14 @@ def beats(agent_val: Any, bench_val: Any, higher_is_better: bool = True) -> str:
 
 def build_agent_table(
     agent_label: str,
-    resolved: SplitEntry,
+    resolved: SplitEntry | dict[str, Any],
     bench_specs: list[dict[str, str]],
 ) -> Table:
+    # Accepts a bare results entry as well as a SplitEntry. Provenance is only
+    # needed for the title suffix, so requiring callers to wrap a plain entry
+    # just to render a table would couple the two for no benefit.
+    if not isinstance(resolved, SplitEntry):
+        resolved = SplitEntry(resolved, "", [])
     agent_data = resolved.entry
     agent_metrics = agent_data.get("metrics") or {}
     benchmarks = agent_data.get("benchmarks") or {}
@@ -89,8 +95,10 @@ def build_agent_table(
         basis = f" [{', '.join(resolved.symbols)}, equal-weight mean]"
     elif resolved.kind == "per_symbol":
         basis = f" [{resolved.symbols[0]} only]"
-    else:
+    elif resolved.kind == "pooled":
         basis = " [pooled]"
+    else:
+        basis = ""
 
     t = Table(
         title=f"{agent_label} vs Benchmarks{basis}",
