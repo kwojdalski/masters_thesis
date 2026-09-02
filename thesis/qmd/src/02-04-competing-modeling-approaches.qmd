@@ -1,9 +1,9 @@
 ## Competing Modeling Approaches
 
 Alternatives to reinforcement learning differ along two dimensions: learning
-paradigm and decision-system architecture. The relevant paradigms are supervised,
-unsupervised, semi-supervised, and reinforcement learning. Their architectural
-differences motivate the choice of reinforcement learning for the present problem.
+paradigm and decision-system architecture. The relevant paradigms are supervised
+and reinforcement learning. Their architectural differences motivate the choice
+of reinforcement learning for the present problem.
 
 ### Learning Paradigms
 
@@ -65,41 +65,13 @@ irrelevant, but because the empirical question studied here concerns continuous
 exposure control under a reward function that includes the consequences of
 position changes directly.
 
-**Unsupervised Learning.** Unsupervised learning identifies structure in unlabeled data
-$\{X_i\}_{i=1}^{n}$ without a target variable. In trading research it is
-primarily used for market regime detection (clustering volatility or
-microstructure states), dimensionality reduction of large feature sets
-(PCA, autoencoders), and anomaly detection in order flow data.
-
-These applications are useful as preprocessing or exploratory tools, but
-unsupervised learning does not produce trading decisions directly. It carries
-no reward signal and cannot optimize for a financial objective such as
-risk-adjusted return. In the present thesis, the regime-conditioning problem
-is addressed implicitly through engineered microstructure features (spread
-ratio, inter-event time, temporal encodings) that condition the agent's
-observation on the current market state without requiring an explicit
-unsupervised clustering step.
-
-**Semi-Supervised Learning.** Semi-supervised learning combines a small labeled set with a larger unlabeled
-set, propagating label information through structural similarity in the data.
-It is useful when labeling is expensive or subjective. Medical annotation is
-the canonical application.
-
-In financial trading, the approach is rarely adopted because the main bottleneck
-is not label scarcity but the absence of a stable labeling criterion: what
-constitutes an optimal action at a given market state depends on subsequent
-price evolution, which is noisy and non-stationary. Constructing pseudo-labels
-for unlabeled market observations requires either a strong prior on optimal
-behavior or a separate forecasting model. At that point, the problem has
-already been reformulated as supervised or reinforcement learning. This
-instability of financial labels is documented in the literature: fixed-horizon
-labeling schemes are path-dependent and regime-sensitive, which motivates the
-triple-barrier method as a more robust alternative. This is itself an acknowledgment
-that no universal labeling criterion exists across market conditions
-[@Lopez2018, ch. 3].
-
-The same conclusion follows from a second perspective: the architecture of the
-decision system itself.
+Unsupervised and semi-supervised methods are set aside here. Neither produces
+trading decisions directly, and both founder on the same obstacle: no stable
+criterion exists for labeling the optimal action at a given market state
+[@Lopez2018, ch. 3]. Regime conditioning, the most relevant unsupervised
+application, is handled here implicitly through engineered microstructure
+features rather than an explicit clustering step. The same conclusion follows
+from a second perspective: the architecture of the decision system itself.
 
 ### Decision-System Architectures
 
