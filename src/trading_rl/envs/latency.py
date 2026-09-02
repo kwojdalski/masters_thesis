@@ -220,3 +220,119 @@ def make_latency_model(ticks: int = 0, us: float = 0.0) -> LatencyModel | None:
     if us > 0.0:
         return FixedTimedLatency(us)
     return None
+
+
+def resolve_total_latency_ticks(
+    env_config: object,
+    index: pd.Index,
+    rng: np.random.Generator | None = None,
+) -> int:
+    """Resolve the combined observation + execution latency to a row offset.
+
+    ``obs_latency`` (stale market data) and ``exec_latency`` (order-submission
+    delay) are summed: both widen the same gap between the timestamp of the
+    information the agent acted on and the timestamp of the price it is filled
+    at, which is the only quantity that affects P&L.
+
+    Returns 0 when no latency is configured, so callers can skip the shift.
+    """
+    obs = make_latency_model(
+        int(getattr(env_config, "obs_latency_ticks", 0) or 0),
+        float(getattr(env_config, "obs_latency_us", 0.0) or 0.0),
+    )
+    exe = make_latency_model(
+        int(getattr(env_config, "exec_latency_ticks", 0) or 0),
+        float(getattr(env_config, "exec_latency_us", 0.0) or 0.0),
+    )
+    if obs is None and exe is None:
+        return 0
+    rng = rng if rng is not None else np.random.default_rng(0)
+    k = 0
+    if obs is not None:
+        k += obs.resolve(rng, index)
+    if exe is not None:
+        k += exe.resolve(rng, index)
+    return int(k)
+
+
+def split_for_latency(df: pd.DataFrame, k: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split *df* into the frames an agent observes and is filled at.
+
+    With a latency of ``k`` rows the agent sees the book at row ``t`` but its
+    order reaches the market at row ``t + k``:
+
+    * ``feature_df`` -- rows ``[0 .. N-k-1]``, what the agent observes.
+    * ``price_df``   -- rows ``[k .. N-1]``, what the agent is filled at,
+      re-indexed onto ``feature_df``'s timestamps so the market sees one
+      consistent timeline.
+
+    The price move across the delay window is therefore missed, which is the
+    cost of being slow. This is *not* look-ahead: features are only ever
+    truncated from the end, never advanced.
+
+    ``k <= 0`` returns ``(df, df)`` unchanged so callers need no special case.
+
+    Both the streaming training environment and the DataFrame-backed
+    evaluation environment call this, so the two cannot drift apart. They
+    previously implemented the shift independently, and evaluation simply
+    omitted it -- every latency scenario was scored at zero latency while
+    reporting a non-zero configuration.
+    """
+    if k <= 0:
+        return df, df
+    n = len(df)
+    if k >= n:
+        raise ValueError(
+            f"latency of {k} rows >= window size {n}. Reduce obs_latency + "
+            "exec_latency, or lengthen the evaluation window / episode."
+        )
+    feature_df = df.iloc[: n - k]
+    price_df = df.iloc[k:].copy()
+    price_df.index = feature_df.index
+    return feature_df, price_df
+
+
+class ActionThrottle:
+    """Hold a position between decisions, modelling a finite decision rate.
+
+    An agent whose round trip spans several order-book events cannot re-decide
+    on every event. With ``every_n = m`` the agent's action is adopted on steps
+    ``0, m, 2m, ...`` and held in between, so the position is committed for the
+    duration of the flight rather than being re-chosen each tick.
+
+    This is orthogonal to ``split_for_latency``: the shift moves *which price*
+    a decision is filled at, while throttling limits *how often* a decision can
+    be made. A realistic configuration needs both -- a 5 ms round trip both
+    delays the fill and prevents 167 decisions being taken inside that window.
+
+    ``every_n <= 1`` disables throttling, so callers need no special case.
+    """
+
+    def __init__(self, every_n: int = 1) -> None:
+        if every_n < 1:
+            raise ValueError(f"every_n must be >= 1, got {every_n}")
+        self.every_n = int(every_n)
+        self._step = 0
+        self._held: object | None = None
+
+    @property
+    def enabled(self) -> bool:
+        return self.every_n > 1
+
+    def reset(self) -> None:
+        """Clear the held action at an episode boundary."""
+        self._step = 0
+        self._held = None
+
+    def filter(self, action: object) -> object:
+        """Return the action actually submitted for this step.
+
+        On a decision step the agent's action is adopted and remembered; on
+        every other step the held action is replayed unchanged.
+        """
+        if not self.enabled:
+            return action
+        if self._step % self.every_n == 0 or self._held is None:
+            self._held = action
+        self._step += 1
+        return self._held

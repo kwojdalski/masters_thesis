@@ -26,7 +26,12 @@ from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
 from trading_rl.constants import ActionPenaltyType, RewardType
 from trading_rl.data_loading import MemmapPaths
-from trading_rl.envs.latency import LatencyModel
+from trading_rl.envs.latency import (
+    ActionThrottle,
+    LatencyModel,
+    resolve_total_latency_ticks,
+    split_for_latency,
+)
 from trading_rl.envs.trading_envs import BaseTradingEnvironmentFactory
 from trading_rl.rewards import DifferentialSharpeRatio
 
@@ -91,8 +96,10 @@ class GymnasiumTradingEnvWrapper(gym.Env):
         obs_clip: float | None = None,
         action_penalty_lambda: float = 0.0,
         action_penalty_type: str | ActionPenaltyType = ActionPenaltyType.QUADRATIC,
+        action_every_n_steps: int = 1,
     ):
         self._env = trading_env
+        self._throttle = ActionThrottle(action_every_n_steps)
         self.observation_space = trading_env.observation_space
         self.action_space = trading_env.action_space
         self._obs_clip = obs_clip
@@ -122,10 +129,14 @@ class GymnasiumTradingEnvWrapper(gym.Env):
         """Reset and return (observation, info) tuple."""
         obs = self._env.reset()
         self._prev_action = 0.0
+        self._throttle.reset()
         return self._clip_obs(obs), {}
 
     def step(self, action):
         """Step and return (observation, reward, terminated, truncated, info) tuple."""
+        # Finite decision rate: between decisions the previous position is
+        # held rather than re-chosen (see ActionThrottle).
+        action = self._throttle.filter(action)
         action_value = float(np.asarray(action).flat[0])
         penalty = self._compute_action_penalty(action_value)
         try:
@@ -288,6 +299,10 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             "action_penalty_type", ActionPenaltyType.QUADRATIC
         )
         execution_price = kwargs.pop("execution_price", "mid")
+        # The builder resolves latency from config and passes it explicitly;
+        # fall back to resolving from config for direct callers.
+        latency_ticks_override = kwargs.pop("latency_ticks", None)
+        action_every_n_steps = int(kwargs.pop("action_every_n_steps", 1) or 1)
         bid_column = kwargs.pop("bid_column", "bid_px_00")
         ask_column = kwargs.pop("ask_column", "ask_px_00")
 
@@ -398,13 +413,31 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             reward_scale,
         )
 
+        # Execution/observation latency. The streaming training env applies the
+        # same shift in _build_inner_env; both call split_for_latency so the two
+        # paths cannot diverge. Before this, evaluation silently ignored the
+        # configured latency and scored every arm at zero delay.
+        if latency_ticks_override is not None:
+            latency_k = int(latency_ticks_override)
+        elif config is not None and getattr(config, "env", None) is not None:
+            latency_k = resolve_total_latency_ticks(config.env, df.index)
+        else:
+            latency_k = 0
+        feature_source, price_source = split_for_latency(df, latency_k)
+        if latency_k > 0:
+            logger.info(
+                "latency applied k={} rows: features rows[0..{}] filled at rows[{}..{}]",
+                latency_k, len(df) - latency_k - 1, latency_k, len(df) - 1,
+            )
+
         logger.info(
-            "creating TradingEnv environment n_rows={} n_static_cols={} n_runtime_cols={} price_column={} fee={}",
-            len(df),
+            "creating TradingEnv environment n_rows={} n_static_cols={} n_runtime_cols={} price_column={} fee={} latency_ticks={}",
+            len(feature_source),
             len(static_feature_columns),
             len(runtime_feature_columns) if runtime_feature_columns else 0,
             price_column,
             fee,
+            latency_k,
         )
 
         logger.trace("building stock contracts n_price_columns={}", len(price_columns))
@@ -416,7 +449,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
         features = [
             CustomFeature(
                 static_feature_columns,
-                df[static_feature_columns],
+                feature_source[static_feature_columns],
                 runtime_features=runtime_feature_columns,
                 traded_contracts=stocks,
             )
@@ -444,7 +477,8 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                     "execution_price='bid_ask' requires columns "
                     f"{bid_column!r} and {ask_column!r}; missing {missing}"
                 )
-            transmitter = Transmitter(timesteps=df.index)
+            # Timeline from the observed frame; quotes from the shifted frame.
+            transmitter = Transmitter(timesteps=feature_source.index)
             transmitter.add_events(
                 [
                     EventNBBO(
@@ -456,13 +490,16 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
                         ask_size=np.inf,
                     )
                     for ts, bid, ask in zip(
-                        df.index, df[bid_column], df[ask_column], strict=False
+                        feature_source.index,
+                        price_source[bid_column],
+                        price_source[ask_column],
+                        strict=False,
                     )
                 ]
             )
             env = FastTradingEnv(transmitter=transmitter, **env_kwargs)
         elif execution_price == "mid":
-            prices = df[price_columns].copy()
+            prices = price_source[price_columns].copy()
             prices.columns = stocks
             logger.trace("price dataframe ready")
             env = FastTradingEnv(prices=prices, **env_kwargs)
@@ -487,6 +524,7 @@ class TradingEnvXYFactory(BaseTradingEnvironmentFactory):
             obs_clip=obs_clip,
             action_penalty_lambda=action_penalty_lambda,
             action_penalty_type=action_penalty_type,
+            action_every_n_steps=action_every_n_steps,
         )
 
         logger.trace("wrapping with GymWrapper and transforms")
@@ -551,6 +589,7 @@ class StreamingTradingEnvXY(gym.Env):
         ask_column: str = "ask_px_00",
         obs_latency: LatencyModel | None = None,
         exec_latency: LatencyModel | None = None,
+        action_every_n_steps: int = 1,
     ) -> None:
         if not memmap_paths:
             raise ValueError("memmap_paths must contain at least one entry")
@@ -578,6 +617,7 @@ class StreamingTradingEnvXY(gym.Env):
         self._ask_column = ask_column
         self._obs_latency = obs_latency
         self._exec_latency = exec_latency
+        self._throttle = ActionThrottle(action_every_n_steps)
 
         stocks = [Stock(price_column)]
         self.action_space = BoxPortfolio(stocks, low=-1.0, high=1.0)
@@ -677,24 +717,9 @@ class StreamingTradingEnvXY(gym.Env):
         reward: Any = None,
         total_latency_ticks: int = 0,
     ) -> FastTradingEnv:
-        N = len(window_df)
-        k = total_latency_ticks
-        if k > 0:
-            if k >= N:
-                raise ValueError(
-                    f"total_latency_ticks={k} >= episode window size={N}. "
-                    "Reduce obs_latency + exec_latency or increase streaming_episode_length."
-                )
-            # feature_df: rows [0 .. N-k-1] — what the agent observes
-            # price_df:   rows [k .. N-1]   — what the agent is filled at
-            # Re-index price_df to feature_df timestamps so tradingenv sees a
-            # consistent timeline; the gap [0..k-1] is the combined latency.
-            feature_df = window_df.iloc[: N - k]
-            price_df = window_df.iloc[k:].copy()
-            price_df.index = feature_df.index
-        else:
-            feature_df = window_df
-            price_df = window_df
+        # Shared with TradingEnvXYFactory.make so the training and evaluation
+        # paths apply an identical shift; see split_for_latency.
+        feature_df, price_df = split_for_latency(window_df, total_latency_ticks)
 
         stock = Stock(self._price_column)
         stocks = [stock]
@@ -793,6 +818,8 @@ class StreamingTradingEnvXY(gym.Env):
         if self._dsr_persist_across_symbols and self._persistent_dsr is not None:
             # Legacy mode: shared object — clear only _prev_nlv.
             self._persistent_dsr.reset(persist_moments=True)
+        # New episode: forget the held action so the first step is a decision.
+        self._throttle.reset()
         attempts = 0
         while True:
             file_idx = self._next_symbol_idx()
@@ -883,6 +910,8 @@ class StreamingTradingEnvXY(gym.Env):
         return lam * (float(action) - self._prev_action) ** 2
 
     def step(self, action):
+        # Finite decision rate; same ActionThrottle the evaluation wrapper uses.
+        action = self._throttle.filter(action)
         action_val = float(np.asarray(action).flat[0])
         try:
             obs, reward, done, info = self._inner_env.step(action)
