@@ -583,6 +583,21 @@ def main() -> int:
     if metrics:
         metrics["__source_split__"] = source_split
         metrics["__source_keys__"] = source_keys
+        # _aggregate_split_metrics collapses the per-symbol splits into one
+        # unweighted mean, so the exported snapshot held only pooled numbers.
+        # Table 5 needs the splits intact: locally it fell through to
+        # logs/<scenario>/results.json and rendered, but logs/ is gitignored,
+        # so on CI the loader found nothing and the table printed "No
+        # per-instrument Hypothesis 1 results available". Carry the raw
+        # per-symbol entries alongside the aggregate; they are addressed by
+        # explicit key, so they are inert for every other consumer.
+        per_symbol = {
+            key: value
+            for key, value in results.items()
+            if key.startswith(f"{source_split}_") and isinstance(value, dict)
+        }
+        if per_symbol:
+            metrics["__per_symbol__"] = per_symbol
 
     # --------------------------------------------------------------------------
     # Find plots
