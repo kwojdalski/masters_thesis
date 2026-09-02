@@ -446,6 +446,7 @@ class TestCreateStreamingEnv:
                 "ask_column": "ask_px_00",
                 "obs_latency": None,
                 "exec_latency": None,
+                "action_every_n_steps": 1,
             }
         ]
         assert isinstance(calls["gym"][0], FakeStreamingTradingEnvXY)
