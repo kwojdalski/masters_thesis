@@ -52,6 +52,7 @@ SCENARIOS: dict[str, list[str]] = {
     ],
     "h5": [  # execution latency
         "pooled/td3_h5_latency_0_dsr",
+        "pooled/td3_h5_latency_10us_dsr",
         "pooled/td3_h5_latency_100us_dsr",
         "pooled/td3_h5_latency_1ms_dsr",
         "pooled/td3_h5_latency_5ms_dsr",

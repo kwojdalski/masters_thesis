@@ -204,6 +204,7 @@ def test_h5_latency_scenarios_sweep_exec_latency_only() -> None:
     scenarios = experiments._H5_SCENARIOS
     assert scenarios == [
         "pooled/td3_h5_latency_0_dsr",
+        "pooled/td3_h5_latency_10us_dsr",
         "pooled/td3_h5_latency_100us_dsr",
         "pooled/td3_h5_latency_1ms_dsr",
         "pooled/td3_h5_latency_5ms_dsr",
@@ -212,7 +213,7 @@ def test_h5_latency_scenarios_sweep_exec_latency_only() -> None:
     root = experiments._REPO_ROOT / "src" / "configs" / "scenarios"
     baseline_dir = root / "pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr"
 
-    expected_us = [0.0, 100.0, 1000.0, 5000.0]
+    expected_us = [0.0, 10.0, 100.0, 1000.0, 5000.0]
     for scenario, want_us in zip(scenarios, expected_us, strict=True):
         arm_dir = root / scenario
         arm = yaml.safe_load((arm_dir / "train.yaml").read_text())

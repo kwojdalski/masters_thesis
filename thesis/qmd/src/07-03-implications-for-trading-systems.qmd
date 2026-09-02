@@ -51,9 +51,8 @@ is maintained throughout the evaluation reported in Chapter 6.
 **Transaction-cost sensitivity bounds what the result can support.** The
 execution model used here is a mid-price proxy and is optimistic relative to
 executable bid and ask prices. Spread-crossing costs are of similar magnitude
-to the price moves the agent targets, and the measured edge changes sign once
-the per-trade fee reaches a fraction of a basis point (Section 6.2). Whether
-risk-adjusted return degrades gradually or collapses abruptly across a range
-of cost levels is therefore the quantity that determines how far a frictionless
-result can be read economically. An edge present only at zero cost bounds the
-claim to feasibility rather than tradability.
+to the price moves the agent targets. The higher-fee retraining arms collapse
+to static positions (Section 6.2). The sweep establishes sensitivity, but not a
+precise break-even fee for a functioning policy. Fixed-path bid/ask repricing
+does reverse the baseline result. The frictionless finding should therefore be
+read as evidence within the simulator, not as evidence of tradability.

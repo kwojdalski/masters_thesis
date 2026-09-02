@@ -12,21 +12,23 @@ that beats passive benchmarks on this held-out window (Section 6.5). TD3, DDPG,
 and PPO also separate cleanly from a random policy while remaining
 indistinguishable from one another (Section 6.1). These results support a
 learnable relationship under the specified simulator. They do not establish
-deployable performance. The transaction-cost sweep changes sign once the
-per-trade fee reaches a fraction of a basis point (Section 6.2). Fixed-path
-bid/ask repricing also reverses the result (Section 7.2). The strong frictionless
+deployable performance. In the transaction-cost sweep, the learned policies
+collapse at the higher fee levels (Section 6.2). Fixed-path
+bid/ask repricing reverses the result (Section 7.2). The strong frictionless
 figures are therefore conditional on favorable execution assumptions.
 Retraining and re-evaluating under explicit bid/ask execution with calibrated
 fees remains the outstanding test.
 
 **Hypothesis 2: empirical performance is materially sensitive to the
-transaction-cost assumption.** The fee sweep confirms this hypothesis. The
-learned edge is positive at zero fee, only marginally positive at 0.01 basis
-points, and negative from 0.1 basis points upward. The sign therefore changes
-within a single order of magnitude of fee. This does not identify a theoretical
-signal ceiling or isolate every component of execution cost. It demonstrates
-that the H1 result depends materially on a parameter omitted from the baseline.
-That sensitivity is why robustness analysis must precede any economic claim.
+transaction-cost assumption.** The evidence partially supports this
+hypothesis. The policies trained at 0 and 0.01 basis points trade actively and
+produce positive aggregate returns. At 0.1 basis points, aggregate return is
+still slightly positive, but the policy is static and fully short. At 1 basis
+point, the policy is static and fully long, and its small negative return is
+passive drift. The sweep therefore shows cost-sensitive training outcomes. It
+does not establish the predicted sign threshold for a functioning policy.
+Fixed-path bid/ask repricing separately shows that the H1 action path is not
+robust to spread-crossing costs.
 
 **Hypothesis 3: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** This

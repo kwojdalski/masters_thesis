@@ -16,34 +16,37 @@ charged, and how out-of-sample performance is selected and reported.
 
 ### Early Applications and Proof-of-Concept
 
-The first comprehensive application of RL to trading, introducing recurrent
-reinforcement learning for optimizing trading systems, was presented in
-[@Moody1998]. This approach incorporated four design choices that remain
-influential: the Differential Sharpe Ratio as a risk-adjusted reward, a
-recurrent network architecture for temporal state encoding, direct policy
-optimization rather than a predict-then-trade pipeline, and explicit
-transaction cost modeling. It was demonstrated that RL could outperform
-supervised learning baselines on S&P 500 futures, establishing feasibility of
-the approach and showing that optimizing risk-adjusted return directly was
-often superior to predicting intermediate outcomes.
+Moody and Saffell present an early application of recurrent reinforcement
+learning to trading [@Moody1998]. Their framework directly optimizes financial
+objectives, including profit, wealth, the Sharpe ratio, and the Differential
+Sharpe Ratio. They compare recurrent reinforcement learning with a Q-learning
+trader in a monthly S&P 500 index and Treasury-bill allocation problem. Both
+learned systems outperform buy-and-hold over the reported test period after a
+0.5% transaction cost. The recurrent system achieves the higher Sharpe ratio.
+The paper refers to earlier work for comparisons with supervised learning; the
+experiment reported here does not test a supervised baseline.
 
-This framework was extended to an asset-allocation setting (S&P 500
-index versus T-bills), validating that RL-optimized policies could generate
-positive risk-adjusted returns after transaction costs [@Moody2001]. This was
-a stringent test of practical viability.
+A subsequent journal article develops the framework further and adds an
+intraday foreign-exchange application [@Moody2001]. It models transaction
+costs and reports stronger simulated results for RRL than Q-learning. These
+historical experiments support feasibility, but they do not validate live
+trading performance.
 
 ### From Discrete to Continuous Action Spaces
 
-Early proof-of-concept studies established feasibility while surfacing
-problems this thesis's design responds to directly. Discrete Q-learning on
-equity and futures markets [@Neuneier1998; @Lee2007] learned profitable
-patterns, but the multi-agent formulation of @Lee2007 rewards each agent only
-on the profit its completed trade eventually realises, and its training was
-halted early once profit rates began to degrade — concrete instances of the
-sparse-reward, delayed-credit, and overfitting problems that recur in this
-literature; more fundamentally, discrete buy/sell/hold actions
-force an artificial granularity on position sizing. A coarse grid loses
-control precision, and a fine grid reintroduces the curse of dimensionality.
+Early Q-learning studies tested asset allocation and daily equity trading.
+Neuneier allocates between the DAX and cash and reports higher terminal wealth
+than three benchmarks under a 0.2% transaction-cost assumption
+[@Neuneier1998]. However, the printed training period overlaps the test period,
+so the comparison is not cleanly out of sample. Lee et al. divide KOSPI 200
+trading into agents for buy timing, buy price, sell timing, and sell price
+[@Lee2007]. They report better profit and risk results than alternative
+systems. Training stops when monitored profit rates begin to deteriorate,
+making the stopping point part of model selection. These studies show that
+discrete actions can encode timing and execution decisions. For position
+sizing, however, discretization imposes a grid. Coarse grids limit precision,
+while fine grids increase action-space complexity.
+
 Extending direct/recurrent RL to foreign-exchange trading
 [@Gold2003; @Dempster2002] confirmed that mapping state directly into
 positions is viable, but performance varied substantially across currency
@@ -54,19 +57,24 @@ pairs and system parameters. This is feasibility evidence, not a robust trading 
 The introduction of deep function approximators to RL trading extended
 applicability to high-dimensional state spaces.
 
-DDPG was applied to Dow-30 equity trading using engineered
-technical-indicator features [@Xiong2018], while a fuzzy-representation
-autoencoder was combined with direct reinforcement learning for futures trading
-[@Deng2016]. Neither study reports variance across repeated training runs, an
-omission characteristic of the period; run-to-run instability under noisy
-financial rewards was later documented systematically [@Henderson2018].
+DDPG was applied to 30 Dow Jones equities using daily prices, holdings, and cash
+as state variables [@Xiong2018]. The agent continued training during the nominal
+trading period, so the reported results do not represent a frozen-policy
+evaluation. A fuzzy-representation autoencoder was combined with direct
+reinforcement learning for futures trading [@Deng2016]. Deng et al. test several
+architecture settings, but neither study reports variation across random seeds.
+Henderson et al. later documented sensitivity to seeds, implementations, and
+hyperparameters on standard continuous-control benchmarks [@Henderson2018].
+Their study did not examine financial rewards.
 
-The portfolio-vector-memory (PVM) architecture was proposed, combining
-policy gradients with recurrent networks for cryptocurrency portfolio management
-[@Jiang2017]. Its fully differentiable end-to-end design incorporated current holdings into
-the state and penalized transaction costs explicitly, outperforming a uniform
-constant rebalanced portfolio and a suite of published online
-portfolio-selection algorithms in backtests across 12 cryptocurrencies.
+The EIIE framework included portfolio-vector memory (PVM) and CNN, RNN, and
+LSTM policy variants for cryptocurrency portfolio management [@Jiang2017]. Its
+fully differentiable end-to-end design incorporated previous portfolio weights
+into the state and penalized transaction costs explicitly. The three variants
+outperformed a uniform constant rebalanced portfolio and a suite of published
+online portfolio-selection algorithms in backtests on 11 coins plus Bitcoin as
+cash. The policies continued learning during these backtests, so the results
+were adaptive-policy simulations rather than frozen-policy evaluations.
 
 An earlier cryptocurrency portfolio study used a
 convolutional network to map historical prices directly into continuous
@@ -92,23 +100,16 @@ assets. This study is best interpreted as evidence that continuous action sizing
 can be beneficial under realistic frictions, not as definitive proof of robust
 alpha across market regimes.
 
-A TD3-based framework incorporating account state (cash
-and holdings), price features, technical indicators, and optional FinBERT-derived
-news sentiment was proposed [@Kabbani2022]. Richer state designs improved both return and Sharpe ratio
-relative to a close-price-only baseline, with a final 10-stock evaluation
-reporting a Sharpe ratio of 2.68. This figure warrants scrutiny: annualized Sharpe
-ratios above 2 are rare in live trading and typically indicate either
-insufficient out-of-sample discipline, favorable selection among multiple
-model variants, or evaluation periods that coincide with a strong directional
-trend. The study does not report results across multiple random seeds or under
-realistic spread-crossing costs with a frozen policy, making it difficult to
-determine whether the reported performance reflects genuine signal or
-overfitting to the evaluation window. Methodologically the paper supports the
-practical value of feature enrichment in continuous-action actor-critic trading.
-It also illustrates a broader pattern in the RL trading literature: without
-standardized evaluation protocols (multi-seed reporting, held-out test periods
-not used for model selection, and explicit cost assumptions), performance
-claims are difficult to assess on their own terms.
+Kabbani and Duman evaluate a TD3 framework using account state, price variables,
+technical indicators, and news sentiment [@Kabbani2022]. In their first
+experiment, returns and Sharpe ratios increase as indicators and sentiment are
+added. These results are averaged across five seed-varying runs, but the
+experiment uses training data only. A second ten-stock experiment reports a
+Sharpe ratio of 2.68 during a nominal test period. The agent continues learning
+during that period, and no seed distribution is reported for this result. The
+simulator deducts percentage commissions but assumes zero slippage and market
+impact. The study is therefore best interpreted as a proof of concept rather
+than a frozen-policy out-of-sample performance estimate.
 
 Two further studies mark boundary cases outside this thesis's LOB-level,
 single-asset scope. An ensemble PPO/A2C/DDPG strategy on Dow Jones
@@ -165,10 +166,13 @@ between reward simplicity and the richness of real trading objectives.
 
 
 The literature reviewed here converges on design lessons rather than a
-headline result. Continuous-action actor-critic methods are frequently
-preferred over discrete alternatives for position-sizing tasks
-[@Liang2018; @Majidi2024; @Kabbani2022], since action spaces must match the
-economic decision being made. Risk-adjusted reward signals, especially
+headline result. Several reviewed studies formulate position sizing as a
+continuous action and apply actor-critic methods
+[@Liang2018; @Majidi2024; @Kabbani2022]. These examples show that continuous
+controls are compatible with portfolio allocation. They do not establish a
+general preference or superiority over discrete alternatives.
+
+Risk-adjusted reward signals, especially
 Differential Sharpe Ratio formulations, appear promising for out-of-sample
 generalization relative to raw return objectives, provided they penalize
 costs and avoid encouraging excessive turnover. Explicit transaction-cost

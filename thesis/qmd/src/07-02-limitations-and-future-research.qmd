@@ -18,9 +18,10 @@ empirical sensitivity tests, not through a theoretical signal-ceiling claim.
 For the evaluated Hypothesis 1 action path, the estimated spread-crossing cost
 is roughly ten times the gross profit, and the breakeven proportional fee is on
 the order of $4 \times 10^{-6}$.
-This is consistent with the Hypothesis 2 fee sweep turning negative between
-$1 \times 10^{-6}$ and $1 \times 10^{-5}$. Re-pricing the identical action path
-under bid/ask execution instead of the mid moves the total return from roughly
+The Hypothesis 2 sweep is not a direct estimate of this break-even point. Each
+fee arm uses a separately trained policy, and the two higher-fee arms collapse
+to static positions. Re-pricing the identical action path under bid/ask
+execution instead of the mid moves the total return from roughly
 $+2.3$ to roughly $-10.6$ in net-liquidation-value units: the same signal, the
 opposite sign. These figures are indicative rather than final: they come from
 re-pricing a fixed policy, not from retraining. A control in which random

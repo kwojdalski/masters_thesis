@@ -17,6 +17,7 @@
 #
 # Run order to reproduce:
 #   uv run python src/cli.py train --scenario pooled/td3_h5_latency_0_dsr  # 0 us = the H1 configuration
+#   uv run python src/cli.py train --scenario pooled/td3_h5_latency_10us_dsr
 #   uv run python src/cli.py train --scenario pooled/td3_h5_latency_100us_dsr
 #   uv run python src/cli.py train --scenario pooled/td3_h5_latency_1ms_dsr
 #   uv run python src/cli.py train --scenario pooled/td3_h5_latency_5ms_dsr
@@ -29,6 +30,10 @@ axes:
         log_dir: logs/td3_h5_latency_0_dsr
         exec_latency_us: 0.0
         baseline: true
+      - label: "10 us"
+        log_dir: logs/td3_h5_latency_10us_dsr
+        exec_latency_us: 10.0
+        baseline: false
       - label: "100 us"
         log_dir: logs/td3_h5_latency_100us_dsr
         exec_latency_us: 100.0
