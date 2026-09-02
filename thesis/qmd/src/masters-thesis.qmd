@@ -61,6 +61,12 @@ format:
       - \usepackage{pdflscape}
       - \usepackage{float}
       - \floatplacement{table}{H}
+      # Figures are pinned for the same reason tables are. Each rollout figure
+      # is followed by its own Source/Note block, which is ordinary text and
+      # does not float; left free to drift, the three figures in section 6.5.1
+      # moved to later pages while all three notes stayed behind and stacked up
+      # under the first one.
+      - \floatplacement{figure}{H}
       - \usepackage{tikz}
       - \usetikzlibrary{arrows.meta}
       - \usepackage{caption}
