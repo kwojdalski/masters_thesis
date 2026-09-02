@@ -217,18 +217,24 @@ def test_us_to_ticks_zero_latency_returns_first_row() -> None:
 
 
 def test_us_to_ticks_exact_match() -> None:
+    """A delay landing exactly on an event fills at that event."""
     timestamps = _timestamps_from_offsets_us([0, 10, 25, 100, 500])
     assert _us_to_ticks(100.0, timestamps) == 3
 
 
-def test_us_to_ticks_inexact_match_rounds_up_to_next_row() -> None:
+def test_us_to_ticks_settles_on_the_last_event_before_arrival() -> None:
+    """15us falls between row 1 (10us) and row 2 (25us).
+
+    The book standing at 15us is row 1's: row 2 has not happened yet. The
+    earlier convention rounded up to row 2, charging a delay the market had
+    not yet produced.
+    """
     timestamps = _timestamps_from_offsets_us([0, 10, 25, 100, 500])
-    # 15us falls strictly between row 1 (10us) and row 2 (25us); the
-    # smallest row satisfying timestamps[k] - timestamps[0] >= 15us is row 2
-    assert _us_to_ticks(15.0, timestamps) == 2
+    assert _us_to_ticks(15.0, timestamps) == 1
 
 
 def test_us_to_ticks_clamps_when_latency_exceeds_window_span() -> None:
+    """A delay longer than the window resolves to its last row."""
     timestamps = _timestamps_from_offsets_us([0, 10, 25, 100, 500])
     assert _us_to_ticks(10_000.0, timestamps) == len(timestamps) - 1
 
@@ -436,3 +442,67 @@ def test_action_throttle_reduces_the_number_of_distinct_positions() -> None:
     slow = [t.filter(a) for a in actions]
     assert len(set(actions)) == 60
     assert len(set(slow)) == 6
+
+
+# ---------------------------------------------------------------------------
+# _us_to_ticks: the book persists between updates
+# ---------------------------------------------------------------------------
+
+
+def _uniform(n: int = 200, gap_us: int = 30) -> pd.DatetimeIndex:
+    return pd.DatetimeIndex(
+        pd.Timestamp("2026-03-02T14:30:00Z")
+        + pd.to_timedelta(np.arange(n) * gap_us, "us")
+    )
+
+
+def test_latency_shorter_than_one_gap_costs_nothing() -> None:
+    """An order landing before the next update fills at the price it saw.
+
+    The book persists between updates, so a delay the market does not outrun
+    must not be charged a full event of drift.
+    """
+    ts = _uniform(gap_us=30)
+    assert _us_to_ticks(10.0, ts) == 0
+    assert _us_to_ticks(29.0, ts) == 0
+
+
+def test_latency_of_exactly_one_gap_advances_one_row() -> None:
+    ts = _uniform(gap_us=30)
+    assert _us_to_ticks(30.0, ts) == 1
+    assert _us_to_ticks(31.0, ts) == 1
+
+
+def test_latency_resolves_to_the_last_event_at_or_before_arrival() -> None:
+    """90 us on a 30 us feed lands exactly on row 3, not row 4."""
+    assert _us_to_ticks(90.0, _uniform(gap_us=30)) == 3
+    # 100 us falls between rows 3 (90 us) and 4 (120 us); the standing book is row 3.
+    assert _us_to_ticks(100.0, _uniform(gap_us=30)) == 3
+
+
+def test_a_long_gap_at_the_window_start_does_not_absorb_the_delay() -> None:
+    """Regression: one AVGO window opens with a 301 ms gap.
+
+    Measuring every delay from timestamps[0] let that gap swallow the whole
+    requested latency, collapsing the 10 us, 1 ms and 5 ms arms onto the same
+    offset -- three nominally different experiments behaving identically.
+    """
+    ns = np.concatenate(
+        [[0, 301_009_000], (np.arange(198) + 2) * 30_000 + 301_009_000]
+    )
+    ts = pd.DatetimeIndex(pd.Timestamp("2026-03-02T14:30:00Z") + pd.to_timedelta(ns, "ns"))
+
+    k_10us, k_1ms, k_5ms = (_us_to_ticks(u, ts) for u in (10.0, 1_000.0, 5_000.0))
+
+    assert k_10us == 0  # below one gap: free
+    assert k_1ms > k_10us  # and the ladder is ordered again
+    assert k_5ms > k_1ms
+
+
+def test_event_offset_is_exact_and_ignores_timestamps() -> None:
+    """exec_latency_ticks is a mechanical offset: k is k on every instrument."""
+    rng = np.random.default_rng(0)
+    fast, slow = _uniform(gap_us=5), _uniform(gap_us=5_000)
+    for k in (1, 2, 4, 8):
+        assert FixedLatency(k).resolve(rng, fast) == k
+        assert FixedLatency(k).resolve(rng, slow) == k
