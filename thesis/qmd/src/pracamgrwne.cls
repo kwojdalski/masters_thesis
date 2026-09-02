@@ -51,6 +51,12 @@
 % three titles printed at 17.2 pt, tocloft's \Large default, which also made
 % them inconsistent with BIBLIOGRAPHY and the glossary heading in this same
 % document at 12 pt.
+% Annex D heads these blocks in capitals ("TABLE OF CONTENTS" p. 4, "LIST OF
+% APPENDICES" p. 15). Not applied: Pandoc's template re-sets \contentsname,
+% \listtablename and \listfigurename after this class loads, so renewing them
+% here has no effect, and capitalising only the appendices list -- the one
+% title this class owns outright, via \newlistof above -- would leave the four
+% headings inconsistent with each other. Left in title case as a set.
 \renewcommand{\cfttoctitlefont}{\normalsize\bfseries}
 \renewcommand{\cftlottitlefont}{\normalsize\bfseries}
 \renewcommand{\cftloftitlefont}{\normalsize\bfseries}
@@ -382,8 +388,33 @@
 % Chapter entries in the table of contents carry the same capitals, so the body
 % and the contents agree -- which is what "according to the table of contents"
 % asks for.
-\let\@oldtocsection\l@section
-\renewcommand*\l@section[2]{\@oldtocsection{\MakeUppercase{#1}}{#2}}
+% Annex D's contents runs dot leaders to the page number on every line,
+% chapter entries included ("INTRODUCTION.........4",
+% "CHAPTER I. <Title of the chapter>.....7"), and sets them all in regular
+% weight. article.cls's \l@section instead sets chapter-level entries bold and
+% closes with \hfil, so those lines had no leaders and did not match either
+% Annex D or the sub-levels below them, which do. Redefined here with the same
+% leader mechanism \l@chapter above already uses. \MakeUppercase carries the
+% capitals over from the body headings, as "according to the table of
+% contents" requires.
+\renewcommand*\l@section[2]{%
+  \ifnum \c@tocdepth >\z@
+    \addpenalty\@secpenalty
+    \addvspace{1.0em \@plus\p@}%
+    \setlength\@tempdima{1.5em}%
+    \begingroup
+      \parindent \z@ \rightskip \@pnumwidth
+      \parfillskip -\@pnumwidth
+      \leavevmode
+      \advance\leftskip\@tempdima
+      \hskip -\leftskip
+      \MakeUppercase{#1}\nobreak
+      \leaders\hbox{$\m@th
+        \mkern \@dotsep mu\hbox{.}\mkern \@dotsep
+        mu$}\hfill
+      \nobreak\hb@xt@\@pnumwidth{\hss #2}\par
+    \endgroup
+  \fi}
 \def\numberline#1{\hb@xt@\@tempdima{#1.\hfil}}
 \renewcommand*\l@chapter[2]{%
   \ifnum \c@tocdepth >\m@ne
