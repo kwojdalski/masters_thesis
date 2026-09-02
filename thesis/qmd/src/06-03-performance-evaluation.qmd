@@ -247,7 +247,27 @@ else:
 #| output: asis
 #| echo: false
 from thesis_tables import table_note
-table_note(source="Author's own calculations.", note=_prov_note() or None)
+
+# Fig. 5 alone carries two series per policy, so it needs the extra sentence:
+# nothing else in the figure says what the dashed lines are or how they were
+# derived.
+_ma_w = _plot_data.get("allocation_ma_window")
+_ma_note = (
+    f"Each line is a policy's held position, in the interval $[-1, 1]$ where "
+    f"$-1$ is fully short, $0$ flat and $+1$ fully long, smoothed by a "
+    f"trailing {_ma_w}-step rolling mean. The unsmoothed series is not drawn: "
+    f"the trained policies sit at one bound or the other at almost every step "
+    f"and change sign at roughly half of them, so at this horizontal scale "
+    f"each would render as a solid block spanning the full range and hide the "
+    f"others. That behaviour is reported instead as turnover and as % long / "
+    f"% short in Tables 4 and 5."
+    if _ma_w
+    else ""
+)
+table_note(
+    source="Author's own calculations.",
+    note=" ".join(x for x in (_ma_note, _prov_note()) if x) or None,
+)
 ```
 
 ### Reading Performance in the Context of State Design
