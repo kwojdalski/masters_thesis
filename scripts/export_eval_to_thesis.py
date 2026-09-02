@@ -153,8 +153,52 @@ def _per_symbol_summary(results: dict) -> dict:
     }
 
 
+def _load_statistical_tests(results: dict, source_split: str | None) -> dict | None:
+    """Collect statistical-test payloads for the exported metrics split.
+
+    Per-symbol p-values and confidence intervals are preserved as separate
+    results.  They must not be averaged into a synthetic pooled test.
+    """
+    if source_split is None:
+        return None
+
+    pooled, per_symbol = _split_entries(results, source_split)
+    entries = per_symbol or pooled
+    flattened_baselines: list[dict] = []
+    tests_configured: list[str] = []
+    source_keys: list[str] = []
+
+    for source_key, entry in sorted(entries.items()):
+        payload = entry.get("statistical_tests")
+        if not isinstance(payload, dict) or not payload.get("enabled", False):
+            continue
+        source_keys.append(source_key)
+        for test_name in payload.get("tests_configured", []):
+            if test_name not in tests_configured:
+                tests_configured.append(test_name)
+
+        symbol = source_key[len(source_split) :].lstrip("_") if per_symbol else None
+        for baseline in payload.get("baselines", []):
+            if not isinstance(baseline, dict):
+                continue
+            exported = dict(baseline)
+            if symbol:
+                exported["symbol"] = symbol
+            flattened_baselines.append(exported)
+
+    if not flattened_baselines:
+        return None
+    return {
+        "enabled": True,
+        "tests_configured": tests_configured,
+        "baselines": flattened_baselines,
+        "__source_split__": source_split,
+        "__source_keys__": source_keys,
+    }
+
+
 def _load_benchmark_table(eval_dir: Path) -> tuple[dict | None, str | None]:
-    """Load benchmark table(s) and convert to the statistical_tests format.
+    """Load and aggregate benchmark comparison table(s).
 
     Handles two layouts produced by different versions of the evaluate CLI:
 
@@ -654,6 +698,8 @@ def main() -> int:
     plot_relpaths = _copy_plots(plots, snapshot_dir) if plots else {}
 
     benchmark_table, benchmark_split = _load_benchmark_table(eval_dir)
+    statistical_tests = _load_statistical_tests(results, source_split)
+    benchmark_comparison_file: str | None = None
     statistical_tests_file: str | None = None
     if benchmark_table is not None:
         if benchmark_split != "test" and not args.allow_split_fallback:
@@ -673,11 +719,26 @@ def main() -> int:
                 source_split,
             )
         benchmark_table["__source_split__"] = benchmark_split
-        _write_json(snapshot_dir / "statistical_tests.json", benchmark_table)
-        statistical_tests_file = "statistical_tests.json"
+        benchmark_comparison_file = "benchmark_comparison.json"
+        _write_json(snapshot_dir / benchmark_comparison_file, benchmark_table)
         n_rows = len(benchmark_table.get("benchmark_comparison_table", []))
         logger.info(
             "benchmark table: {} strategies from {!r} split", n_rows, benchmark_split
+        )
+
+    if statistical_tests is not None:
+        # Keep the table embedded for compatibility with the existing thesis
+        # formatter while also exporting it under its truthful standalone name.
+        if benchmark_table is not None:
+            statistical_tests["benchmark_comparison_table"] = benchmark_table.get(
+                "benchmark_comparison_table", []
+            )
+        statistical_tests_file = "statistical_tests.json"
+        _write_json(snapshot_dir / statistical_tests_file, statistical_tests)
+        logger.info(
+            "statistical tests: {} baseline comparisons from {} source entries",
+            len(statistical_tests["baselines"]),
+            len(statistical_tests["__source_keys__"]),
         )
 
     run_json: dict = {
@@ -704,6 +765,7 @@ def main() -> int:
             "latest_metrics": "latest_metrics.json",
             "evaluation_report": "evaluation_report.json",
             "statistical_tests": statistical_tests_file,
+            "benchmark_comparison": benchmark_comparison_file,
             "hyperparams": hyperparams_file,
         },
         "evaluation_plots": plot_relpaths,

@@ -12,6 +12,8 @@ from logger import get_logger
 
 logger = get_logger(__name__)
 
+_MAX_BOOTSTRAP_DEGENERATE_FRACTION = 0.01
+
 
 def _safe_div(numerator: float, denominator: float) -> float:
     """Safe division handling zero/nan denominators."""
@@ -95,8 +97,13 @@ class BootstrapTest(StatisticalTest, ABC):
 
         strategy_metric = self.compute_metric(strategy_returns)
         baseline_metric = self.compute_metric(baseline_returns)
-        observed_diff = strategy_metric - baseline_metric
         self._validate_metrics(strategy_metric, baseline_metric)
+        if not np.isfinite(strategy_metric) or not np.isfinite(baseline_metric):
+            raise ValueError(
+                f"Observed {self.metric_name} is undefined; bootstrap inference "
+                "cannot be computed"
+            )
+        observed_diff = strategy_metric - baseline_metric
 
         strategy_metrics = []
         baseline_metrics = []
@@ -124,25 +131,67 @@ class BootstrapTest(StatisticalTest, ABC):
         baseline_metrics = np.array(baseline_metrics)
         diff_metrics = np.array(diff_metrics)
 
-        strategy_metrics = strategy_metrics[~np.isnan(strategy_metrics)]
-        baseline_metrics = baseline_metrics[~np.isnan(baseline_metrics)]
-        diff_metrics = diff_metrics[~np.isnan(diff_metrics)]
-
-        alpha = 1 - confidence_level
-        strategy_ci_lower = float(np.percentile(strategy_metrics, 100 * alpha / 2))
-        strategy_ci_upper = float(
-            np.percentile(strategy_metrics, 100 * (1 - alpha / 2))
+        valid_mask = (
+            np.isfinite(strategy_metrics)
+            & np.isfinite(baseline_metrics)
+            & np.isfinite(diff_metrics)
         )
-        baseline_ci_lower = float(np.percentile(baseline_metrics, 100 * alpha / 2))
-        baseline_ci_upper = float(
-            np.percentile(baseline_metrics, 100 * (1 - alpha / 2))
+        n_bootstrap_valid = int(valid_mask.sum())
+        degenerate_fraction = 1.0 - n_bootstrap_valid / n_bootstrap
+        inference_valid = (
+            n_bootstrap_valid > 0
+            and degenerate_fraction <= _MAX_BOOTSTRAP_DEGENERATE_FRACTION
         )
-        diff_ci_lower = float(np.percentile(diff_metrics, 100 * alpha / 2))
-        diff_ci_upper = float(np.percentile(diff_metrics, 100 * (1 - alpha / 2)))
+        inference_note = None
 
-        p_value = _two_sided_bootstrap_p_value(diff_metrics)
+        if n_bootstrap_valid < n_bootstrap:
+            inference_note = (
+                f"{n_bootstrap - n_bootstrap_valid} of {n_bootstrap} bootstrap "
+                f"resamples produced an undefined {self.metric_name}."
+            )
+            log = logger.warning if not inference_valid else logger.debug
+            log(
+                "{}: {} Inference valid={}; maximum accepted degenerate "
+                "fraction={:.1%}",
+                self.name,
+                inference_note,
+                inference_valid,
+                _MAX_BOOTSTRAP_DEGENERATE_FRACTION,
+            )
 
-        significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
+        if inference_valid:
+            strategy_metrics = strategy_metrics[valid_mask]
+            baseline_metrics = baseline_metrics[valid_mask]
+            diff_metrics = diff_metrics[valid_mask]
+            alpha = 1 - confidence_level
+            strategy_ci_lower = float(
+                np.percentile(strategy_metrics, 100 * alpha / 2)
+            )
+            strategy_ci_upper = float(
+                np.percentile(strategy_metrics, 100 * (1 - alpha / 2))
+            )
+            baseline_ci_lower = float(
+                np.percentile(baseline_metrics, 100 * alpha / 2)
+            )
+            baseline_ci_upper = float(
+                np.percentile(baseline_metrics, 100 * (1 - alpha / 2))
+            )
+            diff_ci_lower = float(np.percentile(diff_metrics, 100 * alpha / 2))
+            diff_ci_upper = float(
+                np.percentile(diff_metrics, 100 * (1 - alpha / 2))
+            )
+            p_value = float(_two_sided_bootstrap_p_value(diff_metrics))
+            significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
+        else:
+            strategy_ci_lower = None
+            strategy_ci_upper = None
+            baseline_ci_lower = None
+            baseline_ci_upper = None
+            diff_ci_lower = None
+            diff_ci_upper = None
+            p_value = None
+            significant = False
+
         metric = self.metric_name
         return {
             "test_name": self.name,
@@ -155,9 +204,13 @@ class BootstrapTest(StatisticalTest, ABC):
             f"baseline_{metric}_ci_upper": baseline_ci_upper,
             "difference_ci_lower": diff_ci_lower,
             "difference_ci_upper": diff_ci_upper,
-            "p_value": float(p_value),
+            "p_value": p_value,
             "confidence_level": confidence_level,
             "n_bootstrap": n_bootstrap,
+            "n_bootstrap_valid": n_bootstrap_valid,
+            "bootstrap_degenerate_fraction": degenerate_fraction,
+            "bootstrap_inference_valid": inference_valid,
+            "bootstrap_note": inference_note,
             "significant": significant,
         }
 
