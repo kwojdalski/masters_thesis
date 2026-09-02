@@ -19,7 +19,7 @@ The contribution of the feature set itself is left open. Of the three feature
 specifications compared under identical training and evaluation conditions,
 only the curated ten-feature configuration converged to a trading policy; the
 three-feature and thirty-three-feature variants both saturated at a fixed
-position and never trained (Sections 6.2 and 7.1). Because two of the three
+position and never trained (Sections 6.3 and 7.1). Because two of the three
 arms did not optimize, the comparison cannot isolate the effect of feature
 choice, and Hypothesis 3 is unresolved. The pattern is nonetheless suggestive:
 a compact, theoretically motivated set may give the policy a higher
