@@ -248,7 +248,7 @@ observations simply require a longer budget to converge, are open questions
 that a training-stability study would need to separate
 (@sec-limitations-and-future-research).
 
-## Hypothesis 4: Reward Function Design
+## Hypothesis 4: Reward Function Design {#sec-h4-reward-design}
 <!-- [PLACEHOLDER] -->
 
 This section compares the log-return baseline against the Differential Sharpe
