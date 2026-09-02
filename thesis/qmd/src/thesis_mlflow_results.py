@@ -584,7 +584,9 @@ def format_benchmark_comparison_table(
         "total_return",
         "annualized_volatility",
         "sharpe_ratio",
-        "sortino_ratio",
+        # Sortino omitted: the learned policies record fewer than three losing
+        # bars out of ~237, so downside deviation is estimated from one or two
+        # observations. See the aggregation note in 06-03.
         "max_drawdown",
         "win_rate",
         "turnover",
@@ -594,7 +596,6 @@ def format_benchmark_comparison_table(
         "total_return": "TR",
         "annualized_volatility": "Volatility",
         "sharpe_ratio": "SR",
-        "sortino_ratio": "Sortino",
         "max_drawdown": "Max DD",
         "win_rate": "Win Rate",
         "turnover": "Turnover",
