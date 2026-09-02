@@ -298,9 +298,19 @@ inside \appendix and its subsections numbered as "K.0.1". -->
 {{< include ./99-glossary.qmd >}}
 
 ```{=latex}
+% Requirement 15 treats the whole "zestawienie spisow" like the table of
+% contents, and Annex D's own contents carries it as a line
+% ("LIST OF INDEXES <optionally> ... 75"). These three lists existed in the
+% back matter but appeared nowhere in the contents, so a reader could not
+% find them. \addcontentsline must follow each list, not precede it: the
+% lists each begin with \clearpage, so an entry written before the break
+% records the page the list left rather than the one it starts on.
 \listoftables
+\addcontentsline{toc}{section}{List of Tables}
 \listoffigures
+\addcontentsline{toc}{section}{List of Figures}
 \listofappendices
+\addcontentsline{toc}{section}{List of Appendices}
 ```
 
 {{< include ./99-appendix.qmd >}}

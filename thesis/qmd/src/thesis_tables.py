@@ -666,6 +666,12 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
             r"\endlastfoot",
             *rows_latex,
             r"\end{longtable}",
+            # Requirement 10 wants every table "provided with a title and a
+            # reference to the source", and Annex D prints one under each of
+            # its tables without exception. This one had none. Set as Annex D
+            # does it: the label italic at 10 pt, the rest roman.
+            r"\vspace{-0.5em}",
+            r"{\footnotesize\textit{Source:} Author's own compilation.\par}",
             r"\end{landscape}",
         ]
     )

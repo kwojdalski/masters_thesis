@@ -1,5 +1,14 @@
 ```{=latex}
 \appendix
+% Annex D p. 16 opens the appendix content with its own heading ("ANNEXES")
+% before the first appendix, matching the "APPENDICES" line its contents
+% carries. The appendices here began straight at "A. FEATURE INVENTORY"
+% with nothing marking where the block starts. Unnumbered, so it does not
+% consume an appendix letter, and added to the contents by hand since
+% \section* writes no entry.
+\clearpage
+\section*{APPENDICES}
+\addcontentsline{toc}{section}{APPENDICES}
 ```
 
 # Feature Inventory
