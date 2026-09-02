@@ -9,15 +9,11 @@ jointly test whether the TD3 agent behaves economically coherently.
 #| echo: false
 #| warning: false
 
-import pandas as pd
 from thesis_mlflow_results import (
     audit_plots_enabled,
-    format_benchmark_comparison_table,
     format_key_metrics,
     load_experiment_snapshot,
-    show_table_meta,
 )
-from thesis_tables import display_df as display_table
 
 
 EXPERIMENT_NAME = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
@@ -27,67 +23,8 @@ _audit = audit_plots_enabled()
 ```
 
 
-The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. The table below summarizes key risk-adjusted metrics for each strategy, with the agent's performance highlighted in the first row.
+The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. Section 6.5.2 sets its risk-adjusted performance against each of them.
 
-```{python}
-#| label: benchmark_data
-#| echo: false
-
-# Try real data first
-benchmark_df = None
-if finished is not None:
-    benchmark_df = format_benchmark_comparison_table(finished.get("statistical_tests"))
-    if benchmark_df.empty:
-        benchmark_df = None
-
-_is_placeholder = benchmark_df is None or benchmark_df.empty
-if _is_placeholder:
-    print("Placeholder values shown — run full experiment pipeline to populate.")
-    benchmark_df = pd.DataFrame([
-        ("TD3 Agent", "0.28%", "12.34%", "1.8234", "2.4123", "-0.16%", "56.21%", "0.6400"),
-        ("Buy & Hold", "-0.12%", "14.40%", "-0.6800", "-0.8100", "-0.34%", "N/A", "0.0000"),
-        ("Short & Hold", "0.12%", "14.40%", "0.6800", "0.9100", "-0.22%", "N/A", "0.0000"),
-        ("TWAP", "-0.08%", "14.80%", "-0.4400", "-0.5200", "-0.29%", "N/A", "0.0200"),
-        ("VWAP", "-0.07%", "15.00%", "-0.3800", "-0.4500", "-0.27%", "N/A", "0.0200"),
-        ("Random", "0.01%", "16.80%", "0.0500", "0.0600", "-0.43%", "50.10%", "0.9800"),
-    ], columns=[
-        "Strategy",
-        "TR",
-        "Volatility",
-        "SR",
-        "Sortino",
-        "Max DD",
-        "Win Rate",
-        "Turnover",
-    ])
-```
-
-```{python}
-#| echo: false
-#| label: tbl-benchmark-comparison
-#| tbl-cap: "Benchmark strategy performance comparison on the test split."
-
-from IPython.display import HTML, display
-from thesis_tables import table_note
-
-# display(), not a bare HTML(...) expression: Jupyter auto-renders only the
-# last expression of a cell, and this one is followed by the table_note and
-# show_table_meta calls. The table was being built and discarded, so Table 9
-# printed as a caption and a source line with nothing between them.
-display(HTML(benchmark_df.to_html(index=False)))
-table_note(
-    source="Author's own calculations.",
-    note=(
-        "**Placeholder values** — these figures are illustrative only and will be replaced once the full experiment pipeline has completed and evaluation artifacts are available."
-        if _is_placeholder
-        else None
-    ),
-)
-if finished is not None:
-    show_table_meta(finished, audit=_audit)
-```
-
-*TR: Total Return. Volatility: annualized standard deviation of returns. SR: Sharpe Ratio (mean excess return divided by standard deviation, not annualized). Sortino: Sortino Ratio (mean excess return divided by downside deviation, not annualized). Max DD: Maximum Drawdown. Win Rate: fraction of steps with positive return. Turnover: average absolute position change per step.*
 
 **Return aggregation for ratio metrics.**
 Roughly 80–90\% of consecutive LOB returns are zero. The mid-price does not
