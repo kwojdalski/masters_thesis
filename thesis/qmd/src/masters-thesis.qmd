@@ -63,7 +63,7 @@ format:
       - \floatplacement{table}{H}
       # Figures are pinned for the same reason tables are. Each rollout figure
       # is followed by its own Source/Note block, which is ordinary text and
-      # does not float; left free to drift, the three figures in section 6.5.1
+      # does not float; left free to drift, the three rollout figures in Section 6.1
       # moved to later pages while all three notes stayed behind and stacked up
       # under the first one.
       - \floatplacement{figure}{H}
@@ -292,8 +292,13 @@ evaluation.
 
 \newpage
 {{< include ./06-00-results.qmd >}}
-{{< include ./06-02-robustness-assessment.qmd >}}
+<!-- 06-03 holds the closing subsections of Section 6.1, not a section of its
+own: it reads the same H1 run as the tables in 06-00, from the same checkpoint
+and window. It therefore has to precede the H2-H4 sweeps in 06-02, or the
+discussion would interpret the algorithm comparison several sections after it,
+and its figures would be separated from the tables they restate. -->
 {{< include ./06-03-performance-evaluation.qmd >}}
+{{< include ./06-02-robustness-assessment.qmd >}}
 
 \newpage
 {{< include ./07-00-conclusions.qmd >}}

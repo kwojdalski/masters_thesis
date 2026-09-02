@@ -1,8 +1,9 @@
-## Performance Evaluation
-<!-- [PLACEHOLDER] -->
+### Behaviour of the Learned Policies
 
-Returns, turnover, and path-dependent risk measures from the latest held-out run
-jointly test whether the TD3 agent behaves economically coherently.
+Returns, turnover, and path-dependent risk measures from the same held-out run
+as the tables above show whether the agent behaves economically coherently, and
+how the three learners differ once their equity, reward and position paths are
+put side by side.
 
 ```{python}
 #| label: perf_eval_setup
@@ -23,7 +24,7 @@ _audit = audit_plots_enabled()
 ```
 
 
-The TD3 agent is evaluated against five benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. Section 6.5.2 sets its risk-adjusted performance against each of them.
+The TD3 agent is evaluated against four benchmark strategies spanning passive exposure, execution-style references, and a stochastic baseline. Section 6.1.8 sets its risk-adjusted performance against each of them.
 
 
 **Return aggregation for ratio metrics.**
@@ -45,8 +46,6 @@ return series. The statistic is well determined only for the random baseline,
 which loses on roughly half its bars. That the learned policies almost never
 close a four-minute bar at a loss is itself a consequence of the frictionless
 execution model rather than a property to be expected of a deployed strategy.
-
-### Evaluation Plots
 
 ```{python}
 #| label: eval_plots_setup
@@ -251,7 +250,7 @@ from thesis_tables import table_note
 table_note(source="Author's own calculations.", note=_prov_note() or None)
 ```
 
-### Discussion: Reading Performance in the Context of State Design
+### Reading Performance in the Context of State Design
 The benchmark comparison places the TD3 agent's held-out behavior in direct
 relation to the reference strategies. Several features of the comparison
 are worth stating explicitly.
