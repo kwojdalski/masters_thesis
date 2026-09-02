@@ -57,6 +57,11 @@ algorithm for this comparison: it should be read as matched experimental
 evidence on the available exports, not as a multi-seed estimate of the
 population distribution of outcomes.
 
+All three learning algorithms are trained for three million environment steps
+on identical data, features, reward, and evaluation protocol, so the comparison
+in this section is matched on training budget. The robustness experiments of
+Section 6.2 use a shorter budget, stated there.
+
 ### Performance Comparison
 
 The table below reports test-split metrics for each algorithm, all trained on
@@ -234,8 +239,8 @@ indiscriminately looks like.
 
 **DDPG** records the highest cumulative return, $312.8\%$, with a profit factor
 of $3.64$ and a Sharpe ratio of $4.96$. **TD3** is close behind at $304.9\%$,
-with a profit factor of $3.41$ and the highest per-bar Sharpe of the three,
-$5.04$. **PPO** returns $205.6\%$ on the highest profit factor, $4.59$, at the
+with a profit factor of $3.41$ and a per-bar Sharpe of $5.04$, marginally ahead
+of DDPG's $4.96$ though below PPO's $5.44$. **PPO** returns $205.6\%$ on the highest profit factor, $4.59$, at the
 lowest turnover, $0.36$. On drawdown the order reverses: DDPG and PPO hold their
 worst loss to $-0.45\%$ and $-0.47\%$, while TD3's $-0.65\%$ is the deepest of
 the learners, driven almost entirely by META (a $-3.3\%$ excursion on the
