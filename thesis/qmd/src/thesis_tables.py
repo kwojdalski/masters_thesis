@@ -204,15 +204,27 @@ def table_note(
     display(Markdown(f"\n::: {{.table-note}}\n{inner}\n:::\n"))
 
 
-def missing_data_notice(message: str) -> None:
+def missing_data_notice(message: str, command: str | None = None) -> None:
     """Display a missing-data fallback notice as flowing Markdown text.
 
     Used in place of a bare ``print(...)`` so the message renders as normal
     word-wrapped prose instead of a verbatim code-cell output block. Verbatim
     blocks do not wrap long lines, and a long "<file> not found — run: <cmd>"
     message can overflow past the page margin in PDF output.
+
+    ``command`` is emitted as a fenced code block, not an inline span. Pandoc
+    renders a space inside inline code as a non-breaking ``\\ ``, so a long CLI
+    invocation becomes one unbreakable run that TeX sets as an overfull line
+    running off the right edge of the page -- 204 mm against a 160 mm text
+    width in the case that prompted this, breaking the 25 mm margin the WNE UW
+    requirements fix. A fenced block is verbatim, so the caller's own line
+    breaks are honoured and each line stays inside the margin. Wrap
+    continuation lines with a trailing backslash so the command remains
+    directly runnable.
     """
     display(Markdown(f"*{message}*"))
+    if command:
+        display(Markdown(f"```\n{command}\n```"))
 
 
 def simple_html_table(rows: list[dict], index_col: str | None = None) -> HTML:

@@ -112,11 +112,16 @@ if finished is not None:
     _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
 
 def _no_data_msg(kind: str) -> str:
-    return (
-        f"{kind} plot data not available — re-run evaluation to generate parquet artifacts: "
-        "`uv run python src/cli.py evaluate -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr "
-        "--output-dir logs/<run> --only metrics --only benchmarks --only plots`"
-    )
+    return f"{kind} plot data not available — re-run evaluation to generate parquet artifacts:"
+
+# Wrapped at the backslash so every line fits the 160 mm text width; the
+# command stays runnable as written.
+_RERUN_CMD = (
+    "uv run python src/cli.py evaluate \\\n"
+    "  -c pooled/td3_hft_lob_state_space_pooled_streaming_selected_dsr \\\n"
+    "  --output-dir logs/<run> \\\n"
+    "  --only metrics --only benchmarks --only plots"
+)
 ```
 
 ```{python}
@@ -143,7 +148,7 @@ if _plot_data.get("equity") is not None:
               audit=_audit)
 else:
     from thesis_tables import missing_data_notice
-    missing_data_notice(_no_data_msg("Equity curve"))
+    missing_data_notice(_no_data_msg("Equity curve"), command=_RERUN_CMD)
 ```
 
 ::: {.table-note}
@@ -171,7 +176,7 @@ if _plot_data.get("rewards") is not None:
               audit=_audit, render_base_size=11)
 else:
     from thesis_tables import missing_data_notice
-    missing_data_notice(_no_data_msg("Reward"))
+    missing_data_notice(_no_data_msg("Reward"), command=_RERUN_CMD)
 ```
 
 ::: {.table-note}
@@ -201,7 +206,7 @@ if _plot_data.get("actions") is not None:
               audit=_audit, render_base_size=11)
 else:
     from thesis_tables import missing_data_notice
-    missing_data_notice(_no_data_msg("Action/position"))
+    missing_data_notice(_no_data_msg("Action/position"), command=_RERUN_CMD)
 ```
 
 ::: {.table-note}
