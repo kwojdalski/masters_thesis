@@ -24,9 +24,9 @@ The policy is a multi-layer perceptron. The input is the $d = 11$-dimensional st
 vector. The network passes this through two hidden layers and produces a scalar action:
 
 $$s_t \in \mathbb{R}^{11}
-  \xrightarrow{\text{Linear}} \mathbb{R}^{128}
-  \xrightarrow{\text{ReLU}} \mathbb{R}^{64}
-  \xrightarrow{\text{ReLU}} \mathbb{R}^{1}
+  \xrightarrow{\text{Linear},\,\text{ReLU}} \mathbb{R}^{128}
+  \xrightarrow{\text{Linear},\,\text{ReLU}} \mathbb{R}^{64}
+  \xrightarrow{\text{Linear}} \mathbb{R}^{1}
   \xrightarrow{\text{Tanh}} [-1,\,1]$$ {#eq-det-actor-network}
 
 Hidden layers use ReLU activations, following the DQN architecture [@Mnih2015];
@@ -94,18 +94,18 @@ where:
 
 The actor network shares the same hidden-layer structure as the deterministic actors
 (two layers of width [128, 64]) but its output head differs. The final linear
-layer produces $2n_{\text{act}} = 2$ values, which are split into a mean $\mu$ and a
-raw scale parameter $\log \sigma$ by a parameter extractor. The scale is transformed
-to a positive standard deviation via a softplus non-linearity, and a TanhNormal
-distribution is constructed:
+layer produces $2n_{\text{act}} = 2$ values. `NormalParamExtractor` interprets the
+first as the distribution location $\mu$. It transforms the second using a biased
+softplus and clamps it below at $10^{-4}$, producing the positive scale $\sigma$.
+These parameters define the TanhNormal distribution:
 
 $$s_t \in \mathbb{R}^{11}
-  \xrightarrow{\text{Linear}} \mathbb{R}^{128}
-  \xrightarrow{\text{Tanh}} \mathbb{R}^{64}
-  \xrightarrow{\text{Tanh}} \mathbb{R}^{2}
-  \xrightarrow{\text{split}} (\mu_\theta(s_t),\, \log\sigma_\theta(s_t))$$ {#eq-ppo-actor-network}
+  \xrightarrow{\text{Linear},\,\text{Tanh}} \mathbb{R}^{128}
+  \xrightarrow{\text{Linear},\,\text{Tanh}} \mathbb{R}^{64}
+  \xrightarrow{\text{Linear}} \mathbb{R}^{2}
+  \xrightarrow{\text{NormalParamExtractor}} (\mu_\theta(s_t),\, \sigma_\theta(s_t))$$ {#eq-ppo-actor-network}
 
-The resulting $(\mu_\theta(s_t), \log\sigma_\theta(s_t))$ pair parameterizes the
+The resulting $(\mu_\theta(s_t), \sigma_\theta(s_t))$ pair parameterizes the
 TanhNormal policy distribution defined in @eq-ppo-distribution above.
 
 The PPO actor uses Tanh activations in the hidden layers, following standard practice

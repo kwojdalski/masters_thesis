@@ -17,51 +17,44 @@ The research is based on the following hypotheses, ordered so that each builds o
 the previous one; together they make the case that robustness analysis is a
 precondition for any credible economic claim:
 
-1. A TD3 agent trained on order-book-derived high-frequency features learns a
-   genuine, learnable out-of-sample risk-adjusted edge from limit-order-book
-   microstructure, but the economic magnitude of that edge is of the same order
-   as the transaction cost required to trade on it: it is realised under
-   frictionless mid-price execution and is not expected to survive realistic
-   spread-crossing costs.
-2. The empirical performance of the agent is materially sensitive to the
-   transaction-cost assumption: the learned edge is positive under zero fee but
-   changes sign once the per-trade cost reaches a fraction of a basis point.
-   This is the scale of the bid-ask half-spread on these instruments.
-3. Within the order-book-based trading framework studied here, extending the
-   state representation from basic snapshot features to a broader
-   microstructure-aware feature set leads to improved out-of-sample performance
-   under identical training and evaluation conditions.
-4. The reward objective materially shapes the learned policy: replacing a
+1. A TD3 agent trained on limit-order-book features learns a risk-adjusted edge
+   that survives out of sample. The edge is real but small: its magnitude is of
+   the same order as the cost of trading on it, so it is realised under
+   frictionless mid-price execution and eliminated by realistic spread-crossing
+   costs.
+2. That edge depends on the assumed transaction cost. It is positive when
+   trading is costless and changes sign once the per-trade cost reaches a
+   fraction of a basis point — the scale of the bid-ask half-spread on these
+   instruments.
+3. A broader state representation improves out-of-sample performance. Replacing
+   basic snapshot features with a microstructure-aware feature set raises
+   risk-adjusted returns under otherwise identical training and evaluation
+   conditions.
+4. The reward objective shapes the policy, not only its score. Replacing a
    log-return reward with a Differential Sharpe Ratio reward changes both
    out-of-sample performance and the policy's directional exposure, under
    otherwise identical training and evaluation conditions.
 
 ### Objectives of the Research
 
-The primary research goal is to evaluate RL-based
-algorithms for high-frequency single-asset trading using order-book-derived
-data. The research objectives are structured in three interconnected phases:
+The study evaluates whether reinforcement learning can extract a tradable
+signal from limit-order-book microstructure at tick frequency, and what bounds
+that signal economically. The four hypotheses above are tested on one common
+apparatus: a TD3 agent trained on six US equities from Nasdaq MBP-10 data,
+evaluated out-of-sample against buy-and-hold, TWAP and VWAP execution
+benchmarks and a random-action control, with significance assessed by
+bootstrap confidence intervals and nonparametric tests.
 
-1. **Design and Implementation**
-   - Develop RL trading agents for high-frequency
-     order-book trading applications
-   - Construct a testing framework to evaluate agent performance
+Each hypothesis is tested as a single-factor comparison. Arms differ only in
+the quantity under study — the transaction-cost rate for Hypothesis 2, the
+feature set for Hypothesis 3, the reward objective for Hypothesis 4 — so that
+any difference in out-of-sample performance is attributable to that factor
+rather than to an incidental difference in configuration. Hypothesis 1 is
+established under frictionless mid-price execution; its economic bound follows
+from Hypothesis 2.
 
-2. **Testing and Evaluation**
-   - Assess agent performance on out-of-sample data against selected
-     benchmarks with established and novel risk-return metrics, operationalizing
-     the frictionless-execution component of Hypothesis 1 (its transaction-cost
-     bound is operationalized under Hypothesis 2)
-   - Analyze robustness under varying market conditions
-
-3. **Analysis and Implications**
-   - Compare alternative order-book-derived feature sets within a common
-     training and evaluation framework, operationalizing Hypothesis 3
-   - Compare the log-return and Differential Sharpe Ratio reward objectives
-     under an otherwise identical configuration, operationalizing Hypothesis 4
-   - Assess the practical relevance and limitations of the approach under
-     simplified execution assumptions
-   - Identify the binding constraints on out-of-sample performance
-     (whether they originate in execution modeling simplifications, feature
-     set coverage, or training data volume) to prioritize specific extensions
-     for future work
+Beyond testing the four hypotheses, the study aims to identify which constraint
+binds out-of-sample performance: the simplifications in the execution model,
+the coverage of the feature set, or the volume of training data. Separating
+these determines which extension is worth pursuing and grounds the
+recommendations in Chapter 7.

@@ -6,7 +6,7 @@ The action space defines the set of permissible decisions available to the tradi
 
 Trading systems can be formulated with either discrete or continuous action spaces:
 
-**Discrete action spaces** restrict the agent to a finite set of categorical decisions. The two most common formulations are the three-action set $\{-1, 0, 1\}$ representing short, neutral, and long positions, and the two-action set $\{0, 1\}$ representing only short and long positions without a neutral option.
+**Discrete action spaces** restrict the agent to a finite set of categorical decisions. The two common formulations considered here are the three-position set $\{-1, 0, 1\}$, representing short, neutral, and long exposure, and the two-position set $\{-1, 1\}$, representing short and long exposure without a neutral option. Implementations may encode these categorical choices internally using integer identifiers such as $\{0, 1\}$.
 
 **Continuous action spaces** allow the agent to output any value within a specified range, enabling smooth portfolio allocation decisions.
 

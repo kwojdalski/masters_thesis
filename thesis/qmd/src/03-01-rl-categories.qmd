@@ -46,11 +46,12 @@ $\arg\max_a Q(s, a)$ becomes intractable over an uncountable set.
 $\pi_\theta$. REINFORCE updates parameters by gradient ascent
 on expected return [@Williams1992]:
 
-$$\theta \leftarrow \theta + \alpha \nabla_\theta \mathbb{E}_{\pi_\theta}\!\left[\sum_t r_t\right]$$ {#eq-policy-gradient-update}
+$$J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\sum_{t=1}^{T}\gamma^{t-1}r_t\right], \qquad \theta \leftarrow \theta + \alpha \nabla_\theta J(\theta)$$ {#eq-policy-gradient-update}
 
 where:
 
 - $\theta$ — policy parameters
+- $J(\theta)$ — expected cumulative discounted return
 - $\alpha > 0$ — learning rate
 - $\nabla_\theta$ — gradient with respect to $\theta$
 - $r_t$ — reward at step $t$

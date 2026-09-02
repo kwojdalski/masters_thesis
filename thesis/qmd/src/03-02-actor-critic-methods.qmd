@@ -44,7 +44,7 @@ $$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \p
 
 where:
 
-- $J(\theta) = \mathbb{E}_{\pi_\theta}[\sum_t r_t]$ — expected return objective
+- $J(\theta) = \mathbb{E}_{\pi_\theta}[\sum_{t=1}^{T}\gamma^{t-1}r_t]$ — expected cumulative discounted return
 - $\pi_\theta(a_t \mid s_t)$ — probability of action $a_t$ under the current policy
 - $G_t = \sum_{k=0}^\infty \gamma^k r_{t+k}$ — discounted return from step $t$
 - $\nabla_\theta \log \pi_\theta$ — score function (log-policy gradient)
