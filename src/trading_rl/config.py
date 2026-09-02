@@ -267,6 +267,10 @@ class EnvConfig:
     exec_latency_ticks: int = 0
     obs_latency_us: float = 0.0
     exec_latency_us: float = 0.0
+    # Minimum interval between decisions, in rows (1 = decide on every tick).
+    # A round trip spanning several order-book events makes a per-tick decision
+    # rate physically impossible; the position is held between decisions.
+    action_every_n_steps: int = 1
 
     # Opt-in acknowledgement that a zero-fee / mid-price / zero-latency run on a
     # microstructure feature set is deliberate (e.g. a signal-ceiling ablation).

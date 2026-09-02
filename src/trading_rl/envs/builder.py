@@ -18,6 +18,7 @@ from logger import get_logger
 from trading_rl.config import DEFAULT_INITIAL_PORTFOLIO_VALUE, ExperimentConfig
 from trading_rl.constants import Algorithm, EnvBackend, RewardType
 from trading_rl.data_loading import MemmapPaths, load_memmap_paths
+from trading_rl.envs.latency import resolve_total_latency_ticks
 
 
 def _neutral_position(positions: list[int]) -> int:
@@ -84,6 +85,10 @@ class StreamingEnvParams:
     exec_latency_ticks: int = 0
     obs_latency_us: float = 0.0
     exec_latency_us: float = 0.0
+    # Minimum interval between decisions, in rows. 1 = decide every tick.
+    # A round trip spanning several events makes a per-tick decision rate
+    # physically impossible; the position is held between decisions.
+    action_every_n_steps: int = 1
 
 
 @dataclass(frozen=True)
@@ -144,6 +149,7 @@ class EnvBuildParams:
             exec_latency_ticks=getattr(env, "exec_latency_ticks", 0),
             obs_latency_us=getattr(env, "obs_latency_us", 0.0),
             exec_latency_us=getattr(env, "exec_latency_us", 0.0),
+            action_every_n_steps=getattr(env, "action_every_n_steps", 1),
         )
         return cls(
             common=common,
@@ -335,6 +341,14 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
                 execution_price=params.trading_env.execution_price,
                 bid_column=params.trading_env.bid_column,
                 ask_column=params.trading_env.ask_column,
+                # Latency lives on params.streaming but is not streaming-only:
+                # the evaluation path is DataFrame-backed and must apply the
+                # same information-to-fill shift, or every latency scenario is
+                # silently scored at zero delay.
+                latency_ticks=resolve_total_latency_ticks(
+                    params.streaming, df.index
+                ),
+                action_every_n_steps=params.streaming.action_every_n_steps,
             )
 
         _ANYTRADING_ENV_IDS = {
@@ -548,6 +562,7 @@ class AlgorithmicEnvironmentBuilder(BaseEnvironmentBuilder):
             exec_latency=make_latency_model(
                 params.streaming.exec_latency_ticks, params.streaming.exec_latency_us
             ),
+            action_every_n_steps=params.streaming.action_every_n_steps,
         )
         env = GymWrapper(base_env)
         with warnings.catch_warnings():
