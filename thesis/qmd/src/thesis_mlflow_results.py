@@ -276,6 +276,66 @@ def find_evaluation_plot_data(
     return result
 
 
+def find_plot_run_in_experiment(
+    experiment_name: str,
+    *,
+    require_checkpoint_step: int | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]] | tuple[dict[str, Any], None]:
+    """Find rollout plot data from any finished run of ``experiment_name``.
+
+    ``evaluate`` only writes the ``evaluation_plots`` parquets when ``--only
+    plots`` is in effect, so the newest finished run of an experiment often has
+    metrics, benchmarks and statistical tests but no plot data. This searches
+    the experiment's other finished runs for a usable set.
+
+    Provenance matters more than recency here. A run of the same experiment can
+    still differ in the checkpoint it scored and in how much of the split it
+    covered -- this experiment holds plot artifacts from a 200k-step checkpoint
+    over a 31-minute window as well as from the 3M-step checkpoint over the
+    full split -- and showing the wrong one beside the results tables would
+    misrepresent them. Pass ``require_checkpoint_step`` to accept only runs
+    whose plots were produced at that training step.
+
+    Returns ``(plot_data, provenance)``, where provenance carries the run id,
+    the training step and the symbols covered so the caller can state in the
+    caption which rollout is being shown. Both are empty/None when nothing
+    suitable is found.
+    """
+    exp = get_experiment_by_name(experiment_name)
+    if exp is None:
+        return {}, None
+
+    try:
+        runs = get_runs(exp["experiment_id"])
+    except Exception as exc:
+        _log_fallback(f"listing runs of {experiment_name!r} for plot data", exc)
+        return {}, None
+
+    best: tuple[dict[str, Any], dict[str, Any]] | None = None
+    for _, run in runs.iterrows():
+        if str(run.get("status", "")).upper() != "FINISHED":
+            continue
+        data = find_evaluation_plot_data(run.get("artifact_uri"))
+        if not data:
+            continue
+        steps = data.get("training_steps")
+        if require_checkpoint_step is not None and steps != require_checkpoint_step:
+            continue
+        provenance = {
+            "run_id": str(run.get("run_uuid") or run.get("run_id") or ""),
+            "training_steps": steps,
+            "symbols": data.get("symbols") or [],
+            "n_obs": data.get("n_obs"),
+            "date_str": data.get("date_str"),
+        }
+        # Prefer the run that scored the most observations: among runs at the
+        # same checkpoint that is the one covering the widest span of the split.
+        if best is None or (data.get("n_obs") or 0) > (best[0].get("n_obs") or 0):
+            best = (data, provenance)
+
+    return best if best is not None else ({}, None)
+
+
 def find_evaluation_plots(
     artifact_uri: str | None,
     *,
