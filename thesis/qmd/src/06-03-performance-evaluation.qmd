@@ -138,16 +138,27 @@ if not _plot_data:
 
 
 def _prov_note() -> str:
-    """State which rollout the figures show, when it is not the tables' run."""
+    """Which rollout the figures show, for the Note line beneath them.
+
+    This belongs under the figure rather than inside the caption. Appended to
+    the caption it ran the title to three lines and buried the one phrase that
+    identifies the figure; requirement 11 wants the caption to name the figure,
+    and the thesis already carries qualifying detail in a Note line.
+    """
     if not _plot_prov:
         return ""
     syms = ", ".join(_plot_prov.get("symbols") or []) or "the pooled split"
-    return (
-        f" Rollout shown is {syms} from the same {_plot_prov['training_steps']:,}-step "
+    note = (
+        f"Rollout shown is {syms} from the same {_plot_prov['training_steps']:,}-step "
         f"checkpoint as the results tables, evaluated over "
-        f"{_plot_prov['n_obs']:,} test-split steps"
-        f" (run `{_plot_prov['run_id'][:10]}`)."
+        f"{_plot_prov['n_obs']:,} test-split steps."
     )
+    # The MLflow run id identifies the artifact for anyone re-deriving the
+    # figure, but it means nothing to a reader of the submitted document, so it
+    # is kept to audit renders (AUDIT_PLOTS=1) alongside the other provenance.
+    if _audit and _plot_prov.get("run_id"):
+        note += f" Run `{_plot_prov['run_id'][:10]}`."
+    return note
 
 def _no_data_msg(kind: str) -> str:
     return f"{kind} plot data not available — re-run evaluation to generate parquet artifacts:"
@@ -187,16 +198,19 @@ if _plot_data.get("equity") is not None:
     # text. Wider figure, same tick count, so the labels have room and the type
     # is proportionally smaller once scaled into the text block.
     show_plot(_p, _plot_data, frame="equity", fig_label="fig-eval-equity",
-              fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies." + _prov_note(),
+              fig_cap="Portfolio value on the held-out test split.",
               audit=_audit, render_base_size=11, width=7.5)
 else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Equity curve"), command=_RERUN_CMD)
 ```
 
-::: {.table-note}
-**Source:** Author's own calculations.
-:::
+```{python}
+#| output: asis
+#| echo: false
+from thesis_tables import table_note
+table_note(source="Author's own calculations.", note=_prov_note() or None)
+```
 
 ```{python}
 #| label: cell-eval-rewards
@@ -215,16 +229,19 @@ if _plot_data.get("rewards") is not None:
         date_str=_plot_data.get("date_str", ""),
     )
     show_plot(_p, _plot_data, frame="rewards", fig_label="fig-eval-rewards",
-              fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout." + _prov_note(),
+              fig_cap="Cumulative reward over the held-out test split.",
               audit=_audit, render_base_size=11)
 else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Reward"), command=_RERUN_CMD)
 ```
 
-::: {.table-note}
-**Source:** Author's own calculations.
-:::
+```{python}
+#| output: asis
+#| echo: false
+from thesis_tables import table_note
+table_note(source="Author's own calculations.", note=_prov_note() or None)
+```
 
 ```{python}
 #| label: cell-eval-positions
@@ -245,16 +262,19 @@ if _plot_data.get("actions") is not None:
         allocation_ma_window=_plot_data.get("allocation_ma_window"),
     )
     show_plot(_p, _plot_data, frame="actions", fig_label="fig-eval-positions",
-              fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout." + _prov_note(),
+              fig_cap="Portfolio allocation over the held-out test split.",
               audit=_audit, render_base_size=11)
 else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Action/position"), command=_RERUN_CMD)
 ```
 
-::: {.table-note}
-**Source:** Author's own calculations.
-:::
+```{python}
+#| output: asis
+#| echo: false
+from thesis_tables import table_note
+table_note(source="Author's own calculations.", note=_prov_note() or None)
+```
 
 ### Discussion: Reading Performance in the Context of State Design
 The benchmark comparison places the TD3 agent's held-out behavior in direct
