@@ -81,9 +81,21 @@ if not _plot_data:
 # two lookups above find nothing there and the figures would fall back to a
 # "not available" notice in the published PDF while rendering fine locally.
 # Refresh it with scripts/export_rollout_plots_to_thesis.py.
-if not _plot_data:
-    from thesis_mlflow_results import find_exported_plot_data
+# The committed multi-algorithm comparison is preferred over any single-policy
+# rollout: the figures then answer the same question as the algorithm-comparison
+# table in Section 6.1, rather than illustrating one policy against the passive
+# benchmarks and supporting no comparison between the learners at all. Built by
+# scripts/export_algo_comparison_plots.py, which refuses to emit anything unless
+# every algorithm contributes a rollout over the same split, symbol, window
+# length and checkpoint step.
+from thesis_mlflow_results import find_exported_plot_data
 
+_cmp_data, _cmp_prov = find_exported_plot_data(
+    EXPERIMENT_NAME, "evaluation_plots_comparison"
+)
+if _cmp_data:
+    _plot_data, _plot_prov = _cmp_data, _cmp_prov
+elif not _plot_data:
     _plot_data, _plot_prov = find_exported_plot_data(EXPERIMENT_NAME)
 
 
@@ -98,11 +110,24 @@ def _prov_note() -> str:
     if not _plot_prov:
         return ""
     syms = ", ".join(_plot_prov.get("symbols") or []) or "the pooled split"
-    note = (
-        f"Rollout shown is {syms} from the same {_plot_prov['training_steps']:,}-step "
-        f"checkpoint as the results tables, evaluated over "
-        f"{_plot_prov['n_obs']:,} test-split steps."
-    )
+    runs = _plot_prov.get("runs")
+    if runs:
+        # Comparison export: name the arms and the matching that makes them
+        # comparable, since the reader is being invited to read one line
+        # against another.
+        step = _plot_prov.get("checkpoint_step")
+        note = (
+            f"{', '.join(runs)} on {syms}, each from its own "
+            f"{step:,}-step checkpoint, evaluated over the same "
+            f"{_plot_prov['n_obs']:,} test-split steps. Random has no trained "
+            "weights. Tables 4 and 5 aggregate six instruments; this is one."
+        )
+    else:
+        note = (
+            f"Rollout shown is {syms} from the same {_plot_prov['training_steps']:,}-step "
+            f"checkpoint as the results tables, evaluated over "
+            f"{_plot_prov['n_obs']:,} test-split steps."
+        )
     # The MLflow run id identifies the artifact for anyone re-deriving the
     # figure, but it means nothing to a reader of the submitted document, so it
     # is kept to audit renders (AUDIT_PLOTS=1) alongside the other provenance.
