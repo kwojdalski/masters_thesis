@@ -15,7 +15,7 @@ format:
     latex-engine: xelatex
     mainfont: "TeX Gyre Termes"
     toc: false
-    toc-depth: 3
+    toc-depth: 4
     number-sections: true
     output-file: masters_thesis.pdf
     # WNE UW requirement 4 indents *every* paragraph by 1 cm, and Annex D
@@ -63,7 +63,11 @@ format:
       # continuation lines flush to the left margin, hiding the label.
       - \captionsetup[figure]{format=hang,position=above,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
       - \captionsetup[table]{format=hang,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
-      - \setcounter{tocdepth}{3}
+      # Requirement 3 puts every chapter and subchapter title in the table of
+      # contents and permits three subchapter levels. The document uses all
+      # three (4.5.1.1, 5.3.4.1-4), so tocdepth must be 4 -- chapter plus three
+      # -- or those five headings exist in the body but not in the contents.
+      - \setcounter{tocdepth}{4}
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
