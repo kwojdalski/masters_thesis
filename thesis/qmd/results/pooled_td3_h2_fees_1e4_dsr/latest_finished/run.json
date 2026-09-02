@@ -12,7 +12,7 @@
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h2_fees_1e4_dsr",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h2_fees_1e4_dsr/results.json",
     "results_file_mtime_utc": "2026-09-01T14:17:40.357542+00:00",
-    "exported_at_utc": "2026-09-01T15:20:38.660110+00:00"
+    "exported_at_utc": "2026-09-02T15:42:30.515262+00:00"
   },
   "files": {
     "params": "params.json",

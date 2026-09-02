@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "experiment_name": "pooled_ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",
-  "exported_at_utc": "2026-09-01T21:11:09.860500+00:00",
+  "exported_at_utc": "2026-09-02T15:42:00.441696+00:00",
   "source": {
     "type": "evaluate_cli",
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr"

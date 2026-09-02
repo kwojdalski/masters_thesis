@@ -12,7 +12,7 @@
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr/results.json",
     "results_file_mtime_utc": "2026-09-01T20:52:20.711027+00:00",
-    "exported_at_utc": "2026-09-01T21:11:04.832628+00:00"
+    "exported_at_utc": "2026-09-02T15:41:55.630026+00:00"
   },
   "files": {
     "params": "params.json",
