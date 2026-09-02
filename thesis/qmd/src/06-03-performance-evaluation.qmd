@@ -181,9 +181,14 @@ if _plot_data.get("equity") is not None:
         symbols=_plot_data.get("symbols", []),
         n_total_symbols=_plot_data.get("n_total_symbols"),
     )
+    # render_base_size and an explicit width for the same reason the other two
+    # figures carry them: at the default size this plot's x-axis ticks ran into
+    # each other ("250000500000750001000000") and its type dwarfed the body
+    # text. Wider figure, same tick count, so the labels have room and the type
+    # is proportionally smaller once scaled into the text block.
     show_plot(_p, _plot_data, frame="equity", fig_label="fig-eval-equity",
               fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies." + _prov_note(),
-              audit=_audit)
+              audit=_audit, render_base_size=11, width=7.5)
 else:
     from thesis_tables import missing_data_notice
     missing_data_notice(_no_data_msg("Equity curve"), command=_RERUN_CMD)

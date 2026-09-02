@@ -1680,16 +1680,24 @@ def show_plot(
         # --- Figure-env mode: save to file, emit Quarto cross-ref div ---
         path = _figures_dir() / f"{fig_label}.png"
         mpl_fig = plot.draw()
-        mpl_fig.savefig(str(path), dpi=150, bbox_inches="tight")
+        mpl_fig.savefig(str(path), dpi=300, bbox_inches="tight")
         plt.close(mpl_fig)
 
         # Build the caption that goes inside \caption{}.
+        # The plot's own title duplicates the figure caption when the caller
+        # supplies one: Quarto treats the last paragraph of the div as the
+        # caption and leaves the rest as body text, so the title printed a
+        # second time in bold under the image ("Portfolio Value -- AAPL"
+        # beneath a caption already saying so). Emit it only when there is no
+        # explicit caption to carry the description.
         parts: list[str] = []
-        if title:
+        if title and not fig_cap:
             t = f"**{title}**"
             if subtitle:
                 t += f" — *{subtitle}*"
             parts.append(t)
+        elif subtitle and not fig_cap:
+            parts.append(f"*{subtitle}*")
         if caption:
             parts.append(caption)
         cap_md = "\n\n".join(parts)
