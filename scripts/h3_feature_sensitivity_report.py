@@ -27,9 +27,10 @@ from typing import Any
 
 import numpy as np
 import yaml
-from _results_io import SplitEntry, basis_warning, load_split_entry
 from rich.console import Console
 from rich.table import Table
+
+from trading_rl.evaluation.results_io import SplitEntry, basis_warning, load_split_entry
 
 _DEFAULT_CONFIG = Path("src/configs/h3_feature_sensitivity.yaml")
 

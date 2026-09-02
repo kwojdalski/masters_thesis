@@ -19,10 +19,11 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from _results_io import SplitEntry, basis_warning, load_split_entry
 from rich.columns import Columns
 from rich.console import Console
 from rich.table import Table
+
+from trading_rl.evaluation.results_io import SplitEntry, basis_warning, load_split_entry
 
 _METRICS: list[tuple[str, str, str]] = [
     ("sharpe_ratio", "Sharpe", ".3f"),
