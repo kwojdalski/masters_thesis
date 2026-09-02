@@ -57,6 +57,8 @@ data. The research objectives are structured in three interconnected phases:
 3. **Analysis and Implications**
    - Compare alternative order-book-derived feature sets within a common
      training and evaluation framework, operationalizing Hypothesis 3
+   - Compare the log-return and Differential Sharpe Ratio reward objectives
+     under an otherwise identical configuration, operationalizing Hypothesis 4
    - Assess the practical relevance and limitations of the approach under
      simplified execution assumptions
    - Identify the binding constraints on out-of-sample performance

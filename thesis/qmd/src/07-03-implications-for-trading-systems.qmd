@@ -1,6 +1,6 @@
 ## Implications for Trading-System Design {#sec-implications-and-recommendations}
 
-Four findings from the experiments generalise beyond the specific
+Five findings from the experiments generalise beyond the specific
 configurations tested, in the sense that they concern the design of the
 learning problem rather than the particular agent trained here.
 
