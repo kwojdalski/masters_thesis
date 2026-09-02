@@ -211,6 +211,36 @@ def test_us_to_ticks_requires_datetime_index() -> None:
         _us_to_ticks(100.0, pd.RangeIndex(5))
 
 
+def test_us_to_ticks_rejects_non_monotonic_index() -> None:
+    """A concatenated multi-symbol frame must raise, not silently mis-resolve.
+
+    np.searchsorted assumes sorted input and returns a meaningless index
+    otherwise. Concatenating two symbols restarts the clock at the boundary,
+    which resolved a 1000 us delay to a 2020-row shift instead of 20.
+    """
+    session = pd.date_range("2026-03-02 14:30:00", periods=2000, freq="50us")
+    concatenated = pd.DatetimeIndex(session.append(session))
+
+    with pytest.raises(ValueError, match="monotonically non-decreasing"):
+        _us_to_ticks(1000.0, concatenated)
+
+
+def test_us_to_ticks_allows_duplicate_timestamps_and_session_gaps() -> None:
+    """The guard rejects inversions only; ties and forward jumps stay legal.
+
+    Repeated timestamps (diff == 0) are ordinary in LOB data, and an overnight
+    gap is a large forward jump. Neither breaks searchsorted, so neither may
+    trip the monotonicity check.
+    """
+    session = pd.date_range("2026-03-02 14:30:00", periods=100, freq="50us")
+
+    with_ties = pd.DatetimeIndex(session.repeat(2))
+    assert _us_to_ticks(1000.0, with_ties) == 40
+
+    across_sessions = pd.DatetimeIndex(session.append(session + pd.Timedelta("18h")))
+    assert _us_to_ticks(1000.0, across_sessions) == 20
+
+
 def test_us_to_ticks_zero_latency_returns_first_row() -> None:
     timestamps = _timestamps_from_offsets_us([0, 10, 20, 30])
     assert _us_to_ticks(0.0, timestamps) == 0
@@ -487,10 +517,10 @@ def test_a_long_gap_at_the_window_start_does_not_absorb_the_delay() -> None:
     requested latency, collapsing the 10 us, 1 ms and 5 ms arms onto the same
     offset -- three nominally different experiments behaving identically.
     """
-    ns = np.concatenate(
-        [[0, 301_009_000], (np.arange(198) + 2) * 30_000 + 301_009_000]
+    ns = np.concatenate([[0, 301_009_000], (np.arange(198) + 2) * 30_000 + 301_009_000])
+    ts = pd.DatetimeIndex(
+        pd.Timestamp("2026-03-02T14:30:00Z") + pd.to_timedelta(ns, "ns")
     )
-    ts = pd.DatetimeIndex(pd.Timestamp("2026-03-02T14:30:00Z") + pd.to_timedelta(ns, "ns"))
 
     k_10us, k_1ms, k_5ms = (_us_to_ticks(u, ts) for u in (10.0, 1_000.0, 5_000.0))
 
