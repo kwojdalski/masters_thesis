@@ -188,6 +188,7 @@ def _symbol_from_split_key(key: str) -> str:
 def _write_json(path: Path, data: Any) -> None:
     with path.open("w") as f:
         json.dump(data, f, indent=2, default=str)
+        f.write("\n")
 
 
 def _write_csv(path: Path, rows: list[dict[str, Any]]) -> None:

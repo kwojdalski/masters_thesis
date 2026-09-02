@@ -57,7 +57,12 @@ def _sanitise_for_json(obj: object) -> object:
 
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_sanitise_for_json(payload), indent=2, default=str))
+    # Trailing newline: without it every re-export rewrites the closing brace
+    # line, so a one-field timestamp change shows up as a whole-file diff and
+    # collides with pre-commit's end-of-file-fixer.
+    path.write_text(
+        json.dumps(_sanitise_for_json(payload), indent=2, default=str) + "\n"
+    )
 
 
 def _load_results_json(path: Path) -> dict:

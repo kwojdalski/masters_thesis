@@ -714,6 +714,7 @@ def log_evaluation_plots(
             meta_path = os.path.join(batch_temp_dir, f"{timestamp}_plot_meta.json")
             with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(meta, f, default=str)
+                f.write("\n")
             mlflow.log_artifact(meta_path, artifact_dir)
             logger.info("saved plot data parquets frames={}", list(frames))
 

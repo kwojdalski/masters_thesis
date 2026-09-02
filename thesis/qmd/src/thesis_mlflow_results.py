@@ -709,7 +709,9 @@ def _sanitise_for_json(obj: Any) -> Any:
 
 def _write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(_sanitise_for_json(payload), indent=2, default=str))
+    path.write_text(
+        json.dumps(_sanitise_for_json(payload), indent=2, default=str) + "\n"
+    )
     if _write_asset_meta:
         _write_asset_meta(path, generator="thesis_mlflow_results.py")
 

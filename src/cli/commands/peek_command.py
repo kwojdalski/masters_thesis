@@ -101,13 +101,14 @@ class PeekCommand(BaseCommand):
             splits_records = splits_df.to_dict(orient="records")
             _splits_path = export_dir / "splits.json"
             _splits_path.write_text(
-                json.dumps(splits_records, indent=2, default=str), encoding="utf-8"
+                json.dumps(splits_records, indent=2, default=str) + "\n",
+                encoding="utf-8",
             )
             write_asset_meta(_splits_path, generator="cli/commands/peek_command.py")
             if inventory_df is not None:
                 _inv_path = export_dir / "raw_file_inventory.json"
                 _inv_path.write_text(
-                    json.dumps(inventory_df.to_dict(orient="records"), indent=2),
+                    json.dumps(inventory_df.to_dict(orient="records"), indent=2) + "\n",
                     encoding="utf-8",
                 )
                 write_asset_meta(_inv_path, generator="cli/commands/peek_command.py")
