@@ -18,6 +18,14 @@ format:
     toc-depth: 4
     number-sections: true
     output-file: masters_thesis.pdf
+    # Every page number in the contents and the three back-matter lists was
+    # low by exactly 4. On the first LaTeX pass there is no .toc, so the
+    # contents occupies one page instead of five; the second pass typesets
+    # that stale .toc while writing a corrected one, and Quarto's rerun
+    # detection did not fire, so the corrected file was never typeset. Three
+    # passes converge. Raise this if the contents grows past another page
+    # boundary and the numbers drift again.
+    latex-min-runs: 3
     # WNE UW requirement 4 indents *every* paragraph by 1 cm, and Annex D
     # shows the paragraph directly after a heading indented like any other
     # (35.6 mm against its 25 mm margin). Pandoc's default suppresses that

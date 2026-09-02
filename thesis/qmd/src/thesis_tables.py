@@ -406,6 +406,14 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
             f"\\caption{{{_esc(caption)}}}",
             r"\label{tbl-feature-stats}",
             r"\centering",
+            # The document sets 1.5 line spacing, which inflates all 33 rows
+            # and the five-line note. A table float cannot break across pages,
+            # so the note ran 16.9 mm past the bottom margin and printed
+            # through the page number. WNE UW requirement 4 allows single
+            # spacing inside tables and in table notes, which reclaims the
+            # space without shrinking the text below the 10 pt \footnotesize
+            # already in use.
+            r"\singlespacing",
             r"\footnotesize",
             f"\\begin{{tabular}}{{{col_spec}}}",
             r"\toprule",
@@ -416,7 +424,7 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
             r"\end{tabular}",
             r"\vspace{4pt}",
             r"\begin{minipage}{\linewidth}",
-            f"\\footnotesize\\textit{{{note_latex}}}",
+            f"\\singlespacing\\footnotesize\\textit{{{note_latex}}}",
             r"\end{minipage}",
             r"\end{table}",
             r"\end{landscape}",
