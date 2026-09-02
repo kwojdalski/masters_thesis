@@ -42,8 +42,14 @@ signal from limit-order-book microstructure at tick frequency, and what bounds
 that signal economically. The four hypotheses above are tested on one common
 apparatus: a TD3 agent trained on six US equities from Nasdaq MBP-10 data,
 evaluated out-of-sample against buy-and-hold, TWAP and VWAP execution
-benchmarks and a random-action control, with significance assessed by
-bootstrap confidence intervals and nonparametric tests.
+benchmarks and a random-action control. Significance is assessed against an
+economic threshold rather than against zero. At tick frequency each instrument
+contributes on the order of a million steps, and a test of the null that the
+agent's mean per-step return equals a benchmark's rejects at effect sizes far
+below any tradable margin; the question that binds the result is therefore not
+whether the difference is distinguishable from zero but whether it exceeds the
+cost of trading on it. That is measured directly, by the transaction-cost
+sweep in Section 6.2 and the fixed-path bid/ask repricing in Section 7.2.
 
 Each hypothesis is tested as a single-factor comparison. Arms differ only in
 the quantity under study — the transaction-cost rate for Hypothesis 2, the
