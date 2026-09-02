@@ -12,7 +12,7 @@
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_minimal",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h3_features_minimal/results.json",
     "results_file_mtime_utc": "2026-09-01T15:42:21.952649+00:00",
-    "exported_at_utc": "2026-09-01T16:44:31.434919+00:00"
+    "exported_at_utc": "2026-09-02T15:42:35.528331+00:00"
   },
   "files": {
     "params": "params.json",

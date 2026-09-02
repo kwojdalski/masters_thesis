@@ -12,7 +12,7 @@
     "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h5_latency_10us_dsr",
     "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h5_latency_10us_dsr/results.json",
     "results_file_mtime_utc": "2026-09-02T01:46:17.198031+00:00",
-    "exported_at_utc": "2026-09-02T13:20:50.271185+00:00"
+    "exported_at_utc": "2026-09-02T15:38:04.955237+00:00"
   },
   "files": {
     "params": "params.json",
