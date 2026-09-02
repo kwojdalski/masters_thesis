@@ -110,6 +110,28 @@ def test_sortino_bootstrap_result_uses_sortino_metric_names() -> None:
     assert "sortino_difference" in result
 
 
+def test_sortino_bootstrap_suppresses_materially_degenerate_inference() -> None:
+    strategy = np.full(237, 0.001)
+    strategy[[10, 50]] = -0.002
+    baseline = np.resize(np.array([-0.001, 0.001]), strategy.size)
+
+    result = sortino_ratio_bootstrap_test(
+        strategy,
+        baseline,
+        n_bootstrap=2000,
+        confidence_level=0.95,
+        seed=42,
+    )
+
+    assert result["n_bootstrap_valid"] < result["n_bootstrap"]
+    assert result["bootstrap_degenerate_fraction"] > 0.01
+    assert result["bootstrap_inference_valid"] is False
+    assert result["difference_ci_lower"] is None
+    assert result["difference_ci_upper"] is None
+    assert result["p_value"] is None
+    assert result["significant"] is False
+
+
 def _returns_with_p_value_between_one_and_five_percent() -> tuple[
     np.ndarray, np.ndarray
 ]:

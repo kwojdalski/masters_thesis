@@ -654,19 +654,27 @@ def format_statistical_significance_summary(
         if not isinstance(baseline_result, dict) or "error" in baseline_result:
             continue
         baseline_name = str(baseline_result.get("baseline", "unknown"))
+        symbol = baseline_result.get("symbol")
         for test_name, test_result in baseline_result.items():
             if not isinstance(test_result, dict):
                 continue
             p_value = test_result.get("p_value")
             significant = test_result.get("significant")
-            if p_value is None:
+            inference_valid = test_result.get("bootstrap_inference_valid", True)
+            if p_value is None and inference_valid is not False:
                 continue
             rows.append(
                 {
+                    "Symbol": str(symbol) if symbol else None,
                     "Test": str(test_name).replace("_", " ").title(),
                     "Benchmark": baseline_name.replace("_", " ").title(),
-                    "p-value": float(p_value),
-                    "Significant (p < 0.05)": ("Yes" if bool(significant) else "No"),
+                    "p-value": float(p_value) if p_value is not None else None,
+                    "Significant (p < 0.05)": (
+                        "Not reported"
+                        if inference_valid is False
+                        else ("Yes" if bool(significant) else "No")
+                    ),
+                    "Note": test_result.get("bootstrap_note"),
                 }
             )
 
@@ -674,8 +682,14 @@ def format_statistical_significance_summary(
         return pd.DataFrame()
 
     frame = pd.DataFrame(rows)
-    frame = frame.sort_values(["Benchmark", "Test"], ignore_index=True)
-    frame["p-value"] = frame["p-value"].map(lambda x: f"{x:.4f}")
+    sort_columns = [column for column in ("Symbol", "Benchmark", "Test") if column in frame]
+    frame = frame.sort_values(sort_columns, ignore_index=True, na_position="last")
+    frame["p-value"] = frame["p-value"].map(
+        lambda x: f"{x:.4f}" if pd.notna(x) else "N/A"
+    )
+    for optional_column in ("Symbol", "Note"):
+        if frame[optional_column].isna().all():
+            frame = frame.drop(columns=optional_column)
     return frame
 
 

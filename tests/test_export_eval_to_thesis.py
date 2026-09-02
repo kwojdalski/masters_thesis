@@ -86,3 +86,103 @@ def test_main_allows_explicit_stale_results_override(
     # end_time is results.json's mtime, not the export time.
     assert run_json["end_time"] != run_json["source"]["exported_at_utc"]
     assert run_json["source"]["results_file_mtime_utc"] == run_json["end_time"]
+
+
+def test_main_exports_per_symbol_statistical_tests_without_averaging(
+    tmp_path: Path, monkeypatch
+) -> None:
+    eval_dir = tmp_path / "logs" / "experiment"
+    eval_dir.mkdir(parents=True)
+    test_result = {
+        "enabled": True,
+        "tests_configured": ["t_test"],
+        "baselines": [
+            {
+                "baseline": "buy_and_hold",
+                "t_test": {"p_value": 0.01, "significant": True},
+            }
+        ],
+    }
+    results_file = eval_dir / "results.json"
+    results_file.write_text(
+        json.dumps(
+            {
+                "test_AAPL": {
+                    "metrics": {"total_return": 0.1},
+                    "statistical_tests": test_result,
+                },
+                "test_MSFT": {
+                    "metrics": {"total_return": 0.2},
+                    "statistical_tests": {
+                        **test_result,
+                        "baselines": [
+                            {
+                                "baseline": "buy_and_hold",
+                                "t_test": {"p_value": 0.03, "significant": True},
+                            }
+                        ],
+                    },
+                },
+            }
+        )
+    )
+    results_root = tmp_path / "thesis-results"
+    monkeypatch.setattr(
+        export_eval_to_thesis,
+        "_parse_args",
+        lambda: _args(eval_dir, results_root, allow_stale=False),
+    )
+
+    assert export_eval_to_thesis.main() == 0
+
+    snapshot_dir = results_root / "test_experiment" / "latest_finished"
+    exported = json.loads((snapshot_dir / "statistical_tests.json").read_text())
+    assert exported["__source_split__"] == "test"
+    assert exported["__source_keys__"] == ["test_AAPL", "test_MSFT"]
+    assert [(row["symbol"], row["t_test"]["p_value"]) for row in exported["baselines"]] == [
+        ("AAPL", 0.01),
+        ("MSFT", 0.03),
+    ]
+
+    run_json = json.loads((snapshot_dir / "run.json").read_text())
+    assert run_json["files"]["statistical_tests"] == "statistical_tests.json"
+    assert run_json["files"]["benchmark_comparison"] is None
+
+
+def test_main_does_not_label_benchmark_only_payload_as_statistical_tests(
+    tmp_path: Path, monkeypatch
+) -> None:
+    eval_dir = tmp_path / "logs" / "experiment"
+    eval_dir.mkdir(parents=True)
+    (eval_dir / "results.json").write_text(
+        json.dumps({"test_AAPL": {"metrics": {"total_return": 0.1}}})
+    )
+    (eval_dir / "test_AAPL_benchmark_table.json").write_text(
+        json.dumps(
+            {
+                "rows": [
+                    {"name": "agent", "is_strategy": True, "total_return": 0.1},
+                    {
+                        "name": "buy_and_hold",
+                        "is_strategy": False,
+                        "total_return": 0.01,
+                    },
+                ]
+            }
+        )
+    )
+    results_root = tmp_path / "thesis-results"
+    monkeypatch.setattr(
+        export_eval_to_thesis,
+        "_parse_args",
+        lambda: _args(eval_dir, results_root, allow_stale=False),
+    )
+
+    assert export_eval_to_thesis.main() == 0
+
+    snapshot_dir = results_root / "test_experiment" / "latest_finished"
+    assert (snapshot_dir / "benchmark_comparison.json").exists()
+    assert not (snapshot_dir / "statistical_tests.json").exists()
+    run_json = json.loads((snapshot_dir / "run.json").read_text())
+    assert run_json["files"]["benchmark_comparison"] == "benchmark_comparison.json"
+    assert run_json["files"]["statistical_tests"] is None
