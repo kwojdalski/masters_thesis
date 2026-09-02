@@ -9,6 +9,20 @@
 \clearpage
 \section*{APPENDICES}
 \addcontentsline{toc}{section}{APPENDICES}
+% Annex D's contents ends "BIBLIOGRAPHY 72 / LIST OF INDEXES 75 / APPENDICES
+% 77" -- one line for the whole block, with no per-appendix breakdown. The
+% individual appendices belong to the list of appendices ("Annex 1.",
+% "Annex 2." there), and requirement 3 asks the contents to carry chapter and
+% subchapter titles, which appendices are not. Listing A through K in both
+% places duplicated the list of appendices two pages earlier.
+%
+% Lowering tocdepth inside the .toc file suppresses the entries when the
+% contents is typeset, rather than preventing them being written. The appendix
+% headings therefore keep their numbering and their \addcontentsline{lap}
+% entries, and only the contents stops showing them. This goes after the
+% APPENDICES line above, or that line would be suppressed too. Nothing follows
+% the appendices, so the depth never needs restoring.
+\addtocontents{toc}{\protect\setcounter{tocdepth}{-1}}
 ```
 
 # Feature Inventory
