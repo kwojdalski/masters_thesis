@@ -11,12 +11,21 @@ committed state, not a stray edit). ~6,900 words of finished content were
 absent from the PDF. That was fixed this session (see item 0 below), so the
 real starting point for the 80-page target is the post-fix count, not 144.
 
-Current: **138 pages** (measured 2026-08-31, session 14, fresh render after
-merging the Hemingway pass in PR #556 and applying item 38)
-Body word count (chapters 01-07): **29,321 words**
-Body page range: physical PDF pages 9-102, **94 body pages**; Bibliography
-begins on physical page 103
-words_per_page: ~312 (29,321 / 94 measured body pages)
+Current: **154 pages** (measured 2026-09-02, session 15)
+Body word count (chapters 01-07): **33,870 words** (34,089 before item 39)
+Body page range: physical PDF pages 9-113, **105 body pages**; Bibliography
+begins on physical page 114
+words_per_page: ~325 (34,089 / 105 measured body pages)
+
+**The body grew between sessions 14 and 15**, from 94 pages / 29,321 words to
+105 pages / 34,089 words. No condensation was reverted; the increase is
+accretion from the substantive work done in between (the execution-realism
+and simulation-assumption passages in `05-00` and `07-02`, the
+endogenous-price-formation interpretation in `06-03`, the honest
+training-budget statements, and the Sortino-omission note). Condensation is
+currently losing to accretion, and the remaining gap to ~80 body pages is
+**25 pages (~8,100 words)** — larger than at any previous session. Sessions
+that add prose should budget an offsetting cut.
 Cumulative body reduction from the complete pre-condensation draft: **8,427
 words**. Session 2 alone removed 710 body words and reduced the measured body
 from 111 to 109 pages; the total PDF fell from 151 to 150 pages because one
@@ -164,6 +173,9 @@ Subsequent sessions should resume in chapter-number order (02, 03, 04, 05,
 | 36 | 1 | 06-00, 06-03 | Same scan. `06-00`'s H1 legend and `06-03`'s benchmark-table legend share most definitions (Sortino, Max DD, Win Rate, Turnover) but use different abbreviations for three metrics (TR vs Return, SR vs Sharpe, Volatility vs Ann. Vol), so a clean full cross-reference would've needed either a residual mapping for the differing three or a column-header rename — more invasive than item 35. Not reviewed in detail once the user skipped item 35 for the same underlying reason. | ~20-25 (not applied) | skipped — same formal-compliance uncertainty as item 35 |
 | 37 | 1 | 06-00, 06-03 | Same scan. `06-03`'s one-sentence benchmark-category recap ("passive exposure, execution-style references, and a stochastic baseline") echoes `06-00`'s `#sec-benchmark-strategies` intro almost verbatim, but it's already compact (no re-definition of the five strategies) — marginal, comparable to item 31's "too small to be worth it" judgment. | ~10-15 (not applied) | skipped — marginal, same session decision as 35/36 |
 | 38 | 1 | 02-04, 04-03 | A lower-threshold cross-file similarity scan after the Hemingway pass found that `02-04` explained the direct-optimization architecture and its DSR caveat in nearly the same terms as the authoritative reward implementation in `04-03`. Condensed the Chapter 2 passage from 170 to 80 words, preserving the calibration-gap argument, the DSR-as-approximation caveat, and the Chapter 4 pointer. | -90 | applied |
+| 39 | 3 | 02-04 | The `### Learning Paradigms` taxonomy gave a full paragraph each to unsupervised and semi-supervised learning, both terminating in "and this is why it does not apply here". Neither paradigm has a baseline in Chapter 6, so the passages set up a comparison the results never deliver. Replaced with a single exclusion sentence retaining the `@Lopez2018` citation and the regime-conditioning answer (live because `05-00`'s narrow-data-scope assumption concedes one volatility regime). The supervised-vs-RL argument and the direct-vs-indirect optimization contrast — the actual design justification — were kept in full. | -219 | applied |
+| 40 | 3 | 02-04 | Second increment, offered but not taken this session: the supervised entry and the rule-based-strategies paragraph still *describe* methods (what a moving-average crossover is, what Bollinger Bands are) to a reader who does not need it. Compressing description to claim-plus-citation would take the file from ~1,080 to ~650 words. Lower risk than item 39 — pure category-3 compression, no scope removal. | ~350 | logged |
+| 41 | 3 | 04-* | Chapter 4 (21 pp) was proposed for appendix migration and **withdrawn on inspection**: `04-07-optimization-hyperparameters.qmd` is only 231 words, `04-06` is 136, and the chapter contains **no tables at all** (they were removed in items 14-15). Its 21 pages are argument prose at ~301 words/page, so there is nothing movable — any reduction there would have to be genuine argument cutting, not relocation. Do not re-propose appendix migration for Chapter 4. | 0 | closed — not viable |
 
 ## Session log
 
@@ -481,3 +493,45 @@ back matter during a render that also refreshed existing dirty result
 snapshots, so it cannot be attributed solely to item 38. Roughly 14 body pages
 remain above the ~80-page target. The lower-threshold structural signal now
 also appears exhausted.
+
+**2026-09-02, session 15:** Recalibrated against a fresh render: 154 total
+pages, body pages 9-113 (105 pages), 34,089 body words, words_per_page ~325.
+The headline finding is that the body **grew** since session 14 (94 pages /
+29,321 words) — condensation is losing to accretion, and the gap to ~80 body
+pages is now 25 pages / ~8,100 words.
+
+Two structural options were put to the user: Chapter 4 appendix migration and
+a Chapter 2 scope cut. The Chapter 4 option was **withdrawn on inspection**
+(item 41) — the chapter has no tables and no long implementation sections, so
+there is nothing to relocate.
+
+The Chapter 2 option was assessed as a wholesale cut of
+`02-04-competing-modeling-approaches.qmd` (1,301 words, ~4 pages) and
+**declined in that form**: nothing cross-references the file, and two of its
+citations are unique to it, but it is the only place the thesis justifies
+choosing reinforcement learning over supervised prediction — the first
+question a WNE UW examiner asks. Deleting it wholesale would leave that
+answerable only by implication, since `02-08` merely refers back to it.
+
+What was applied instead (item 39) is the surplus half: the unsupervised and
+semi-supervised paragraphs, which describe paradigms the thesis neither uses
+nor benchmarks against. The user asked directly whether the cut would be
+defensible at a defence; the answer given was yes, on the grounds that a
+literature review is selective by construction and that a full paragraph on
+semi-supervised labelling with no corresponding result is closer to a
+coherence liability than an asset. One amendment came out of that exchange:
+the original proposal dropped the sentence explaining that regime
+conditioning is handled implicitly through engineered features, which is a
+live examiner question given `05-00`'s one-volatility-regime concession. That
+sentence was preserved, costing ~30 words back.
+
+Net: -219 body words (~0.7 pages). Item 40 (compressing the remaining
+descriptive passages in the same file, ~350 words) was offered and logged
+rather than applied — the user took the smaller cut only.
+
+**Lesson for next session:** the remaining gap will not close through
+duplication and appendix moves alone. Sessions 1-15 have taken the easy
+category-1 and category-2 wins; what is left in Chapters 2-4 is argument
+prose, where reduction means deciding that an argument is not needed, not
+that it is stated twice. Either raise the target or plan a session that is
+explicitly about scope decisions, with the user present for each one.
