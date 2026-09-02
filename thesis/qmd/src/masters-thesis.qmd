@@ -115,32 +115,25 @@ jupyter:
 \newtheorem{definition}{Definition}
 \newpage
 
+<!-- The faculty model thesis caps this block at 800 characters with spaces and
+asks that it not open by stating the aim or topic of the work. It currently runs
+770. Keep it under the cap when editing: the abstract page must also hold the
+keywords, Erasmus code, thematic classification and Polish title on one page
+(requirement 1c). Note that a % comment does not work out here -- this is
+Markdown, not LaTeX, and a stray %% block renders as visible text on the page. -->
 \begin{abstract}
 
-This thesis studies whether a deep reinforcement learning agent using
-order-book-derived microstructure features can produce robust, risk-adjusted
-trading performance in a high-frequency single-asset setting. It targets
-continuous portfolio exposure control under practical constraints — execution
-modeling, transaction cost sensitivity, and evaluation discipline.
-
-A Twin Delayed DDPG (TD3) agent trains on tick-level order-book snapshots from
-six Nasdaq-listed equities (AAPL, MSFT, TSLA, META, AMZN, and AVGO) over three
-consecutive trading sessions in February 2026 and is evaluated on a fourth,
-held-out session against benchmark strategies under explicit simulation
-assumptions. Under frictionless mid-price
-execution it achieves positive held-out returns with low drawdown and a high
-profit factor. The return turns negative once a fee of a fraction of a basis
-point is charged, and fixed-path bid/ask repricing reverses its sign. The
-reported magnitude is therefore highly sensitive to the execution assumptions.
-Of the feature specifications compared, only a curated ten-feature
-microstructure state -- order flow, spread regime, and book shape -- converged
-to a trading policy; sparser and larger variants did not train, so the effect
-of feature choice is left unresolved.
-
-The main contribution is an end-to-end, reproducible pipeline linking LOB
-feature engineering, Differential Sharpe Ratio reward design, TD3 training, and
-rigorous out-of-sample evaluation, with an explicit account of the simulation
-assumptions separating these findings from deployable performance claims.
+A Twin Delayed DDPG (TD3) agent controls continuous exposure on tick-level
+order-book data from six Nasdaq equities, trained on three sessions and tested
+on a held-out fourth. Under frictionless mid-price execution it earns positive
+returns with low drawdown and a high profit factor. Independently trained
+policies stay active at 0 and 0.01 basis points but collapse to static
+positions at higher fees, showing cost sensitivity without a clean break-even;
+fixed-path bid/ask repricing reverses the result. Of three feature sets only
+the curated ten-feature microstructure state converged, leaving feature choice
+unresolved. The contribution is a reproducible pipeline from order-book
+features through Differential Sharpe Ratio reward design to out-of-sample
+evaluation.
 
 \end{abstract}
 
