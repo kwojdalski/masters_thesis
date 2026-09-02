@@ -20,9 +20,10 @@ _audit = audit_plots_enabled()
 
 This section varies the proportional transaction cost while holding the
 algorithm, feature set, and reward fixed, on a baseline with the selected
-10-feature set, log-return reward, and zero fee. It serves two purposes: it
-locates the fee level at which the learned edge disappears, and it is the
-decisive test of the reworded Hypothesis 1.
+10-feature set and Differential Sharpe Ratio reward. A separate policy is
+trained at each fee level. The comparison tests whether performance and learned
+behaviour are sensitive to the cost assumption. It does not isolate the
+mechanical effect of fees when a trained policy becomes degenerate.
 
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
@@ -34,7 +35,7 @@ decisive test of the reworded Hypothesis 1.
 #| label: tbl-h2-transaction-costs
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 2 transaction-cost sensitivity: test-split metrics across fee levels."
+#| tbl-cap: "Hypothesis 2 transaction-cost sensitivity: test-split metrics for independently trained policies across fee levels."
 
 import pandas as pd
 from thesis_mlflow_results import load_scenario_metrics
@@ -83,29 +84,29 @@ else:
 :::
 
 The transaction-cost comparison determines how far the frictionless Hypothesis
-1 result can be interpreted economically. The policy trades actively at 0 and
-0.01 basis points. Turnover collapses to essentially zero at 0.1 and 1 basis
-points, and cumulative return follows the same break. These fees are on the
-scale of a few hundredths to a few tenths of a basis point per trade. The
-comparison therefore shows that the result is highly sensitive to modest
-modeled costs. The half-spread provides a useful scale comparison, but it is not
-a formal bound on the return expressible by the feature set or policy (Section
-4.3, @sec-execution-model-signal-friction). The evidence supports a positive
-result under frictionless execution, not a cost-independent or deployable edge.
+1 result can be interpreted economically. The policies trade actively at 0 and
+0.01 basis points. At 0.1 basis points, aggregate return remains slightly
+positive, but the policy is fully short and turnover rounds to zero. At 1 basis
+point, the policy is fully long and turnover also rounds to zero. Its small
+negative return cannot be read as an active strategy losing through recurring
+trading costs. It primarily reflects passive price drift. The comparison
+therefore shows that learned behaviour is highly sensitive to modest modeled
+costs. It does not show that an otherwise
+functioning policy becomes unprofitable at a precise fee. The evidence supports
+a positive result under frictionless execution, not a cost-independent or
+deployable edge.
 
-The price-taking assumption makes this ladder a spread-crossing analysis as
-well. An agent that does not move the book pays half the quoted spread on each
-unit of position change, which enters the reward with the same form and sign as
-the proportional fee, and the same magnitude when $c = s/2$. Pricing the spread
-explicitly would restate the sweep rather than add to it. The equivalence holds
-for a constant spread. Because the half-spread widens exactly when order-flow
-imbalance is most extreme, and the policy is most active then, a fixed $c$ is
-the optimistic case.
+For a price-taking agent, a constant half-spread has the same algebraic form as
+the proportional fee: both penalize each unit of position change. The
+retraining ladder nevertheless combines this cost with the optimization
+response at each fee level. It is therefore not equivalent to repricing one
+fixed policy. Explicit bid/ask execution is also needed to represent a spread
+that changes over time.
 
-The break between 0.01 and 0.1 basis points is not just a sign flip in the
-reported return; it is the point at which the policy stops trading altogether,
-which admits a more direct mechanical explanation. The minimum price increment
-for these instruments is one cent, so the smallest possible move in the
+The break between 0.01 and 0.1 basis points is a change in learned behaviour,
+not a sign reversal in aggregate return. It is the point at which the policy
+stops trading altogether. The minimum price increment for these instruments is
+one cent, so the smallest possible move in the
 mid-price, when only one side of the book updates, is half a cent. At the mean
 price of each instrument over the evaluation window this gives a reference fee
 -- the proportional cost equal to a one-sided minimum-tick move -- ranging from
@@ -127,12 +128,15 @@ condition its trading threshold on it. The tick-size arithmetic supplies a
 scale comparison. On this evidence, it cannot explain why the six instruments
 break together rather than in sequence.
 
-For Hypothesis 2 itself, the same table carries a distinct conclusion: empirical
-performance is materially sensitive to the transaction-cost assumption (a
-parameter often left implicit). The fact that the sign changes within one
-order of magnitude of fee is why robustness analysis is a precondition for any
-economic claim here. Hypothesis 1 says how large the edge is; Hypothesis 2 says
-how fast the reported result moves when this assumption is varied.
+The evidence therefore partially supports Hypothesis 2. Performance and
+learned behaviour are materially sensitive to the transaction-cost assumption.
+However, the predicted sign threshold is not established. The 0.1-basis-point
+aggregate return is slightly positive, while the 0.1- and 1-basis-point
+policies are static and saturated. Because each arm was trained separately,
+the comparison cannot separate direct fee erosion from a degenerate-policy
+outcome. Fixed-path repricing in @sec-execution-realism provides complementary
+evidence about the economic cost of the Hypothesis 1 action path. It does not
+identify a break-even fee for successfully retrained policies.
 
 ## Hypothesis 3: Feature Specification Sensitivity
 <!-- [PLACEHOLDER] -->

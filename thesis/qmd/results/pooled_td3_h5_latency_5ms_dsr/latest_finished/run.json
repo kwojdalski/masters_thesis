@@ -1,0 +1,42 @@
+{
+  "run_id": null,
+  "run_name": "pooled_td3_h5_latency_5ms_dsr",
+  "status": "EXPORTED",
+  "start_time": null,
+  "end_time": "2026-09-02T00:12:48.929966+00:00",
+  "artifact_uri": null,
+  "experiment_name": "pooled_td3_h5_latency_5ms_dsr",
+  "experiment_id": null,
+  "source": {
+    "type": "evaluate_cli",
+    "eval_output_dir": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h5_latency_5ms_dsr",
+    "results_file": "/Users/krzysztofwojdalski/github_projects/masters_thesis/logs/td3_h5_latency_5ms_dsr/results.json",
+    "results_file_mtime_utc": "2026-09-02T00:12:48.929966+00:00",
+    "exported_at_utc": "2026-09-02T00:42:46.571137+00:00"
+  },
+  "files": {
+    "params": "params.json",
+    "latest_metrics": "latest_metrics.json",
+    "evaluation_report": "evaluation_report.json",
+    "statistical_tests": "statistical_tests.json",
+    "hyperparams": "hyperparams.json"
+  },
+  "evaluation_plots": {},
+  "per_symbol_results": {
+    "train": {
+      "split": "train",
+      "final_reward": 1.9413032531738281,
+      "n_steps": 49999
+    },
+    "val": {
+      "split": "val",
+      "final_reward": 588.6599731445312,
+      "n_steps": 969218
+    },
+    "test": {
+      "split": "test",
+      "final_reward": 302.08209228515625,
+      "n_steps": 969218
+    }
+  }
+}

@@ -109,16 +109,25 @@ _H4_SCENARIOS = [
 # rows [k .. N-1].
 #
 # The ladder is specified in microseconds, not ticks, because inter-event
-# spacing varies roughly eight-fold across the six instruments (median gap
-# 21 us on TSLA against 173 us on META); a fixed tick count would mean a
+# spacing varies roughly six-fold across the six instruments (median gap
+# 26 us on TSLA against 173 us on META); a fixed tick count would mean a
 # different physical delay per symbol. FixedTimedLatency resolves the value
 # against each episode's own timestamps at reset.
+#
+# Measured row offsets over episode-sized windows of the real memmap data
+# (median across five windows per symbol): 10 us resolves to k=1 on every
+# symbol -- the smallest possible non-zero delay -- while 100 us gives k=1-5,
+# 1 ms k=2-11 and 5 ms k=2-13. Inter-event gaps are heavy-tailed, so the tick
+# offset grows far more slowly than median-gap arithmetic suggests; the ladder
+# spans 500x in microseconds but only about k=1 to k=13 in ticks. The 10 us arm
+# is the control for "does any non-zero latency prevent convergence".
 #
 # Latency requires the `tradingenv` streaming backend -- the gym_trading
 # backends raise on non-zero latency params rather than silently ignoring them
 # (envs/builder.py). Every H5 arm inherits `backend: tradingenv` from H1.
 _H5_SCENARIOS = [
     "pooled/td3_h5_latency_0_dsr",  # 0 us; byte-identical to the H1 scenario
+    "pooled/td3_h5_latency_10us_dsr",  # k=1 tick on every symbol
     "pooled/td3_h5_latency_100us_dsr",
     "pooled/td3_h5_latency_1ms_dsr",
     "pooled/td3_h5_latency_5ms_dsr",
