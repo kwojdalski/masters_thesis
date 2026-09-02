@@ -108,8 +108,36 @@ from thesis_mlflow_results import audit_plots_enabled, find_evaluation_plot_data
 
 _audit = audit_plots_enabled()
 _plot_data = {}
+_plot_prov = None
 if finished is not None:
     _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
+
+# The evaluate command only writes the rollout parquets when --only plots is in
+# effect, so the newest finished run of this experiment carries metrics,
+# benchmarks and statistical tests but no plot data. Fall back to another
+# finished run of the same experiment, restricted to the same 3,000,000-step
+# checkpoint the results tables were scored from -- this experiment also holds
+# plots from a 200k-step checkpoint over a 31-minute window, and showing those
+# beside the tables would misrepresent them.
+if not _plot_data:
+    from thesis_mlflow_results import find_plot_run_in_experiment
+
+    _plot_data, _plot_prov = find_plot_run_in_experiment(
+        EXPERIMENT_NAME, require_checkpoint_step=3_000_000
+    )
+
+
+def _prov_note() -> str:
+    """State which rollout the figures show, when it is not the tables' run."""
+    if not _plot_prov:
+        return ""
+    syms = ", ".join(_plot_prov.get("symbols") or []) or "the pooled split"
+    return (
+        f" Rollout shown is {syms} from the same {_plot_prov['training_steps']:,}-step "
+        f"checkpoint as the results tables, evaluated over "
+        f"{_plot_prov['n_obs']:,} test-split steps"
+        f" (run `{_plot_prov['run_id'][:10]}`)."
+    )
 
 def _no_data_msg(kind: str) -> str:
     return f"{kind} plot data not available — re-run evaluation to generate parquet artifacts:"
@@ -144,7 +172,7 @@ if _plot_data.get("equity") is not None:
         n_total_symbols=_plot_data.get("n_total_symbols"),
     )
     show_plot(_p, _plot_data, frame="equity", fig_label="fig-eval-equity",
-              fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies.",
+              fig_cap="Portfolio value over the held-out evaluation window for the TD3 agent and benchmark strategies." + _prov_note(),
               audit=_audit)
 else:
     from thesis_tables import missing_data_notice
@@ -172,7 +200,7 @@ if _plot_data.get("rewards") is not None:
         date_str=_plot_data.get("date_str", ""),
     )
     show_plot(_p, _plot_data, frame="rewards", fig_label="fig-eval-rewards",
-              fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout.",
+              fig_cap="Per-step reward signal received by the TD3 agent during the held-out evaluation rollout." + _prov_note(),
               audit=_audit, render_base_size=11)
 else:
     from thesis_tables import missing_data_notice
@@ -202,7 +230,7 @@ if _plot_data.get("actions") is not None:
         allocation_ma_window=_plot_data.get("allocation_ma_window"),
     )
     show_plot(_p, _plot_data, frame="actions", fig_label="fig-eval-positions",
-              fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout.",
+              fig_cap="Portfolio allocation (position) taken by the TD3 agent at each step of the held-out evaluation rollout." + _prov_note(),
               audit=_audit, render_base_size=11)
 else:
     from thesis_tables import missing_data_notice
