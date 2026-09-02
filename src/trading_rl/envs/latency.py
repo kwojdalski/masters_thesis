@@ -187,6 +187,20 @@ def _us_to_ticks(
     if n < 2 or latency_us <= 0:
         return 0
     ns_vals: np.ndarray = timestamps.asi8  # zero-copy int64 ns view
+    # np.searchsorted below assumes a sorted array and returns a meaningless
+    # index on unsorted input without raising. A concatenated multi-symbol
+    # frame restarts the clock at each symbol boundary, which resolved a 100 us
+    # delay to a 2002-row shift instead of 2. Refuse rather than guess: there is
+    # no single correct offset for a window whose clock runs backwards partway
+    # through. Ties (diff == 0) are ordinary in LOB data and stay legal.
+    n_inversions = int(np.sum(np.diff(ns_vals) < 0))
+    if n_inversions:
+        raise ValueError(
+            "Time-based latency requires a monotonically non-decreasing index, "
+            f"but found {n_inversions} inversion(s) across {n} rows. This "
+            "usually means a multi-symbol frame was concatenated; evaluate with "
+            "--per-symbol so each frame holds a single instrument."
+        )
     target_ns = int(latency_us * 1_000)  # us -> ns
 
     def _offset_from(t: int) -> int:
@@ -204,7 +218,9 @@ def _us_to_ticks(
     # plausible delay needs.
     if n < 64:
         return min(_offset_from(0), n - 1)
-    starts = np.unique(np.linspace(0, (n - 1) // 2, num=min(n_probes, n // 2)).astype(int))
+    starts = np.unique(
+        np.linspace(0, (n - 1) // 2, num=min(n_probes, n // 2)).astype(int)
+    )
     return int(min(np.median([_offset_from(t) for t in starts]), n - 1))
 
 
