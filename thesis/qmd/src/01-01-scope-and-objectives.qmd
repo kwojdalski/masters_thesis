@@ -17,21 +17,20 @@ The research is based on the following hypotheses, ordered so that each builds o
 the previous one; together they make the case that robustness analysis is a
 precondition for any credible economic claim:
 
-1. A TD3 agent trained on order-book-derived high-frequency features learns a
-   genuine, learnable out-of-sample risk-adjusted edge from limit-order-book
-   microstructure, but the economic magnitude of that edge is of the same order
-   as the transaction cost required to trade on it: it is realised under
-   frictionless mid-price execution and is not expected to survive realistic
-   spread-crossing costs.
-2. The empirical performance of the agent is materially sensitive to the
-   transaction-cost assumption: the learned edge is positive under zero fee but
-   changes sign once the per-trade cost reaches a fraction of a basis point.
-   This is the scale of the bid-ask half-spread on these instruments.
-3. Within the order-book-based trading framework studied here, extending the
-   state representation from basic snapshot features to a broader
-   microstructure-aware feature set leads to improved out-of-sample performance
-   under identical training and evaluation conditions.
-4. The reward objective materially shapes the learned policy: replacing a
+1. A TD3 agent trained on limit-order-book features learns a risk-adjusted edge
+   that survives out of sample. The edge is real but small: its magnitude is of
+   the same order as the cost of trading on it, so it is realised under
+   frictionless mid-price execution and eliminated by realistic spread-crossing
+   costs.
+2. That edge depends on the assumed transaction cost. It is positive when
+   trading is costless and changes sign once the per-trade cost reaches a
+   fraction of a basis point — the scale of the bid-ask half-spread on these
+   instruments.
+3. A broader state representation improves out-of-sample performance. Replacing
+   basic snapshot features with a microstructure-aware feature set raises
+   risk-adjusted returns under otherwise identical training and evaluation
+   conditions.
+4. The reward objective shapes the policy, not only its score. Replacing a
    log-return reward with a Differential Sharpe Ratio reward changes both
    out-of-sample performance and the policy's directional exposure, under
    otherwise identical training and evaluation conditions.

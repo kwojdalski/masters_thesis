@@ -19,8 +19,8 @@ figures are therefore conditional on favorable execution assumptions.
 Retraining and re-evaluating under explicit bid/ask execution with calibrated
 fees remains the outstanding test.
 
-**Hypothesis 2: empirical performance is materially sensitive to the
-transaction-cost assumption.** The evidence partially supports this
+**Hypothesis 2: the edge depends on the assumed transaction cost.**
+The evidence partially supports this
 hypothesis. The policies trained at 0 and 0.01 basis points trade actively and
 produce positive aggregate returns. At 0.1 basis points, aggregate return is
 still slightly positive, but the policy is static and fully short. At 1 basis
@@ -41,7 +41,7 @@ decision. Because two of the three arms did not train, the comparison does not
 isolate the effect of the feature set, and no conclusion about feature quality
 can be drawn from it. Section 6.3 sets out the evidence in full.
 
-**Hypothesis 4: the reward objective materially shapes the learned policy.**
+**Hypothesis 4: the reward objective shapes the policy, not only its score.**
 This hypothesis is also unresolved, for the same reason. The Differential Sharpe
 arm trained normally and traded both sides of the market; the log-return arm did
 not train, holding a fully long position across every instrument with zero
