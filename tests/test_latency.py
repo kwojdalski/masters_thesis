@@ -16,6 +16,7 @@ import pandas as pd
 import pytest
 
 from trading_rl.envs.latency import (
+    ActionThrottle,
     FixedLatency,
     FixedTimedLatency,
     LogNormalLatency,
@@ -25,6 +26,8 @@ from trading_rl.envs.latency import (
     ZeroLatency,
     _us_to_ticks,
     make_latency_model,
+    resolve_total_latency_ticks,
+    split_for_latency,
 )
 
 
@@ -315,3 +318,121 @@ def test_make_latency_model_falls_back_to_us_when_ticks_disabled() -> None:
 def test_make_latency_model_negative_ticks_falls_back_to_us() -> None:
     model = make_latency_model(ticks=-3, us=150.0)
     assert isinstance(model, FixedTimedLatency)
+
+
+# ---------------------------------------------------------------------------
+# split_for_latency / resolve_total_latency_ticks
+# ---------------------------------------------------------------------------
+
+
+def _frame(n: int = 10) -> pd.DataFrame:
+    ts = pd.DatetimeIndex(
+        pd.Timestamp("2026-03-02T14:30:00Z") + pd.to_timedelta(np.arange(n) * 30, "us")
+    )
+    return pd.DataFrame({"close": np.arange(n, dtype=float)}, index=ts)
+
+
+def test_split_for_latency_is_a_no_op_when_disabled() -> None:
+    df = _frame()
+    feat, price = split_for_latency(df, 0)
+    assert feat is df and price is df
+
+
+def test_split_for_latency_offsets_prices_ahead_of_features() -> None:
+    """The agent observes row t and is filled at row t+k."""
+    df = _frame(10)
+    feat, price = split_for_latency(df, 3)
+
+    assert len(feat) == len(price) == 7
+    assert feat["close"].tolist() == [0, 1, 2, 3, 4, 5, 6]
+    assert price["close"].tolist() == [3, 4, 5, 6, 7, 8, 9]
+    assert price.index.equals(feat.index)
+
+
+def test_split_for_latency_never_leaks_future_features() -> None:
+    """Guard against the sign flip that would turn latency into look-ahead."""
+    df = _frame(10)
+    feat, price = split_for_latency(df, 2)
+    assert (price["close"].to_numpy() > feat["close"].to_numpy()).all()
+
+
+def test_split_for_latency_rejects_a_window_shorter_than_the_delay() -> None:
+    with pytest.raises(ValueError, match="window size"):
+        split_for_latency(_frame(5), 5)
+
+
+class _EnvCfg:
+    def __init__(self, **kw):
+        for k, v in kw.items():
+            setattr(self, k, v)
+
+
+def test_resolve_total_latency_ticks_returns_zero_when_unset() -> None:
+    cfg = _EnvCfg(
+        obs_latency_ticks=0,
+        exec_latency_ticks=0,
+        obs_latency_us=0.0,
+        exec_latency_us=0.0,
+    )
+    assert resolve_total_latency_ticks(cfg, _frame().index) == 0
+
+
+def test_resolve_total_latency_ticks_sums_observation_and_execution() -> None:
+    """Both delays widen the same information-to-fill gap, so they add."""
+    cfg = _EnvCfg(
+        obs_latency_ticks=2,
+        exec_latency_ticks=3,
+        obs_latency_us=0.0,
+        exec_latency_us=0.0,
+    )
+    assert resolve_total_latency_ticks(cfg, _frame(100).index) == 5
+
+
+def test_resolve_total_latency_ticks_resolves_microseconds_against_timestamps() -> None:
+    cfg = _EnvCfg(
+        obs_latency_ticks=0,
+        exec_latency_ticks=0,
+        obs_latency_us=0.0,
+        exec_latency_us=90.0,
+    )
+    assert resolve_total_latency_ticks(cfg, _frame(100).index) == 3  # 30 us spacing
+
+
+# ---------------------------------------------------------------------------
+# ActionThrottle
+# ---------------------------------------------------------------------------
+
+
+def test_action_throttle_disabled_passes_every_action_through() -> None:
+    t = ActionThrottle(1)
+    assert not t.enabled
+    assert [t.filter(a) for a in [0.1, 0.2, 0.3]] == [0.1, 0.2, 0.3]
+
+
+def test_action_throttle_rejects_zero_or_negative() -> None:
+    with pytest.raises(ValueError, match="every_n must be >= 1"):
+        ActionThrottle(0)
+
+
+def test_action_throttle_holds_position_between_decisions() -> None:
+    """With every_n=3 the agent decides on steps 0, 3, 6 and holds in between."""
+    t = ActionThrottle(3)
+    got = [t.filter(a) for a in [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]]
+    assert got == [1.0, 1.0, 1.0, 4.0, 4.0, 4.0, 7.0]
+
+
+def test_action_throttle_reset_makes_the_next_step_a_decision() -> None:
+    t = ActionThrottle(3)
+    t.filter(1.0)
+    t.filter(2.0)
+    t.reset()
+    assert t.filter(9.0) == 9.0
+
+
+def test_action_throttle_reduces_the_number_of_distinct_positions() -> None:
+    """The economic point: throttling cuts how often exposure can change."""
+    actions = list(np.linspace(-1, 1, 60))
+    t = ActionThrottle(10)
+    slow = [t.filter(a) for a in actions]
+    assert len(set(actions)) == 60
+    assert len(set(slow)) == 6
