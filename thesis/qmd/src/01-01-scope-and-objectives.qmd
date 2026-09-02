@@ -38,30 +38,24 @@ precondition for any credible economic claim:
 
 ### Objectives of the Research
 
-The primary research goal is to evaluate RL-based
-algorithms for high-frequency single-asset trading using order-book-derived
-data. The research objectives are structured in three interconnected phases:
+The study evaluates whether reinforcement learning can extract a tradable
+signal from limit-order-book microstructure at tick frequency, and what bounds
+that signal economically. The four hypotheses above are tested on one common
+apparatus: a TD3 agent trained on six US equities from Nasdaq MBP-10 data,
+evaluated out-of-sample against buy-and-hold, TWAP and VWAP execution
+benchmarks and a random-action control, with significance assessed by
+bootstrap confidence intervals and nonparametric tests.
 
-1. **Design and Implementation**
-   - Develop RL trading agents for high-frequency
-     order-book trading applications
-   - Construct a testing framework to evaluate agent performance
+Each hypothesis is tested as a single-factor comparison. Arms differ only in
+the quantity under study — the transaction-cost rate for Hypothesis 2, the
+feature set for Hypothesis 3, the reward objective for Hypothesis 4 — so that
+any difference in out-of-sample performance is attributable to that factor
+rather than to an incidental difference in configuration. Hypothesis 1 is
+established under frictionless mid-price execution; its economic bound follows
+from Hypothesis 2.
 
-2. **Testing and Evaluation**
-   - Assess agent performance on out-of-sample data against selected
-     benchmarks with established and novel risk-return metrics, operationalizing
-     the frictionless-execution component of Hypothesis 1 (its transaction-cost
-     bound is operationalized under Hypothesis 2)
-   - Analyze robustness under varying market conditions
-
-3. **Analysis and Implications**
-   - Compare alternative order-book-derived feature sets within a common
-     training and evaluation framework, operationalizing Hypothesis 3
-   - Compare the log-return and Differential Sharpe Ratio reward objectives
-     under an otherwise identical configuration, operationalizing Hypothesis 4
-   - Assess the practical relevance and limitations of the approach under
-     simplified execution assumptions
-   - Identify the binding constraints on out-of-sample performance
-     (whether they originate in execution modeling simplifications, feature
-     set coverage, or training data volume) to prioritize specific extensions
-     for future work
+Beyond testing the four hypotheses, the study aims to identify which constraint
+binds out-of-sample performance: the simplifications in the execution model,
+the coverage of the feature set, or the volume of training data. Separating
+these determines which extension is worth pursuing and grounds the
+recommendations in Chapter 7.
