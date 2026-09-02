@@ -72,7 +72,7 @@ def main() -> None:
     rows.sort(key=lambda r: r["mean_price"], reverse=True)
 
     _EXPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _EXPORT_PATH.write_text(json.dumps(rows, indent=2))
+    _EXPORT_PATH.write_text(json.dumps(rows, indent=2) + "\n")
     print(f"exported {len(rows)} rows to {_EXPORT_PATH}")
     for r in rows:
         print(

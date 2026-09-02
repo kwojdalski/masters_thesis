@@ -283,7 +283,7 @@ def save_symbol_memmap(
     index_path = output_dir / f"{prefix}_train_index.npy"
     np.save(index_path, index_ns)
 
-    (output_dir / f"{prefix}_columns.json").write_text(json.dumps(columns))
+    (output_dir / f"{prefix}_columns.json").write_text(json.dumps(columns) + "\n")
     if symbol:
         (output_dir / f"{prefix}_symbol.txt").write_text(symbol)
 

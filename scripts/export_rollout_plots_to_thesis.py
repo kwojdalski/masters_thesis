@@ -151,7 +151,7 @@ def main() -> int:
     # Record which run this came from: the figures caption themselves with it,
     # and without the MLflow database there is no other way to tell.
     provenance = {"run_id": run_id, "stride": args.stride, "source_rows": total_in}
-    (dest_root / "provenance.json").write_text(json.dumps(provenance, indent=2))
+    (dest_root / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
 
     print(
         f"exported {written} frames from run {run_id[:10]} to {dest_root.relative_to(REPO_ROOT)} "

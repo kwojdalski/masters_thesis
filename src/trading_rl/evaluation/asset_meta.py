@@ -55,7 +55,7 @@ def write_asset_meta(path: str | Path, *, generator: str | None = None) -> None:
     }
     if generator:
         data["generator"] = generator
-    meta_path(p).write_text(json.dumps(data, indent=2))
+    meta_path(p).write_text(json.dumps(data, indent=2) + "\n")
 
 
 def load_asset_meta(path: str | Path) -> dict[str, str] | None:
