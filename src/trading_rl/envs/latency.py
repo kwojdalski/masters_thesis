@@ -142,26 +142,63 @@ class UniformLatency(LatencyModel):
 # ---------------------------------------------------------------------------
 
 
-def _us_to_ticks(latency_us: float, timestamps: pd.DatetimeIndex) -> int:
-    """Return the smallest row offset k such that timestamps[k] - timestamps[0] >= latency_us.
+def _us_to_ticks(
+    latency_us: float, timestamps: pd.DatetimeIndex, n_probes: int = 16
+) -> int:
+    """Return the row offset an order of ``latency_us`` microseconds incurs.
 
-    If the requested latency exceeds the span of the window, returns
-    ``len(timestamps) - 1`` (the last valid row index).
+    An order submitted from the book state at row ``t`` reaches the market at
+    ``timestamps[t] + latency_us`` and is filled against whatever book is
+    standing then. A limit order book persists between updates, so the
+    prevailing state at that moment is the **last event at or before** the
+    arrival time -- not the next one after it. An order that lands inside a
+    quiet gap is therefore filled at the price it observed, at no cost, which
+    is the correct outcome: nothing happened while it was in flight.
+
+    Two corrections relative to the original implementation, both of which
+    over-penalised latency:
+
+    * It searched for the first event at or *after* arrival, charging a full
+      event of adverse drift to any delay shorter than one inter-event gap. On
+      this data the median gap is 24-69 microseconds, so a 10 microsecond
+      order -- which cannot outrun the next update -- was charged as though the
+      book had moved. The search is now right-sided and stepped back one row.
+    * It measured every delay from ``timestamps[0]``, so a long gap at the
+      start of a window absorbed the whole requested latency. One AVGO window
+      opens with a 301 millisecond gap, which collapsed the 10 microsecond,
+      1 millisecond and 5 millisecond arms onto the same offset: three
+      nominally different experiments resolving to identical behaviour. The
+      offset is now the median over ``n_probes`` start points spread across the
+      window, which is representative of the episode rather than of its first
+      event.
+
+    A single offset is applied to the whole episode, so this is a
+    window-level approximation to a per-decision delay; it is exact when the
+    event rate is stationary within the window and close otherwise.
 
     Requires a DatetimeIndex; raises TypeError for other index types.
-
-    Uses ``DatetimeIndex.asi8`` (zero-copy int64 nanoseconds) and numpy
-    ``searchsorted`` to avoid allocating a TimedeltaIndex on every call.
     """
     if not isinstance(timestamps, pd.DatetimeIndex):
         raise TypeError(
             f"Time-based latency requires a DatetimeIndex but got {type(timestamps).__name__}. "
             "Ensure the memmap data has nanosecond-precision timestamps."
         )
+    n = len(timestamps)
+    if n < 2 or latency_us <= 0:
+        return 0
     ns_vals: np.ndarray = timestamps.asi8  # zero-copy int64 ns view
-    target_ns = int(latency_us * 1_000)  # μs → ns
-    k = int(np.searchsorted(ns_vals - ns_vals[0], target_ns))
-    return min(k, len(timestamps) - 1)
+    target_ns = int(latency_us * 1_000)  # us -> ns
+
+    # Probe start points spread across the window; the last probe leaves room
+    # for the search to run past it.
+    starts = np.unique(np.linspace(0, max(0, n - 2), num=min(n_probes, n - 1)).astype(int))
+    offsets = []
+    for t in starts:
+        rel = ns_vals[t:] - ns_vals[t]
+        # side="right" then step back one: the last event at or before arrival.
+        k = int(np.searchsorted(rel, target_ns, side="right")) - 1
+        offsets.append(max(0, k))
+    return int(min(np.median(offsets), n - 1))
 
 
 class FixedTimedLatency(LatencyModel):
