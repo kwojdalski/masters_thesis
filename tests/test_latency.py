@@ -506,3 +506,21 @@ def test_event_offset_is_exact_and_ignores_timestamps() -> None:
     for k in (1, 2, 4, 8):
         assert FixedLatency(k).resolve(rng, fast) == k
         assert FixedLatency(k).resolve(rng, slow) == k
+
+
+def test_us_to_ticks_is_monotone_in_latency() -> None:
+    """More delay can never mean a smaller offset.
+
+    Regression: the probe range once shrank as the requested delay grew, so
+    each latency took its median over a different sample. Individually every
+    probe is monotone; medians over differing samples are not, and one AAPL
+    window returned k=4 at 200us against k=3 at 300us.
+    """
+    rng = np.random.default_rng(7)
+    gaps = rng.integers(1, 400, size=4000)  # irregular, heavy-tailed-ish
+    ts = pd.DatetimeIndex(
+        pd.Timestamp("2026-03-02T14:30:00Z")
+        + pd.to_timedelta(np.concatenate([[0], np.cumsum(gaps)]), "us")
+    )
+    ks = [_us_to_ticks(us, ts) for us in (10, 20, 50, 100, 200, 300, 500, 1000, 5000)]
+    assert ks == sorted(ks), f"offsets not monotone in latency: {ks}"
