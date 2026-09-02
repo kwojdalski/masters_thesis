@@ -69,8 +69,30 @@ format:
       # "z odsadzeniem uwidaczniajacym slowa" -- indented so "Table 4." /
       # "Figure 3." stay visible. Without it the caption package returns
       # continuation lines flush to the left margin, hiding the label.
-      - \captionsetup[figure]{format=hang,position=above,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
-      - \captionsetup[table]{format=hang,justification=raggedright,singlelinecheck=false,labelfont=bf,font=bf,labelsep=period}
+      # Annex D sets table titles and figure captions in regular roman at
+      # 12 pt: its "Table 1. [Name of the table]Compilation of basic values..."
+      # and "Pic. 1. ..." both measure R 12.0pt, and the only bold element of
+      # its table is the header row ("a header, which should be written in
+      # bold and centered", p. 5). labelfont=bf and font=bf set all 16 table
+      # titles and all 5 figure captions fully bold, which the model does not.
+      - \captionsetup[figure]{format=hang,position=above,justification=raggedright,singlelinecheck=false,labelsep=period}
+      - \captionsetup[table]{format=hang,justification=raggedright,singlelinecheck=false,labelsep=period}
+      # ltcaption gives the caption package its longtable support. A
+      # longtable's caption is otherwise a row inside the table, so it takes
+      # the table's own width and centres with it -- which left seven table
+      # titles starting at 36-47 mm instead of the 25 mm left margin
+      # requirement 10 asks for. Setting the caption box to \linewidth makes
+      # the title start at the margin while the table stays centred, as Annex
+      # D shows: its "Table 1." sits at 25.0 mm above a centred table.
+      # Both must come after \usepackage{caption}, or \captionsetup is
+      # undefined and the render dies.
+      - \usepackage{ltcaption}
+      - \captionsetup[longtable]{width=\linewidth}
+      # \LTcapwidth is what longtable actually consults for its caption width;
+      # it defaults to 4in, so on a landscape page the caption box was far
+      # narrower than the text block and centred within it. Setting it to
+      # \linewidth is what moves the title out to the left margin.
+      - \setlength{\LTcapwidth}{\linewidth}
       # Requirement 3 puts every chapter and subchapter title in the table of
       # contents and permits three subchapter levels. The document uses all
       # three (4.5.1.1, 5.3.4.1-4), so tocdepth must be 4 -- chapter plus three

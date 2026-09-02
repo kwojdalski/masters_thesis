@@ -66,6 +66,12 @@ $\hat{\rho}(\cdot,\text{lag}=1)$: sample autocorrelation at lag 1.
 
 ```{=latex}
 \begin{landscape}
+% This table already sets \footnotesize. Its six p{} columns sum to 0.92 of
+% \linewidth, and the seven inter-column gaps at the default 6 pt \tabcolsep
+% add another ~30 mm, which together pushed it 4.7 mm past the right margin.
+% Requirement 10 fixes all margins at 25 mm. Tightening \tabcolsep recovers
+% the space without touching the column fractions or the type size.
+\setlength{\tabcolsep}{3pt}
 \footnotesize
 \begin{longtable}{p{0.18\linewidth} p{0.09\linewidth} p{0.32\linewidth} p{0.11\linewidth} >{\centering\arraybackslash}p{0.07\linewidth} p{0.15\linewidth}}
 \caption{Full LOB feature registry with formulas and citations.\label{tbl-lob-features}} \\

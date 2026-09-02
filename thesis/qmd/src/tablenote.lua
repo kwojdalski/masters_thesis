@@ -63,8 +63,17 @@ function Div(el)
     -- the table and its source/legend note; without it the note can be torn
     -- across a page boundary (e.g. a multi-citation Source line split
     -- mid-parenthesis) while the table itself stays fully on the prior page.
-    blocks:insert(pandoc.RawBlock("latex", "\\nopagebreak\\vspace{-0.3em}{\\footnotesize\\itshape\\parindent0pt\\raggedright\\relax"))
-    blocks:extend(el.content)
+    -- Annex D italicises the label alone: its source lines measure
+    -- "Source:" at I 10.0pt followed by the reference at R 10.0pt, and
+    -- nothing on them is bold ("The source should be written in italics
+    -- \"Source:\", using the 10 point font", p. 5). Wrapping the whole block
+    -- in \itshape slanted the reference text too, and the Markdown
+    -- "**Source:**" added bold on top, giving a bold-italic label. So: no
+    -- blanket \itshape, and the bold label becomes italic instead.
+    blocks:insert(pandoc.RawBlock("latex", "\\nopagebreak\\vspace{-0.3em}{\\footnotesize\\parindent0pt\\raggedright\\relax"))
+    blocks:extend(el.content:walk{
+      Strong = function(s) return pandoc.Emph(s.content) end,
+    })
     blocks:insert(pandoc.RawBlock("latex", "}\\vspace{0.3em}"))
     return blocks
   end

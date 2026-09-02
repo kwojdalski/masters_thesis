@@ -149,6 +149,12 @@ out-of-sample performance.
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
 \begin{landscape}
+% Requirement 10 fixes all margins at 25 mm and allows the table font to be
+% "adapted to the nature of the table". At the document's 12 pt this table
+% ran past the right margin on its landscape page; \footnotesize brings it
+% inside. The caption stays at 12 pt, set outside this group by the
+% caption package.
+\footnotesize
 ```
 :::
 
@@ -244,6 +250,12 @@ zero transaction cost), holding the algorithm and data fixed.
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
 \begin{landscape}
+% Requirement 10 fixes all margins at 25 mm and allows the table font to be
+% "adapted to the nature of the table". At the document's 12 pt this table
+% ran past the right margin on its landscape page; \footnotesize brings it
+% inside. The caption stays at 12 pt, set outside this group by the
+% caption package.
+\footnotesize
 ```
 :::
 
