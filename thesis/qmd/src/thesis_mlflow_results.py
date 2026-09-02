@@ -1231,6 +1231,13 @@ def load_scenario_per_symbol_metrics(
     """
 
     def _extract(results: dict) -> dict[str, dict[str, Any]]:
+        # The exported snapshot is a flat pooled metrics dict; the exporter
+        # stashes the raw per-symbol entries under __per_symbol__ so this table
+        # does not have to fall back to logs/, which is gitignored and so
+        # absent on CI.
+        stashed = results.get("__per_symbol__")
+        if isinstance(stashed, dict) and stashed:
+            results = stashed
         _, per_symbol = _results_split_entries(results, split)
         out: dict[str, dict[str, Any]] = {}
         for key, entry in per_symbol.items():
