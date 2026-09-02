@@ -120,20 +120,30 @@ thesis does not test.
 <!-- [PLACEHOLDER] -->
 
 Action saturation is the most consequential unresolved issue in the
-experimental package, and it is not confined to a few discarded runs. Four
-separately configured arms reported in Chapter 6 converged to a constant,
-saturated position: the 3-feature and 33-feature arms of Hypothesis 3, and the
-log-return arm of Hypothesis 4, together with an earlier log-return baseline
-that preceded it. Each records turnover of order $10^{-5}$ with zero position
-changes and sits at $100\%$ long or $100\%$ short for the entire evaluation.
-Three saturate at the upper bound and one at the lower. The bound an arm
-settles at does not track the factor it varies -- the 3-feature and 33-feature
-arms of Hypothesis 3 differ only in feature count yet pin at opposite bounds --
-which is characteristic of an optimization that lands arbitrarily rather than
-of a systematic response to the factor under test. Because the affected arms span both the feature-set
-and reward-design comparisons, two of the four hypotheses are unresolved on
-present evidence, and the constraint is a property of training rather than of
-the design choices those hypotheses examine.
+experimental package, and it is not confined to a few discarded runs. Three
+zero-fee arms reported in Chapter 6 converged to a constant, saturated
+position: the 3-feature and 33-feature arms of Hypothesis 3 and the log-return
+arm of Hypothesis 4. So did an earlier log-return baseline that preceded the
+formal hypothesis tests and is not reported in Chapter 6. Each records turnover
+of order $10^{-5}$ with zero position changes and sits at $100\%$ long or
+$100\%$ short for the entire evaluation. Three saturate at the upper bound and
+one at the lower. The bound an arm settles at does not track the factor it
+varies -- the 3-feature and 33-feature arms of Hypothesis 3 differ only in
+feature count yet pin at opposite bounds -- which is characteristic of an
+optimization that lands arbitrarily rather than of a systematic response to the
+factor under test.
+
+The two higher-fee arms of Hypothesis 2 also hold a constant position, but they
+are a different case and are excluded from this count. There the fee exceeds
+the per-step edge, so ceasing to trade is the profit-maximizing response rather
+than a failure to learn one; Section 6.2 reads the collapse that way. The arms
+counted here saturate with no transaction cost at all, so nothing in the
+environment rewards standing still.
+
+Because the affected arms span both the feature-set and reward-design
+comparisons, two of the four hypotheses are unresolved on present evidence, and
+the constraint is a property of training rather than of the design choices
+those hypotheses examine.
 
 Two properties of the setup make this diagnosable rather than mysterious. The
 arms that failed share the log-return objective or a small observation space,
