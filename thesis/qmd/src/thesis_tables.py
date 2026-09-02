@@ -30,12 +30,19 @@ from IPython.display import HTML, Markdown, display
 # and these formats, so a reader can compare the tables row-for-row. In
 # particular % Long / % Short and Lose Rate are needed here because the H3/H4
 # prose diagnoses the saturated-policy arms by their pinned exposure.
+#
+# Sortino is deliberately absent. After aggregation to the reporting frequency
+# the learned policies record fewer than three losing bars out of roughly 237,
+# so the downside deviation is estimated from one or two observations and the
+# ratio is numerically meaningless: TD3 returned 0.774 against a Sharpe of
+# 5.035, which is impossible for one return series, while DDPG returned 88.721.
+# The estimator is sound -- the random baseline, which loses on roughly half its
+# bars, gives a sensible 0.054 -- but the learned arms supply no sample.
 RESULTS_TABLE_COLS: list[tuple[str, str, str]] = [
     ("total_return", "Return", ".2%"),
     ("annualized_volatility", "Ann. Vol", ".4f"),
     ("max_drawdown", "Max DD", ".2%"),
     ("sharpe_ratio", "Sharpe", ".3f"),
-    ("sortino_ratio", "Sortino", ".3f"),
     ("win_rate", "Win Rate", ".2%"),
     ("lose_rate", "Lose Rate", ".2%"),
     ("profit_factor", "PF", ".3f"),
@@ -53,7 +60,6 @@ RESULTS_TABLE_HIGHER_BETTER: dict[str, bool] = {
     "annualized_volatility": False,
     "max_drawdown": False,
     "sharpe_ratio": True,
-    "sortino_ratio": True,
     "win_rate": True,
     "lose_rate": False,
     "profit_factor": True,

@@ -1,5 +1,5 @@
 ---
-title: Microstructure-Aware Reinforcement Learning for High-Frequency Trading
+title: Microstructure-Aware Deep Reinforcement Learning for High-Frequency Trading
 author: Krzysztof Wojdalski
 # Annex D dates the title page "Warsaw, July 2020" -- place, month, year. The
 # previous format printed a wall-clock build time ("September 2, 2026 02:13
@@ -125,14 +125,14 @@ format:
       # English edition mistranslates this as "except for generic names",
       # which inverts it -- the Polish governs). TD3 is an algorithm name and
       # stays capitalised. Nine words, against the model's limit of ten.
-      - \keywords{reinforcement learning, high-frequency trading, order book, single-asset trading, TD3}
-      - \newcommand{\keywordspl}{uczenie ze wzmocnieniem, handel wysokiej częstotliwości, księga zleceń, handel pojedynczym aktywem, TD3}
+      - \keywords{deep reinforcement learning, high-frequency trading, order book, single-asset trading, TD3}
+      - \newcommand{\keywordspl}{głębokie uczenie ze wzmocnieniem, handel wysokiej częstotliwości, księga zleceń, handel pojedynczym aktywem, TD3}
       # The model prints the Erasmus area as name followed by the five-digit
       # code in parentheses ("Economics (14300)"); 14300 is the same area as
       # the dotted form 14.3.
       - \dziedzina{Economics (14300)}
       - \klasyfikacja{G11, G17, C63}
-      - \tytulang{Uczenie ze wzmocnieniem uwzględniające mikrostrukturę rynku w handlu wysokiej częstotliwości}
+      - \tytulang{Głębokie uczenie ze wzmocnieniem uwzględniające mikrostrukturę rynku w handlu wysokiej częstotliwości}
   docx:
     embed-resources: true
   html:
