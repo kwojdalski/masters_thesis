@@ -295,6 +295,36 @@ the Hypothesis 1 caveat in full: the comparison establishes that the policy
 extracts a real signal the passive benchmarks do not, not that the resulting
 edge survives the cost of trading on it. Section 6.2 shows it does not.
 
+One interpretation of why this particular feature family carries signal is
+worth stating, with the caveat that the present evidence cannot test it. The
+state is built around displayed queue imbalance and the queue-weighted
+midpoint, and Section 5.3.5 finds that the imbalance family carries the
+strongest marginal association with the next price move of any group in the
+state, while every remaining feature sits below $|r| = 0.02$. Those are also
+the quantities a liquidity provider uses to position quotes. If providers
+reprice against displayed imbalance, the next movement in the mid-price is not
+purely an exogenous process the agent forecasts; it is in part the outcome of
+quoting decisions conditioned on the same information the agent observes. Price
+formation would then be partly endogenous to the state representation rather
+than independent of it.
+
+This reading cannot be separated from the two mechanisms set out in Chapter 2.
+The movement may be mechanical, the thinner side of the book being consumed
+first, or informational, imbalance revealing the direction of better-informed
+order flow [@Cont2014; @GlostenMilgrom1985]. The three are not mutually
+exclusive, and distinguishing them would require identifying liquidity
+providers within the message stream, which the MBP-10 schema does not support.
+
+The interpretation bears on implementation rather than on magnitude. If these
+features approximate the inputs to a quoting rule, then an agent trading on
+them reproduces a liquidity provider's signal while expressing it as a
+liquidity taker, on the opposite side of the spread from where such a signal is
+ordinarily monetised. Section 5.2 describes the position-level abstraction
+under which the agent neither posts nor crosses, and Section 6.2 finds the
+learned margin small relative to quote-scale movements. Read together, these
+locate the binding constraint in the mode of execution rather than in the
+quality of the signal.
+
 Taken together, the benchmark comparison establishes that the agent's
 outperformance is not a positioning artefact. Win rate ($20.4\%$ against
 approximately $10\%$) and profit factor ($3.41$ against $1.00$) both exceed
