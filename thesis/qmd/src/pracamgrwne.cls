@@ -145,10 +145,19 @@
 % the only body text the requirements indent. \quotation also forced a
 % 1.5em first-line indent over the document's 1 cm (rule 4). Plain paragraph
 % flow inherits both correctly.
+% The faculty model thesis heads this page "Summary", not "Abstract".
+\renewcommand{\abstractname}{Summary}
+% ...and specifies the summary text as "justified text, no tab" ("tekst
+% wyjustowany, bez tabulacji"). That overrides the document-wide 1 cm
+% paragraph tab of rule 4 for this block alone: the abstract is the one place
+% the model asks for unindented paragraphs. \setlength here is local, since a
+% LaTeX environment is a group, so body text past \end{abstract} keeps its
+% 1 cm indent.
 \renewenvironment{abstract}{%
   \begin{center}
     \bfseries \abstractname
   \end{center}
+  \setlength{\parindent}{0pt}%
 }{%
 }
 

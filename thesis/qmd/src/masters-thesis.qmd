@@ -51,9 +51,17 @@ format:
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
-      - \keywords{Reinforcement Learning, High-Frequency Trading, Order Book, Single-Asset Trading, TD3}
-      - \newcommand{\keywordspl}{Uczenie ze wzmocnieniem, Handel wysokiej częstotliwości, Księga zleceń, Handel pojedynczym aktywem, TD3}
-      - \dziedzina{14.3 Economics}
+      # Keywords are lowercased except proper nouns, per the faculty model
+      # thesis ("pisane malymi literami - z wyjatkiem nazw wlasnych"; the
+      # English edition mistranslates this as "except for generic names",
+      # which inverts it -- the Polish governs). TD3 is an algorithm name and
+      # stays capitalised. Nine words, against the model's limit of ten.
+      - \keywords{reinforcement learning, high-frequency trading, order book, single-asset trading, TD3}
+      - \newcommand{\keywordspl}{uczenie ze wzmocnieniem, handel wysokiej częstotliwości, księga zleceń, handel pojedynczym aktywem, TD3}
+      # The model prints the Erasmus area as name followed by the five-digit
+      # code in parentheses ("Economics (14300)"); 14300 is the same area as
+      # the dotted form 14.3.
+      - \dziedzina{Economics (14300)}
       - \klasyfikacja{G11, G17, C63}
       - \tytulang{Uczenie ze wzmocnieniem uwzględniające mikrostrukturę rynku w handlu wysokiej częstotliwości}
   docx:
@@ -139,11 +147,14 @@ assumptions separating these findings from deployable performance claims.
 ```{=latex}
 \makeatletter
 {\centering\bfseries Key words\par}
-\noindent\@keywords\par
+% The model thesis specifies "words centered" for the keyword line. The
+% English keywords were previously set flush left while the Polish ones
+% below them were centred, so the two disagreed.
+{\centering\@keywords\par}
 {\centering(\textit{Słowa kluczowe: \keywordspl})\par}
 
 \vspace{6pt}
-{\centering\bfseries Area of study (codes according to Erasmus Subject Area Codes List)\par}
+{\centering\bfseries Field of the thesis (codes according to the Erasmus program)\par}
 \noindent\@dziedzina\par
 
 \vspace{6pt}
@@ -151,7 +162,7 @@ assumptions separating these findings from deployable performance claims.
 \noindent\@klasyfikacja\par
 
 \vspace{6pt}
-{\centering\bfseries Title of the thesis in Polish\par}
+{\centering\bfseries The title of the thesis in Polish\par}
 \noindent\@tytulang\par
 \makeatother
 ```
