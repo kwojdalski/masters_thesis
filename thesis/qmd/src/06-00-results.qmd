@@ -17,7 +17,7 @@ effects.
 
 ### Benchmark Strategies {#sec-benchmark-strategies}
 
-Performance is assessed relative to five benchmark strategies. These
+Performance is assessed relative to four benchmark strategies. These
 benchmarks span passive exposure, execution-style references, and a
 stochastic baseline, together providing a comparison surface for
 the directional TD3 agent.

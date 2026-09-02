@@ -8,7 +8,7 @@ section summarizes the empirical evidence for each.
 **Hypothesis 1: a TD3 agent learns an assumption-sensitive risk-adjusted edge
 from order-book microstructure.** Under frictionless mid-price execution, the
 agent learns a directionally coherent, low-turnover, drawdown-controlled policy
-that beats passive benchmarks on this held-out window (Section 6.5). TD3, DDPG,
+that beats passive benchmarks on this held-out window (Section 6.1). TD3, DDPG,
 and PPO also separate cleanly from a random policy while remaining
 indistinguishable from one another (Section 6.1). These results support a
 learnable relationship under the specified simulator. They do not establish
