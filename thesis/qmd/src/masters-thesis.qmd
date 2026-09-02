@@ -144,6 +144,19 @@ format:
       - text: PDF
         href: /masters_thesis/masters_thesis.pdf
         icon: file-pdf
+# Annex B, the binding regulation, abbreviates the figure label in both
+# languages -- "Rys. 12." in the Polish original, "Fig. 12." in the English
+# translation -- while spelling the table label out as "Table 12.". Annex D's
+# prose agrees ('starting with the short "Fig."'). Its worked captions say
+# "Pic." instead, but that edition is a partial translation of the Polish
+# model: its own list of tables reads "Tabel 1.", which is neither English nor
+# Polish, and its caption bodies were left untranslated. "Fig." is therefore
+# what two of the three English attestations say, including the regulation.
+# fig-title sets the caption label, fig-prefix the in-text reference.
+crossref:
+  fig-title: "Fig."
+  fig-prefix: "Fig."
+
 bibliography: ../../bibliography/library.bib
 csl: ../../bibliography/apa.csl
 # Every source cited by the appendix feature table. That table is raw LaTeX, so

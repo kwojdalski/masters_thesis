@@ -76,10 +76,10 @@
 \let\@oldlottable\l@table
 \renewcommand*\l@table[2]{\@oldlottable{Table~#1}{#2}}
 \let\@oldlotfigure\l@figure
-\renewcommand*\l@figure[2]{\@oldlotfigure{Figure~#1}{#2}}
+\renewcommand*\l@figure[2]{\@oldlotfigure{Fig.~#1}{#2}}
 % Room for the widest label plus its number, or tocloft truncates it.
 \settowidth{\cfttabnumwidth}{Table 88.\quad}
-\settowidth{\cftfignumwidth}{Figure 88.\quad}
+\settowidth{\cftfignumwidth}{Fig. 88.\quad}
 % Annex D starts its entries at the 25 mm left margin, not indented.
 \setlength{\cfttabindent}{0pt}
 \setlength{\cftfigindent}{0pt}
