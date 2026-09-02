@@ -126,6 +126,16 @@ if not _plot_data:
         EXPERIMENT_NAME, require_checkpoint_step=3_000_000
     )
 
+# Last resort, and the only one that works on CI: the committed downsampled
+# copy under thesis/qmd/results. mlflow.db and mlruns/ are gitignored, so the
+# two lookups above find nothing there and the figures would fall back to a
+# "not available" notice in the published PDF while rendering fine locally.
+# Refresh it with scripts/export_rollout_plots_to_thesis.py.
+if not _plot_data:
+    from thesis_mlflow_results import find_exported_plot_data
+
+    _plot_data, _plot_prov = find_exported_plot_data(EXPERIMENT_NAME)
+
 
 def _prov_note() -> str:
     """State which rollout the figures show, when it is not the tables' run."""

@@ -340,6 +340,51 @@ def find_plot_run_in_experiment(
     return best if best is not None else ({}, None)
 
 
+def find_exported_plot_data(
+    experiment_name: str,
+) -> tuple[dict[str, Any], dict[str, Any]] | tuple[dict[str, Any], None]:
+    """Load rollout plot data from the committed snapshot under thesis/qmd/results.
+
+    mlflow.db and mlruns/ are gitignored, so CI has no artifact store and the
+    MLflow-backed lookups above find nothing there. scripts/
+    export_rollout_plots_to_thesis.py writes a downsampled copy of the rollout
+    parquets into the results tree, which is committed, so the figures render
+    the same way on CI as they do locally.
+
+    Returns ``(plot_data, provenance)`` in the same shape as
+    ``find_plot_run_in_experiment``, so the caller can caption the figures
+    identically whichever source supplied them.
+    """
+    root = _experiment_snapshot_dir(experiment_name) / "evaluation_plots"
+    if not root.is_dir():
+        return {}, None
+
+    data = find_evaluation_plot_data(str(root.parent), artifact_subdir="evaluation_plots")
+    if not data:
+        return {}, None
+
+    provenance = {
+        "run_id": "",
+        "training_steps": data.get("training_steps"),
+        "symbols": data.get("symbols") or [],
+        "n_obs": data.get("n_obs"),
+        "date_str": data.get("date_str"),
+    }
+    # The exporter records which run the parquets came from. The figures name
+    # it in their captions, and with no MLflow database there is nothing else
+    # to read it from.
+    meta_path = root / "provenance.json"
+    if meta_path.exists():
+        try:
+            import json
+
+            provenance["run_id"] = str(json.loads(meta_path.read_text()).get("run_id", ""))
+        except Exception as exc:
+            _log_fallback("reading exported rollout provenance", exc)
+
+    return data, provenance
+
+
 def find_evaluation_plots(
     artifact_uri: str | None,
     *,
