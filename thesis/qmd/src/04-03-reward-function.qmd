@@ -82,6 +82,24 @@ liquidation values at the end and beginning of the step. This measure includes
 the effect of the exposure held during the price movement and any transaction
 costs reflected in portfolio value.
 
+@eq-log-return-reward is the reward's economic content. The quantity the
+optimiser actually receives is a conditioned version of it, scaled by a
+constant $\kappa$ and clipped symmetrically:
+
+$$\tilde{r}_t = \operatorname{clip}\!\left(\kappa \cdot \log\frac{\mathrm{NLV}_t}{\mathrm{NLV}_{t-1}},\; -c_{\mathrm{lr}},\; +c_{\mathrm{lr}}\right)$$ {#eq-log-return-implemented}
+
+with $\kappa = 10^4$ and $c_{\mathrm{lr}} = 2$ in the log-return scenarios. The
+scaling is not a modelling choice but a conditioning one: a per-tick portfolio
+log-return is of order $10^{-5}$, which is too small to produce stable Adam
+updates against a Huber critic loss. The DSR requires no equivalent rescaling
+because it is self-normalising by construction, which is why the two reward
+types carry different $\kappa$ despite being compared under otherwise identical
+conditions in @sec-h4-reward-design.^[The clip is the `tradingenv` default and
+binds rarely: on 400,000 AAPL events (25 February 2026) at full exposure,
+$|\kappa \log(\mathrm{NLV}_t/\mathrm{NLV}_{t-1})|$ exceeds $c_{\mathrm{lr}}$ on
+139 ticks, or $0.035\%$. Where it binds it truncates the largest moves in the
+sample, the most extreme by a factor of $3.6$.]
+
 For intuition, let $x_t=P_t/P_{t-1}-1$ be the asset's simple return. With zero
 transaction costs and portfolio exposure $a_{t-1}$, the portfolio log-return is
 $\log(1+a_{t-1}x_t)$. For small price changes, this is approximately
