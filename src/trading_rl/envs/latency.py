@@ -37,6 +37,8 @@ Usage::
 
 from __future__ import annotations
 
+import math
+
 import numpy as np
 import pandas as pd
 
@@ -221,7 +223,14 @@ def _us_to_ticks(
     starts = np.unique(
         np.linspace(0, (n - 1) // 2, num=min(n_probes, n // 2)).astype(int)
     )
-    return int(min(np.median([_offset_from(t) for t in starts]), n - 1))
+    # An even probe count makes np.median average the two middle offsets, so a
+    # disagreement there yields a half-integer. int() would floor it, shortening
+    # the applied delay by one event on ~20% of episode windows and always in
+    # the same direction; round() is unbiased. floor(med + 0.5) is used rather
+    # than round() because round() is banker's rounding, which sends 1.5 -> 2
+    # but 2.5 -> 2 and so is itself direction-dependent on exact halves.
+    median_offset = float(np.median([_offset_from(t) for t in starts]))
+    return int(min(math.floor(median_offset + 0.5), n - 1))
 
 
 class FixedTimedLatency(LatencyModel):

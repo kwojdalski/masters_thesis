@@ -234,11 +234,36 @@ def test_us_to_ticks_allows_duplicate_timestamps_and_session_gaps() -> None:
     """
     session = pd.date_range("2026-03-02 14:30:00", periods=100, freq="50us")
 
+    # Duplicated timestamps make the probe offsets split evenly between 40 and
+    # 41 -- landing on the first or second of a pair differs by one row -- so
+    # the median is exactly 40.5 and the rounding rule decides. 41 is the
+    # rounded value; truncation would report 40.
     with_ties = pd.DatetimeIndex(session.repeat(2))
-    assert _us_to_ticks(1000.0, with_ties) == 40
+    assert _us_to_ticks(1000.0, with_ties) == 41
 
     across_sessions = pd.DatetimeIndex(session.append(session + pd.Timedelta("18h")))
     assert _us_to_ticks(1000.0, across_sessions) == 20
+
+
+def test_us_to_ticks_rounds_a_half_integer_probe_median_up() -> None:
+    """A tied probe median must round, not truncate.
+
+    With an even probe count np.median averages the two middle offsets, so a
+    disagreement there yields a half-integer. int() floored it, shortening the
+    applied delay by one event on roughly a fifth of episode windows and always
+    in the same direction.
+
+    64 rows puts the 16 probes over [0, 31]; switching the inter-event gap at
+    row 16 splits them 8/8 between offsets 1 and 2, giving a median of exactly
+    1.5. Truncation returns 1; rounding returns 2.
+    """
+    base = pd.Timestamp("2026-03-02 14:30:00")
+    gaps_us = [60] * 16 + [40] * 48
+    timestamps = pd.DatetimeIndex(
+        base + pd.to_timedelta(np.cumsum([0] + gaps_us[:-1]), "us")
+    )
+
+    assert _us_to_ticks(100.0, timestamps) == 2
 
 
 def test_us_to_ticks_zero_latency_returns_first_row() -> None:
