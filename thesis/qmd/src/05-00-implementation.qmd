@@ -70,6 +70,17 @@ it does not cover whether the agent's own trading feeds back into the
 order-flow features it conditions on. Section 7.2
 (@sec-execution-realism) returns to this.
 
+**Position-level execution.** The simulation is specified at the level of
+positions rather than orders. The agent names a target exposure in $[-1, 1]$
+and receives it in full at the next priced event; no order is created, queued,
+or matched. Displayed size is treated as unlimited, so an exposure change of
+any magnitude executes at the top of the book without walking it. The
+distinction between passive and aggressive execution consequently does not
+arise: the agent neither posts nor crosses the spread, holds no queue
+position, and cannot be adversely selected against by better-informed flow.
+This is the single abstraction from which the execution limitations discussed
+in Section 7.2 (@sec-execution-realism) follow.
+
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
 reward accounting, but it makes the reported backtest returns optimistic for
