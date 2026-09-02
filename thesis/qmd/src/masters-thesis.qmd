@@ -98,6 +98,19 @@ format:
       # three (4.5.1.1, 5.3.4.1-4), so tocdepth must be 4 -- chapter plus three
       # -- or those five headings exist in the body but not in the contents.
       - \setcounter{tocdepth}{4}
+      # Requirement 14: "line spacing within one entry: single; a blank line
+      # with single spacing between entries". Every gap in the bibliography --
+      # inside an entry and between entries alike -- measured 7.6 mm, the
+      # document's 1.5 spacing, so entries ran together with no separation and
+      # each was half again too tall. Pandoc puts the reference list in a
+      # CSLReferences environment and spaces entries by \cslentryspacingunit,
+      # which defaults to \parskip; \parskip is 0pt here, hence no gap. Single
+      # spacing inside, one blank line between.
+      # \cslentryspacingunit is only defined when Pandoc emits a reference
+      # list, and not before \begin{document}, so the \ifdefined guard is
+      # required -- setting it unguarded aborts the render.
+      - \usepackage{etoolbox}
+      - \AtBeginEnvironment{CSLReferences}{\singlespacing\ifdefined\cslentryspacingunit\setlength{\cslentryspacingunit}{\baselineskip}\fi}
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
