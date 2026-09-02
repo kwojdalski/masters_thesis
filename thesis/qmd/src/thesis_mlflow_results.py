@@ -301,14 +301,18 @@ def find_plot_run_in_experiment(
     caption which rollout is being shown. Both are empty/None when nothing
     suitable is found.
     """
-    exp = get_experiment_by_name(experiment_name)
-    if exp is None:
-        return {}, None
-
+    # mlflow.db and mlruns/ are both gitignored, so on CI there is no database
+    # to open at all and get_experiment_by_name raises OperationalError rather
+    # than returning None. Every other MLflow reader here is wrapped for the
+    # same reason; this one was not, which turned a missing-artifact fallback
+    # into a failed render. Any failure means "no plot data", never an abort.
     try:
+        exp = get_experiment_by_name(experiment_name)
+        if exp is None:
+            return {}, None
         runs = get_runs(exp["experiment_id"])
     except Exception as exc:
-        _log_fallback(f"listing runs of {experiment_name!r} for plot data", exc)
+        _log_fallback(f"looking up {experiment_name!r} for plot data", exc)
         return {}, None
 
     best: tuple[dict[str, Any], dict[str, Any]] | None = None
