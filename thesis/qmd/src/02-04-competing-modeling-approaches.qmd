@@ -24,7 +24,7 @@ or class probabilities into positions through a cost-aware rule, such as trading
 only when the expected move exceeds the spread and fee threshold, scaling
 exposure by forecast confidence, or optimizing classification thresholds on a
 validation set for net return rather than raw accuracy. A second supervised
-variant would learn the action directly from labels constructed ex post: for
+variant would learn the action directly from labels constructed *ex post*: for
 example, the position that would have maximized next-horizon net return after
 costs, or a discretized buy/sell/hold target with an explicit no-trade region.
 
@@ -36,14 +36,14 @@ supervised learning is an inherently weak baseline. It is that the financial
 objective enters the pipeline indirectly: either through hand-designed
 thresholds and sizing rules applied after prediction, or through labels whose
 definition already embeds a particular holding horizon, cost model, and
-notion of ex post optimality.
+notion of *ex post* optimality.
 
 This creates two sources of possible misalignment. First, a model that minimizes
 mean squared error, cross-entropy, or another statistical loss may not maximize
 risk-adjusted return after transaction costs, because predictive accuracy and
 trading profitability are not equivalent criteria [@Moody1998]. Second, direct
 action labels are only as credible as the rule used to construct them. In a
-noisy and path-dependent environment, the ex post best one-step action need not
+noisy and path-dependent environment, the *ex post* best one-step action need not
 be the action that maximizes longer-horizon portfolio utility once turnover,
 inventory persistence, and risk are considered.
 

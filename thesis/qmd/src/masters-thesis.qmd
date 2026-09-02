@@ -18,6 +18,11 @@ format:
     toc-depth: 3
     number-sections: true
     output-file: masters_thesis.pdf
+    # WNE UW requirement 4 indents *every* paragraph by 1 cm, and Annex D
+    # shows the paragraph directly after a heading indented like any other
+    # (35.6 mm against its 25 mm margin). Pandoc's default suppresses that
+    # first indent, which left 136 of them flush at the margin here.
+    indent: true
     linestretch: 1.5
     lof: false
     lot: false
@@ -30,6 +35,12 @@ format:
       - \raggedbottom
       - \setlength{\parindent}{1cm}
       - \setlength{\parskip}{0pt}
+      # LaTeX's sectioning commands set \@afterindentfalse, so the paragraph
+      # directly after a heading is never indented -- independent of Pandoc's
+      # `indent` setting, which only controls whether parskip is loaded.
+      # Requirement 4 indents every paragraph, and Annex D shows the first one
+      # after a heading indented like the rest. indentfirst restores it.
+      - \usepackage{indentfirst}
       - \usepackage[utf8]{inputenc}
       - \usepackage{amsthm}
       - \usepackage{rotating}
