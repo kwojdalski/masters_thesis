@@ -213,9 +213,9 @@ policies stay active at 0 and 0.01 basis points but collapse to static
 positions at higher fees, showing cost sensitivity without a clean break-even;
 fixed-path bid/ask repricing reverses the result. Of three feature sets only
 the curated ten-feature microstructure state converged, leaving feature choice
-unresolved. The contribution is a reproducible pipeline from order-book
-features through Differential Sharpe Ratio reward design to out-of-sample
-evaluation.
+unresolved. The contribution is a publicly available, reproducible pipeline
+from order-book features through Differential Sharpe Ratio reward design to
+out-of-sample evaluation.
 
 \end{abstract}
 
