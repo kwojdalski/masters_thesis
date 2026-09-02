@@ -463,9 +463,21 @@ def plot_actions(
         action_prefix = "Discrete action selected by the agent at each step."
 
     action_runs = list(df_actions["Run"].unique())
+    # On a multi-policy allocation panel the raw series cannot be drawn
+    # legibly, and thinning it does not help. TD3 holds |position| > 0.9 at 98%
+    # of steps and changes sign at 48% of the plotted points, so at roughly
+    # 71 um per point across the printed panel every policy renders as a solid
+    # block spanning both bounds, and whichever is drawn last hides the rest.
+    # Where a moving average is available the raw series is therefore omitted
+    # and only the smoothed exposure is drawn; the figure's note says so, and
+    # the saturation the raw series would have shown is already reported as
+    # turnover and % long / % short in the results tables.
+    _draw_raw = not (is_portfolio and df_ma is not None)
+    action_plot = ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
+    if _draw_raw:
+        action_plot = action_plot + geom_line(size=0.32)
     action_plot = (
-        ggplot(df_actions, aes(x="Steps", y="Actions", color="Run"))
-        + geom_line(size=0.32)
+        action_plot
         + labs(
             title=title,
             x="Steps",
@@ -484,13 +496,26 @@ def plot_actions(
     )
 
     if is_portfolio and df_ma is not None:
+        # Colour by Run, not a fixed black. With one policy a black dashed
+        # line read as "the moving average" against a single coloured raw
+        # series; with several it drew every policy's average in the same
+        # colour, so four indistinguishable black lines sat over the plot with
+        # nothing tying each to its own policy. Sharing the raw series' colour
+        # scale pairs each average with the policy it smooths, and the dashed
+        # pattern still separates average from raw.
         action_plot = action_plot + geom_line(
             data=df_ma,
-            mapping=aes(x="Steps", y="MA", group="Run"),
-            color="black",
-            linetype="dashed",
+            mapping=aes(x="Steps", y="MA", color="Run"),
+            # Solid, not dashed: with the raw series omitted this is the only
+            # line for each policy, and a dashed pattern would imply a
+            # companion series that is not drawn.
             size=0.7,
             inherit_aes=False,
+            # Legend only when this is the sole series. Suppressed while the
+            # raw series is also drawn, where it would duplicate that layer's
+            # entries; needed here, since otherwise the figure has no key at
+            # all and the four coloured lines are unidentifiable.
+            show_legend=not _draw_raw,
         )
 
     return action_plot
