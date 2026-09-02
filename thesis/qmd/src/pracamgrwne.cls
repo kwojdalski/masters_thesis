@@ -6,8 +6,11 @@
 \def\@baseclass{article} % fix for qmd
 \@ifundefined{l@chapter}{\newcounter{chapter}%
   \newcommand*\l@chapter{\@dottedtocline{0}{0em}{1.5em}}}{}
-\def\@rodzajpracy{magisterska}
-\DeclareOption{licencjacka}{\def\@rodzajpracy{licencjacka}}
+% Annex D's English edition labels this line "Licencjat/Magister
+% (bachelor/master) degree thesis", so the degree word is English here rather
+% than the Polish "magisterska"/"licencjacka" the option names still use.
+\def\@rodzajpracy{Magister (master)}
+\DeclareOption{licencjacka}{\def\@rodzajpracy{Licencjat (bachelor)}}
 \DeclareOption*{\PassOptionsToClass{\CurrentOption}{\@baseclass}}
 \PassOptionsToClass{a4paper,twoside,openright,12pt}{\@baseclass}
 \ProcessOptions
@@ -166,27 +169,34 @@
     \let\footnotesize\small
     \let\footnoterule\relax
     \let \footnote \thanks
+%   Annex D bolds exactly one element of the title page, the thesis title, and
+%   labels everything in English. This page previously bolded the university,
+%   the author and the degree line as well, and carried the Polish labels "Nr
+%   albumu", "Praca magisterska" and "na kierunku" on an English thesis.
     \begin{center}%
-      {\LARGE\textbf{University of Warsaw}\\
+      {\LARGE University of Warsaw\\
         Faculty of Economic Sciences\par}
       \vspace{1cm plus 1fill}
-      {\Large\bf\@author\par}
+      {\Large\@author\par}
       \vspace{0.2cm}
-      {\large Nr albumu: \@nralbumu\par}
+      {\large Album N\textsuperscript{o}: \@nralbumu\par}
       \vspace{8mm plus .1fill}
       {\Huge\textbf{\@title}\par}
       \vspace{8mm plus .1fill}
-      {\large\bf Praca \@rodzajpracy\\[3pt]
-        na kierunku \MakeUppercase{\@speciality} \\
+      {\large \@rodzajpracy\ degree thesis\\[3pt]
+        Field of the study: \@speciality \\
 %----zakres---
         \@zakres \par}
       \vspace{2cm plus 1.5fill}
-      \begin{flushright}\large
-        \begin{tabular}{l}
-          The thesis written under the supervision of\\
-          \bfseries \@opiekun
-        \end{tabular}
-      \end{flushright}
+%   Annex D sets the supervisor block flush right over four lines: the lead-in,
+%   the supervisor, their unit and "WNE UW". The tabular used here left-aligned
+%   the block inside a right-hand box instead, so the lines did not share a
+%   right edge. \raggedleft gives the true flush-right setting.
+      {\large\raggedleft
+        The thesis written under the supervision of\\
+        \@opiekun\\
+        \@jednostka
+        WNE UW\par}
       \vspace{1cm plus 1fill}
       {\large \@date\par}
     \end{center}
@@ -199,47 +209,39 @@
     \null
     \vfill
 
-    \vspace{10mm}
-    \vspace{10mm}
-
-   Data \hfill Podpis opiekuna
-
-   \vspace{2cm}
-   \textbf{Statement of the Supervisor on Submission of the Thesis}
+%   Annex D gives each declaration one italic heading, its body, and a single
+%   "Date ... Signature" line. This page previously carried the Polish
+%   template's date and signature lines as well, un-removed, so each
+%   declaration had two of them -- and the Polish ones printed *above* the
+%   statement they belonged to, making "Data / Podpis opiekuna" the first text
+%   on the page. A duplicate Polish heading, "Oswiadczenie autora (autorow)
+%   pracy", sat above the English author statement for the same reason.
+%   Headings are italic here, as in Annex D, not bold.
    \vspace{10mm}
 
-    I hereby certify that the thesis submitted has been prepared under my supervision and I declare that it satisfies the requirements of submission in the
-    proceedings for the award of a degree.
+   \textit{Declaration of the supervisor}
+   \vspace{5mm}
 
-   Date \hfill Signature of the Supervisor:
-   \vspace{10mm}
-
-   \vspace{2cm}
-   \textbf{O\'swiadczenie autora (autor\'ow) pracy}
-    \vspace{10mm}
+   I hereby certify that the thesis submitted has been prepared under my supervision and I declare that it satisfies the requirements of submission in the
+   proceedings for the award of a degree.
 
    \vspace{10mm}
+   Date \hfill Signature of the Supervisor
 
-
-   Data \hfill Podpis autora (autor\'ow) pracy
-
-   \vspace{2cm}
-   \textbf{Statement of the Author(s) on Submission of the Thesis }
-      \vspace{10mm}
+   \vspace{25mm}
+   \textit{Declaration of the author of the thesis}
+   \vspace{5mm}
 
    Aware of legal liability I certify that the thesis submitted has been prepared by myself and does not include information gathered contrary to the law.
 
    I also declare that the thesis submitted has not been the subject of proceedings resulting in the award of a university degree.
 
-  Furthermore I certify that the submitted version of the thesis is identical with its attached electronic version.
-
-
-Date \hfill Signature of the Author(s) of the thesis
+   Furthermore I certify that the submitted version of the thesis is identical with its attached electronic version.
 
    \vspace{10mm}
+   Date \hfill Signature of the Author
 
-
-    \vspace{4cm}
+   \vspace{4cm}
   \end{titlepage}
   \setcounter{footnote}{0}%
   \setcounter{chapter}{1}%
@@ -263,6 +265,12 @@ Date \hfill Signature of the Author(s) of the thesis
 \def\@zakres{}
 \def\opiekun#1{\gdef\@opiekun{#1}}
 \def\@opiekun{???\ClassError{pracamgr}{Brak danych opiekuna pracy}\@ehc}
+% Supervisor's unit, the third line of Annex D's title-page supervisor block
+% ("from (name of the supervisor's unit)"). Optional: left empty the block
+% prints the lead-in, the supervisor and "WNE UW" only. Set it with
+% \jednostka{from the Department of ...} in the document preamble.
+\def\jednostka#1{\gdef\@jednostka{#1\\}}
+\def\@jednostka{}
 \def\keywords#1{\gdef\@keywords{#1}}
 \def\@keywords{???\ClassError{pracamgr}{Brak slow kluczowych}\@ehc}
 \def\dziedzina#1{\gdef\@dziedzina{#1}}
