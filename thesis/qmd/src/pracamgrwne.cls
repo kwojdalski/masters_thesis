@@ -322,6 +322,32 @@
     \hbox{}\thispagestyle{empty}\newpage\if@twocolumn\hbox{}\newpage\fi\fi\fi}
 
 \renewcommand*\@seccntformat[1]{\csname the#1\endcsname.\enspace}
+% Annex D, page 5: "Chapters should be written in capital letters according to
+% the table of contents from the left margin. ... Font of thesis: Times New
+% Roman, size 12 points. The same applies to the font of chapters and
+% subsections."
+%
+% Two consequences the article defaults get wrong. Chapter headings printed in
+% title case ("1. Introduction") where the model prints capitals, and the
+% heading sizes stepped up with level -- 17.2 pt for chapters and 14.3 pt for
+% sections against a 12 pt body -- where the model sets every heading at the
+% body's 12 pt. Annex D's own "INTRODUCTION" measures 12.0 pt bold at the left
+% margin.
+%
+% titlesec is used rather than patching \@startsection so the numbering format
+% above stays in force: \thesection followed by a period and a space. Only the
+% font and the case change. \MakeUppercase wraps the title text alone, so the
+% number keeps its digits and the table of contents is uppercased separately
+% below (uppercasing here would not reach the .toc file).
+\RequirePackage{titlesec}
+\titleformat{\section}{\normalsize\bfseries}{\thesection.}{0.5em}{\MakeUppercase}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+% Chapter entries in the table of contents carry the same capitals, so the body
+% and the contents agree -- which is what "according to the table of contents"
+% asks for.
+\let\@oldtocsection\l@section
+\renewcommand*\l@section[2]{\@oldtocsection{\MakeUppercase{#1}}{#2}}
 \def\numberline#1{\hb@xt@\@tempdima{#1.\hfil}}
 \renewcommand*\l@chapter[2]{%
   \ifnum \c@tocdepth >\m@ne
