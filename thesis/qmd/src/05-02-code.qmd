@@ -81,11 +81,11 @@ entropy bonuses rather than explicit noise injection.
   \STATE $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right), \quad \epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
   \STATE Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
   \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-  \STATE Compute smoothed target action: $\tilde{a}' \leftarrow \mu_{\phi'}(s') + \operatorname{clip}\!\left(\mathcal{N}(0,\sigma_{\text{noise}}^2),\, \pm c\right)$
-  \STATE Compute Bellman target: $y \leftarrow r + \gamma \cdot \min_{i=1,2} Q_{\theta_i'}(s',\, \tilde{a}')$
-  \STATE Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_{\theta_i}(s, a)\right)$
+  \STATE Compute smoothed target action: $\tilde{a}_{t+1} \leftarrow \mu_{\phi'}(s_{t+1}) + \operatorname{clip}\!\left(\mathcal{N}(0,\sigma_{\text{smooth}}^2),\, -c_{\text{smooth}},\, c_{\text{smooth}}\right)$, where $c_{\text{smooth}} = 0.3$
+  \STATE Compute Bellman target: $y_t \leftarrow r_t + \gamma \cdot \min_{i=1,2} Q_{\theta_i'}(s_{t+1},\, \tilde{a}_{t+1})$
+  \STATE Update both critics by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y_t - Q_{\theta_i}(s_t, a_t)\right)$
   \IF{$t \bmod \texttt{policy\_delay} = 0$}
-    \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_{\theta_1}(s,\, \mu_\phi(s))$
+    \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_{\theta_1}(s_t,\, \mu_\phi(s_t))$
     \STATE Soft-update targets: $\theta_i' \leftarrow \tau\theta_i + (1-\tau)\theta_i'; \; \phi' \leftarrow \tau\phi + (1-\tau)\phi'$
   \ENDIF
   \STATE Checkpoint and log metrics at configured intervals
@@ -99,7 +99,7 @@ entropy bonuses rather than explicit noise injection.
 DDPG (Algorithm 3, Appendix @sec-appendix-baseline-algorithms) follows the
 same loop as Algorithm 2 with three simplifications. It uses a single critic in
 place of the twin critics, so the Bellman target uses
-$Q_{\theta'}(s', \mu_{\phi'}(s'))$ directly, without the minimum. The actor is
+$Q_{\theta'}(s_{t+1}, \mu_{\phi'}(s_{t+1}))$ directly, without the minimum. The actor is
 updated every step rather than every `policy_delay` critic steps, and there is
 no target-action smoothing noise. PPO (Algorithm 4, same appendix section)
 instead follows the on-policy paradigm summarized above: batches are

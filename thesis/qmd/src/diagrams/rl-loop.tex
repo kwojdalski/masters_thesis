@@ -21,18 +21,16 @@
 \draw[->] (agent.east) -- ++(2.8,0) -- ++(0,-3) -- (env.east);
 \node[right, align=left, font=\normalsize] at (2.8, 1.5) {action\\[2pt]$a_t$};
 
-% Time-step boundary. The environment emits (r_{t+1}, s_{t+1}) in response to
-% a_t; crossing this line they become the (r_t, s_t) the agent observes on the
-% next iteration. Drawing both label pairs either side of the dashes is what
-% makes the one-step delay visible -- a single t+1 pair on one shared wire
-% cannot express it, and leaves s_t/r_t (named in the prose) undepicted.
+% Time-step boundary under the implementation-facing convention used in this
+% thesis. Action a_t produces (r_t, s_{t+1}); on the agent side of the boundary,
+% the preceding reward is r_{t-1} while the current state is s_t.
 \draw[dashed, thin] (-2.6, -0.75) -- (-2.6, 0.8);
 
 % Reward wire (inner): environment -> left -> up -> agent
 \draw[->] ([yshift=3.5mm]env.west) -- (-3.2, 0.35) -- (-3.2, 2.75)
           -- ([yshift=-2.5mm]agent.west);
-\node[font=\normalsize] at (-2.1, 0.62) {$r_{t+1}$};
-\node[right, align=left, font=\normalsize] at (-3.1, 1.6) {reward\\[2pt]$r_t$};
+\node[font=\normalsize] at (-2.1, 0.62) {$r_t$};
+\node[right, align=left, font=\normalsize] at (-3.1, 1.6) {reward\\[2pt]$r_{t-1}$};
 
 % State wire (outer): environment -> left -> up -> agent
 \draw[->] ([yshift=-3.5mm]env.west) -- (-4.3, -0.35) -- (-4.3, 3.25)

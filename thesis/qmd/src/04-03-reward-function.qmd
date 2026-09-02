@@ -53,7 +53,7 @@ The state includes a queue-weighted midpoint and its divergence from the
 ordinary midpoint. The implementation retains the legacy `microprice` feature
 name. Because the queue-weighted midpoint is a convex combination of the best
 bid and ask, its divergence satisfies
-$|\text{QWM}(t) - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$ at
+$|\mathrm{QWM}_t - \text{mid}(t)| \le (\text{ask}(t) - \text{bid}(t))/2$ at
 every tick. This exact algebraic result bounds the instantaneous scale of one
 input feature. It does not bound a future mid-price change, the relation learned
 from the full state, the policy's holding period, or the strategy's profit.
@@ -72,15 +72,22 @@ execution remains necessary.
 
 ### Log-Return
 
-The simplest reward is the single-step log-return:
+The implementation uses the single-step log-return of the portfolio's net
+liquidation value:
 
-$$r_t = \log\frac{P_t}{P_{t-1}} \cdot a_{t-1}$$ {#eq-log-return-reward}
+$$r_t = \log\frac{\mathrm{NLV}_t}{\mathrm{NLV}_{t-1}}$$ {#eq-log-return-reward}
 
-where:
+where $\mathrm{NLV}_t$ and $\mathrm{NLV}_{t-1}$ are the portfolio's net
+liquidation values at the end and beginning of the step. This measure includes
+the effect of the exposure held during the price movement and any transaction
+costs reflected in portfolio value.
 
-- $P_t$ — mid-price at the end of the current step
-- $P_{t-1}$ — mid-price at the previous step
-- $a_{t-1} \in [-1,1]$ — portfolio exposure held during the period
+For intuition, let $x_t=P_t/P_{t-1}-1$ be the asset's simple return. With zero
+transaction costs and portfolio exposure $a_{t-1}$, the portfolio log-return is
+$\log(1+a_{t-1}x_t)$. For small price changes, this is approximately
+$a_{t-1}x_t$, which is in turn approximately
+$a_{t-1}\log(P_t/P_{t-1})$. The exposure-weighted asset log-return is therefore
+a first-order approximation, not an exact identity for arbitrary exposure.
 
 This is the first term of @eq-reward-baseline without the transaction cost
 penalty. At tick frequency, this signal is dominated by microstructure noise.
@@ -110,8 +117,8 @@ where:
 
 - $A_{t-1}$ — exponentially weighted estimate of the first moment of returns (defined in @eq-dsr-moments)
 - $B_{t-1}$ — exponentially weighted estimate of the second moment of returns (defined in @eq-dsr-moments)
-- $\Delta A_t = R_t - A_{t-1}$ — one-step increment of $A$
-- $\Delta B_t = R_t^2 - B_{t-1}$ — one-step increment of $B$
+- $\Delta A_t = R_t - A_{t-1}$ — innovation term for the first-moment update
+- $\Delta B_t = R_t^2 - B_{t-1}$ — innovation term for the second-moment update
 - $\bigl(\max(B_{t-1} - A_{t-1}^2,\,0)\bigr)^{3/2} + \varepsilon$ — running variance raised to the power $3/2$, floored at zero against floating-point drift and offset by a small constant $\varepsilon$
 
 This replaces the simple log-return in @eq-log-return-reward with a
@@ -123,11 +130,11 @@ does not eliminate the noise concerns at tick frequency.
 $A_t$ and $B_t$ are exponentially weighted estimates of the first and
 second moments of returns:
 
-$$A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$ {#eq-dsr-moments}
+$$A_t = A_{t-1} + \eta\Delta A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = B_{t-1} + \eta\Delta B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$ {#eq-dsr-moments}
 
 where:
 
-- $R_t = \log(P_t / P_{t-1}) \cdot a_{t-1}$ — portfolio log-return at step $t$^[In the implementation, $R_t$ is computed as $\log(\text{NLV}_t / \text{NLV}_{t-1})$, where $\text{NLV}_t$ is the net liquidation value of the portfolio. This is equivalent to the formula above when transaction costs are zero. When costs are non-zero, the NLV-based return absorbs transaction costs implicitly, making the implementation more conservative than the analytic expression suggests.]
+- $R_t = \log(\mathrm{NLV}_t / \mathrm{NLV}_{t-1})$ — portfolio log-return supplied to the DSR update at step $t$
 - $\eta \in (0,1]$ — exponential smoothing parameter
 - $A_t$ — running mean of returns
 - $B_t$ — running mean of squared returns

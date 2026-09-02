@@ -73,15 +73,15 @@ $V^{bid}_i$, $V^{ask}_i$: resting volume at level $i$;
 $C^{bid}_i$, $C^{ask}_i$: order count at level $i$;
 $M_t = \tfrac{1}{2}(P^{bid}_0+P^{ask}_0)$: mid-price;
 $S_t = P^{ask}_0-P^{bid}_0$: spread;
-$QWM_t = \tfrac{V^{ask}_0P^{bid}_0+V^{bid}_0P^{ask}_0}{V^{bid}_0+V^{ask}_0}$: queue-weighted midpoint (legacy feature name `microprice`);
+$\mathrm{QWM}_t = \tfrac{V^{ask}_0P^{bid}_0+V^{bid}_0P^{ask}_0}{V^{bid}_0+V^{ask}_0}$: queue-weighted midpoint (legacy feature name `microprice`);
 $\bar{P}^{vw}_N = \tfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$: volume-weighted mid-price over the top $N$ levels;
 $\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change;
 $e^{bid}_t = V^{bid}_{0,t}\mathbf{1}[P^{bid}_{0,t}>P^{bid}_{0,t-1}] + \Delta V^{bid}_t\,\mathbf{1}[P^{bid}_{0,t}=P^{bid}_{0,t-1}] - V^{bid}_{0,t-1}\mathbf{1}[P^{bid}_{0,t}<P^{bid}_{0,t-1}]$,
 $e^{ask}_t = V^{ask}_{0,t}\mathbf{1}[P^{ask}_{0,t}<P^{ask}_{0,t-1}] + \Delta V^{ask}_t\,\mathbf{1}[P^{ask}_{0,t}=P^{ask}_{0,t-1}] - V^{ask}_{0,t-1}\mathbf{1}[P^{ask}_{0,t}>P^{ask}_{0,t-1}]$:
 best-level order-flow events, which contribute the full standing queue when the quote moves and only the increment when it holds [@Cont2014];
 $\mathrm{OFI}_t = e^{bid}_t - e^{ask}_t$: best-level order flow imbalance;
-$W$: rolling window in events;
-$\sum_W\,x_t = \sum_{\tau=t-W+1}^{t} x_\tau$: rolling sum;
+$W$: rolling-window length in events;
+$\mathcal{W}_t=\{t-W+1,\ldots,t\}$: event indices in the rolling window ending at $t$;
 $\bar{x}_W$: rolling mean over $W$ events;
 $V^B_W$, $V^S_W$: rolling buy/sell volume over $W$ events;
 $L$: odd-lot size threshold (100 shares);
@@ -116,8 +116,8 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_book\_pressure} & Imbalance & $(V^{bid}_i - V^{ask}_i)/(V^{bid}_i + V^{ask}_i)$ & $i \in \{0,1,2\}$ & level 0 & Cao et al.\ (2009); Biais et al.\ (1995) \\
 \texttt{hft\_order\_book\_imbalance} & Imbalance & $\dfrac{\sum_{i<N}(V^{bid}_i-V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$ & $N=3$ & $\checkmark$ & Cont et al.\ (2014) \\
 \texttt{hft\_order\_count\_imbalance} & Imbalance & $(C^{bid}_i-C^{ask}_i)/(C^{bid}_i+C^{ask}_i)$ & $i=0$ & level 0 & Biais et al.\ (1995) \\
-\texttt{hft\_microprice} & Fair value & $QWM_t$ & --- & $\checkmark$ & Stoikov (2018) \\
-\texttt{hft\_microprice\_divergence} & Fair value & $QWM_t-M_t$ & --- & $\checkmark$ & --- \\
+\texttt{hft\_microprice} & Fair value & $\mathrm{QWM}_t$ & --- & $\checkmark$ & Stoikov (2018) \\
+\texttt{hft\_microprice\_divergence} & Fair value & $\mathrm{QWM}_t-M_t$ & --- & $\checkmark$ & --- \\
 \texttt{hft\_vwmp\_skew} & Fair value & $(\bar{P}^{vw}_N - M_t)/S_t$ & $N=3$ & & --- \\
 \texttt{hft\_price\_vamp} & Fair value & Avg.\ execution price for fixed-notional order walked through $N$ levels & \mbox{$Q\in\{1k,5k\}$} & & --- \\
 \texttt{hft\_depth\_ratio} & Depth & $(V^{bid}_0+V^{ask}_0)\,/\,\sum_{i=1}^{N}(V^{bid}_i+V^{ask}_i)$ & $N=4$ & & Bouchaud et al.\ (2002) \\
@@ -128,17 +128,17 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_bid\_slope} & Spread/cost & $(P^{bid}_0-P^{bid}_4)\,/\,\sum_{i<5}V^{bid}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
 \texttt{hft\_ask\_slope} & Spread/cost & $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
 \texttt{hft\_ofi} & Order flow & $\mathrm{OFI}_t = e^{bid}_t - e^{ask}_t$ & --- & $\checkmark$ & Cont et al.\ (2014) \\
-\texttt{hft\_ofi\_rolling} & Order flow & $\sum_W\,\mathrm{OFI}_t$ & $W=50$ & $W=50$ & Cont et al.\ (2014) \\
+\texttt{hft\_ofi\_rolling} & Order flow & $\sum_{\tau\in\mathcal{W}_t}\mathrm{OFI}_\tau$ & $W=50$ & $W=50$ & Cont et al.\ (2014) \\
 \texttt{hft\_ofi\_multilevel} & Order flow & $\sum_{i<N}\mathrm{OFI}^{(i)}_t$ (event classification at each level $i$) & \mbox{$N\in\{3,5\}$} & & Cont et al.\ (2014) \\
 \texttt{hft\_bid\_queue\_depletion} & Order flow & $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ & bid & & Foucault et al.\ (2005) \\
 \texttt{hft\_ask\_queue\_depletion} & Order flow & $\max(V^{ask}_{0,t-1}-V^{ask}_{0,t},\,0)\,/\,V^{ask}_{0,t-1}$ & ask & & Foucault et al.\ (2005) \\
-\texttt{hft\_signed\_trade\_flow} & Order flow & $\sum_W\,\mathrm{size}_\tau\cdot(\mathbf{1}[\mathrm{side}_\tau=\mathrm{B}]-\mathbf{1}[\mathrm{side}_\tau=\mathrm{A}])$ & $W=50$ & $W=50$ & Lee \& Ready (1991) \\
-\texttt{hft\_odd\_lot\_trade\_ratio} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}<L]\,/\,\sum_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & & Boehmer et al.\ (2021) \\
+\texttt{hft\_signed\_trade\_flow} & Order flow & $\sum_{\tau\in\mathcal{W}_t}\mathrm{size}_\tau\cdot(\mathbf{1}[\mathrm{side}_\tau=\mathrm{B}]-\mathbf{1}[\mathrm{side}_\tau=\mathrm{A}])$ & $W=50$ & $W=50$ & Lee \& Ready (1991) \\
+\texttt{hft\_odd\_lot\_trade\_ratio} & Order flow & $\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{trade}_\tau\wedge\mathrm{size}_\tau<L]\,/\,\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{trade}_\tau]$ & $W=200$ & & Boehmer et al.\ (2021) \\
 \texttt{hft\_odd\_lot\_imbalance} & Order flow & $(V^{B,\mathrm{odd}}_W-V^{S,\mathrm{odd}}_W)/(V^{B,\mathrm{odd}}_W+V^{S,\mathrm{odd}}_W)$; size $<L$ & $W=200$ & & Boehmer et al.\ (2021) \\
 \texttt{hft\_vpin} & Order flow & $|V^B_W-V^S_W|\,/\,(V^B_W+V^S_W)$ & \mbox{$W\in\{100,500\}$} & & Easley et al.\ (2012) \\
-\texttt{hft\_cancel\_to\_trade} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{action}=\mathrm{C}]\,/\,\sum_W\,\mathbf{1}[\mathrm{action}=\mathrm{T}]$ & \mbox{$W\in\{200,1000\}$} & & Foucault et al.\ (2005) \\
-\texttt{hft\_trade\_arrival\_rate} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{action}=\mathrm{T}]$ & \mbox{$W\in\{100,500\}$} & & Engle (2000) \\
-\texttt{hft\_large\_trade\_ratio} & Order flow & $\sum_W\,\mathbf{1}[\mathrm{trade}\wedge\mathrm{size}\geq Q]\,/\,\sum_W\,\mathbf{1}[\mathrm{trade}]$ & $W=200$ & & --- \\
+\texttt{hft\_cancel\_to\_trade} & Order flow & $\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{action}_\tau=\mathrm{C}]\,/\,\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{action}_\tau=\mathrm{T}]$ & \mbox{$W\in\{200,1000\}$} & & Foucault et al.\ (2005) \\
+\texttt{hft\_trade\_arrival\_rate} & Order flow & $\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{action}_\tau=\mathrm{T}]$ & \mbox{$W\in\{100,500\}$} & & Engle (2000) \\
+\texttt{hft\_large\_trade\_ratio} & Order flow & $\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{trade}_\tau\wedge\mathrm{size}_\tau\geq Q]\,/\,\sum_{\tau\in\mathcal{W}_t}\mathbf{1}[\mathrm{trade}_\tau]$ & $W=200$ & & --- \\
 \texttt{hft\_ofi\_autocorr} & Order flow & $\hat{\rho}(\mathrm{OFI}_{t-W:t},\,\mathrm{lag}=1)$ & \mbox{$W\in\{50,200\}$} & & Cont et al.\ (2014) \\
 \texttt{hft\_inter\_event\_time} & Regime/temp. & $\log(1+\Delta t_{\mathrm{ns}})$ & --- & & Engle (2000) \\
 \texttt{hft\_mid\_price\_acceleration} & Regime/temp. & $M_t-2M_{t-1}+M_{t-2}$ & --- & & Abergel et al.\ (2016) \\
@@ -221,9 +221,9 @@ reproducibility.
   \STATE $a_t \leftarrow \operatorname{clip}\!\left(\mu_\phi(s_t) + \epsilon,\; -1,\; 1\right), \quad \epsilon \sim \mathcal{N}(0,\, \sigma_{\text{explore}}^2)$
   \STATE Execute $a_t$; observe $r_t$, $s_{t+1}$; store $(s_t, a_t, r_t, s_{t+1})$ in $\mathcal{D}$
   \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{D}$
-  \STATE Compute Bellman target: $y \leftarrow r + \gamma \cdot Q_{\theta'}(s',\, \mu_{\phi'}(s'))$
-  \STATE Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y - Q_\theta(s, a)\right)$
-  \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s,\, \mu_\phi(s))$
+  \STATE Compute Bellman target: $y_t \leftarrow r_t + \gamma \cdot Q_{\theta'}(s_{t+1},\, \mu_{\phi'}(s_{t+1}))$
+  \STATE Update critic by minimising $\mathcal{L}_{\text{Smooth-L1}}\!\left(y_t - Q_\theta(s_t, a_t)\right)$
+  \STATE Update actor: $\phi \leftarrow \phi + \alpha \nabla_\phi Q_\theta(s_t,\, \mu_\phi(s_t))$
   \STATE Soft-update targets: $\theta' \leftarrow \tau\theta + (1-\tau)\theta'; \; \phi' \leftarrow \tau\phi + (1-\tau)\phi'$
   \STATE Checkpoint and log metrics at configured intervals
 \ENDFOR
@@ -249,7 +249,7 @@ reproducibility.
   \FOR{each PPO epoch $j = 1, \ldots, K$}
     \STATE Sample mini-batch $\mathcal{B} \sim \mathcal{T}_k$
     \STATE Compute probability ratio: $\rho_t(\theta) \leftarrow \pi_\theta(a_t \mid s_t) / \pi_{\theta_{\text{old}}}(a_t \mid s_t)$
-    \STATE Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t \hat{A}_t,\; \operatorname{clip}(\rho_t, 1\pm\epsilon)\hat{A}_t\right)\right]$
+    \STATE Compute clipped objective: $\mathcal{L}^{\text{CLIP}} \leftarrow \mathbb{E}\!\left[\min\!\left(\rho_t(\theta) \hat{A}_t,\; \operatorname{clip}\!\left(\rho_t(\theta),\, 1-\epsilon,\, 1+\epsilon\right)\hat{A}_t\right)\right]$
     \STATE Compute value loss: $\mathcal{L}^{V} \leftarrow \mathcal{L}_{\text{L2}}\!\left(V_\phi(s) - V^{\text{target}}\right)$
     \STATE Compute entropy bonus: $\mathcal{L}^{H} \leftarrow c_1 \mathcal{H}(\pi_\theta(\cdot \mid s))$
     \STATE Update $\theta$, $\phi$ jointly: minimise $-\mathcal{L}^{\text{CLIP}} + c_2 \mathcal{L}^{V} - \mathcal{L}^{H}$
@@ -588,16 +588,40 @@ specification used by the training pipeline.
 
 The procedure scores each candidate feature against a forward return proxy and applies a greedy redundancy filter to produce the reduced set used by the training pipeline.
 
-**Proxy target.** Features are scored against the forward log-return at horizon $h$:
-$$y_t = \log \frac{P_{t+h}}{P_t}$$ {#eq-app-forward-return}
+**Proxy target.** The configured feature-research procedure uses a
+volatility-scaled forward log-return proxy at each horizon $h$:
+$$
+\begin{aligned}
+\ell_t &= \log\frac{P_t}{P_{t-1}}, \\
+\widehat{\sigma}_{t,v} &= \operatorname{sd}\!\left(\ell_{t-v+1},\ldots,\ell_t\right), \\
+g_{t,h} &= \frac{\log(P_{t+h}/P_t)}{\widehat{\sigma}_{t,v}+10^{-10}},
+\qquad h \in \mathcal{H}=\{10,50,200\},\quad v=50.
+\end{aligned}
+$$ {#eq-app-proxy-target}
 
-**Scoring.** The Information Coefficient (IC) of feature $f_i$ is its Spearman rank correlation with the forward return:
-$$\text{IC}_{i,t} = \rho_{\text{Sp}}\!\left(f_{i,t},\, y_t\right)$$ {#eq-app-ic}
+**Scoring.** The Information Coefficient (IC) of feature $f_i$ is the
+Spearman rank correlation between feature and proxy-target vectors within a
+rolling window:
+$$
+\operatorname{IC}_{i,t}^{(h,W)} =
+\rho_{\mathrm{Sp}}\!\left(
+  (f_{i,\tau})_{\tau=t-W+1}^{t},
+  (g_{\tau,h})_{\tau=t-W+1}^{t}
+\right),
+\qquad W=1000.
+$$ {#eq-app-ic}
 
-computed over rolling windows on the training split. Features are ranked by the IC Information Ratio (ICIR):
-$$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$ {#eq-app-icir}
+These rolling correlations are computed on the training split. For each
+horizon, the IC Information Ratio (ICIR) is:
+$$
+\operatorname{ICIR}_{i}^{(h,W)} =
+\frac{\overline{\operatorname{IC}}_{i}^{(h,W)}}
+{\operatorname{sd}\!\left(\operatorname{IC}_{i}^{(h,W)}\right)}.
+$$ {#eq-app-icir}
 
-which jointly rewards signal strength and consistency; features with $|\text{ICIR}_i| < 0.02$ are dropped.
+For each feature, the implementation retains the horizon with the largest
+absolute ICIR. Features whose representative $|\operatorname{ICIR}|$ is below
+$0.02$ are dropped.
 
 **Redundancy filter.** Features are selected greedily in ICIR order. Each candidate is included only if its ICIR on residuals — after regressing out already-selected features — remains above the threshold. This conditional IC criterion is more principled than pairwise correlation thresholding: two correlated features can both be retained if each explains a distinct component of the forward return.
 
