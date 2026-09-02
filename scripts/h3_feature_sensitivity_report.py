@@ -21,13 +21,13 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import yaml
+from _results_io import SplitEntry, basis_warning, load_split_entry
 from rich.console import Console
 from rich.table import Table
 
@@ -54,29 +54,22 @@ _HIGHER_IS_BETTER = {
 }
 
 
-def _load_single(results_json: Path, split: str) -> dict[str, float]:
-    if not results_json.exists():
-        return {}
-    try:
-        with results_json.open() as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-    for key in [split, *[k for k in data if k.startswith(f"{split}_")]]:
-        entry = data.get(key)
-        if entry:
-            return entry.get("metrics") or {}
-    return {}
+def _load_single(results_json: Path, split: str) -> tuple[dict[str, float], SplitEntry]:
+    """Return one results.json's split metrics and their provenance."""
+    resolved = load_split_entry(results_json, split)
+    return (resolved.entry.get("metrics") or {}), resolved
 
 
 def load_metrics_with_seeds(
     log_dir: Path, split: str
-) -> tuple[dict[str, float], dict[str, float], int]:
+) -> tuple[dict[str, float], dict[str, float], int, SplitEntry]:
     """Load metrics, aggregating across seed sub-directories when present.
 
     Returns:
-        (mean_metrics, std_metrics, n_seeds)
-        std_metrics is empty when n_seeds == 1.
+        (mean_metrics, std_metrics, n_seeds, basis)
+        std_metrics is empty when n_seeds == 1. ``basis`` records how each
+        seed's split was resolved (pooled entry, or a mean over per-symbol
+        entries) so the table can show it and flag a mixed comparison.
     """
     # Gather results.json files: seed subdirs take priority over a flat file
     seed_dirs = (
@@ -87,17 +80,21 @@ def load_metrics_with_seeds(
         else []
     )
     if seed_dirs:
-        seed_metrics = [_load_single(sd / "results.json", split) for sd in seed_dirs]
-        seed_metrics = [m for m in seed_metrics if m]
+        loaded = [_load_single(sd / "results.json", split) for sd in seed_dirs]
     else:
-        single = _load_single(log_dir / "results.json", split)
-        seed_metrics = [single] if single else []
+        loaded = [_load_single(log_dir / "results.json", split)]
+    loaded = [(m, b) for m, b in loaded if m]
 
-    if not seed_metrics:
-        return {}, {}, 0
+    if not loaded:
+        return {}, {}, 0, SplitEntry({}, "", [])
+
+    seed_metrics = [m for m, _ in loaded]
+    # Seeds of one scenario must share a basis; if they somehow do not, the
+    # first is reported and basis_warning surfaces the disagreement upstream.
+    basis = loaded[0][1]
 
     if len(seed_metrics) == 1:
-        return seed_metrics[0], {}, 1
+        return seed_metrics[0], {}, 1, basis
 
     # Aggregate: mean and std across seeds for each metric key
     all_keys = {k for m in seed_metrics for k in m}
@@ -110,7 +107,7 @@ def load_metrics_with_seeds(
         if vals:
             mean_m[key] = float(np.mean(vals))
             std_m[key] = float(np.std(vals, ddof=1)) if len(vals) > 1 else 0.0
-    return mean_m, std_m, len(seed_metrics)
+    return mean_m, std_m, len(seed_metrics), basis
 
 
 def fmt_val(key: str, val: Any, fmt_str: str) -> str:
@@ -143,21 +140,27 @@ def build_report_table(
     scenarios: list[dict[str, Any]], split: str, console: Console
 ) -> Table | None:
     # Collect data for all scenarios
-    rows: list[tuple[dict, dict[str, float], dict[str, float], int]] = []
+    rows: list[tuple[dict, dict[str, float], dict[str, float], int, SplitEntry]] = []
     for sc in scenarios:
         log_dir = Path(sc.get("log_dir", ""))
-        mean_m, std_m, n = load_metrics_with_seeds(log_dir, split)
-        rows.append((sc, mean_m, std_m, n))
+        mean_m, std_m, n, basis = load_metrics_with_seeds(log_dir, split)
+        rows.append((sc, mean_m, std_m, n, basis))
 
-    if not any(m for _, m, _, _ in rows):
+    if not any(m for _, m, _, _, _ in rows):
         console.print(
             "[yellow]  No results.json found for any scenario — skipping.[/yellow]"
         )
         return None
 
+    # Deltas against the baseline are meaningless when the arms were not
+    # evaluated on the same symbol set, so say so before printing them.
+    warning = basis_warning([r for *_, r in rows])
+    if warning:
+        console.print(f"[bold red]  {warning}[/bold red]")
+
     # Find baseline metrics for delta computation
     baseline_metrics: dict[str, float] = {}
-    for sc, mean_m, _, _ in rows:
+    for sc, mean_m, _, _, _ in rows:
         if sc.get("baseline") and mean_m:
             baseline_metrics = mean_m
             break
@@ -176,7 +179,7 @@ def build_report_table(
         for _, display, _ in _METRICS:
             t.add_column(f"Δ {display}", justify="right")
 
-    for sc, mean_m, std_m, n_seeds in rows:
+    for sc, mean_m, std_m, n_seeds, _basis in rows:
         label = sc.get("label", "?")
         n_features = str(sc.get("n_features", "—"))
         seeds_str = str(n_seeds) if n_seeds > 0 else "—"
@@ -210,6 +213,19 @@ def build_report_table(
 
         style = "bold green" if is_baseline else None
         t.add_row(label, n_features, seeds_str, *row_vals, *delta_vals, style=style)
+
+    # This table is already 15 columns wide, so the basis goes in the caption
+    # rather than a 16th column that would truncate every metric.
+    bases = {r.key: r for *_, r in rows if r.kind}
+    if len(bases) == 1:
+        only = next(iter(bases.values()))
+        t.caption = (
+            f"Evaluated on {', '.join(only.symbols)} (equal-weight mean)"
+            if only.kind == "per_symbol"
+            else "Evaluated on the pooled split"
+        )
+    elif bases:
+        t.caption = "MIXED BASIS — see the warning above; rows are not comparable"
 
     return t
 

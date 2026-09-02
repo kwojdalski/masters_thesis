@@ -16,12 +16,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
+from _results_io import SplitEntry, basis_warning, load_split_entry
 from rich.console import Console
 from rich.table import Table
 
@@ -49,20 +49,13 @@ _REL_METRICS: list[tuple[str, str, str]] = [
 ]
 
 
-def load_results(log_dir: Path, split: str) -> dict[str, Any]:
-    results_json = log_dir / "results.json"
-    if not results_json.exists():
-        return {}
-    try:
-        with results_json.open() as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-    for key in [split, *[k for k in data if k.startswith(f"{split}_")]]:
-        entry = data.get(key)
-        if entry:
-            return entry
-    return {}
+def load_results(log_dir: Path, split: str) -> SplitEntry:
+    """Resolve the split entry, averaging per-symbol runs across symbols.
+
+    The whole entry is averaged, not just ``metrics``, so the ``benchmarks``
+    sub-tree the agent is scored against is on the same basis as the agent row.
+    """
+    return load_split_entry(log_dir / "results.json", split)
 
 
 def fmt(key: str, val: Any, fmt_str: str) -> str:
@@ -85,14 +78,24 @@ def beats(agent_val: Any, bench_val: Any, higher_is_better: bool = True) -> str:
 
 def build_agent_table(
     agent_label: str,
-    agent_data: dict[str, Any],
+    resolved: SplitEntry,
     bench_specs: list[dict[str, str]],
 ) -> Table:
+    agent_data = resolved.entry
     agent_metrics = agent_data.get("metrics") or {}
     benchmarks = agent_data.get("benchmarks") or {}
 
+    if resolved.kind == "per_symbol" and len(resolved.symbols) > 1:
+        basis = f" [{', '.join(resolved.symbols)}, equal-weight mean]"
+    elif resolved.kind == "per_symbol":
+        basis = f" [{resolved.symbols[0]} only]"
+    else:
+        basis = " [pooled]"
+
     t = Table(
-        title=f"{agent_label} vs Benchmarks", show_header=True, header_style="bold"
+        title=f"{agent_label} vs Benchmarks{basis}",
+        show_header=True,
+        header_style="bold",
     )
     t.add_column("", style="cyan", no_wrap=True)
     for _, col, _ in _AGENT_METRICS:
@@ -171,17 +174,19 @@ def main() -> None:
     console.print()
 
     found_any = False
+    resolved_rows: list[SplitEntry] = []
     for agent in agents:
         label = agent.get("label", "?")
         log_dir = Path(agent.get("log_dir", ""))
         if args.results_root is not None:
             log_dir = args.results_root / log_dir.name
-        data = load_results(log_dir, split)
-        if not data:
+        resolved = load_results(log_dir, split)
+        if not resolved.entry:
             console.print(f"[yellow]  {label}: no results.json — skipping[/yellow]")
             continue
         found_any = True
-        table = build_agent_table(label, data, bench_specs)
+        resolved_rows.append(resolved)
+        table = build_agent_table(label, resolved, bench_specs)
         console.print(table)
         console.print()
 
@@ -191,6 +196,13 @@ def main() -> None:
             "for each agent scenario first.[/yellow]"
         )
         sys.exit(0)
+
+    # The agent tables are read against each other, so an inconsistent basis
+    # invalidates the cross-algorithm ranking H1 rests on.
+    warning = basis_warning(resolved_rows)
+    if warning:
+        console.print(f"[bold red]  {warning}[/bold red]")
+        console.print()
 
     console.print("[dim]Legend[/dim]")
     console.print(

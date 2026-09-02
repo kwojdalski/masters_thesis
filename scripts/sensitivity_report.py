@@ -14,12 +14,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 from typing import Any
 
 import yaml
+from _results_io import SplitEntry, basis_warning, load_split_entry
 from rich.columns import Columns
 from rich.console import Console
 from rich.table import Table
@@ -34,21 +34,10 @@ _METRICS: list[tuple[str, str, str]] = [
 ]
 
 
-def load_metrics(log_dir: Path, split: str) -> dict[str, float]:
-    results_json = log_dir / "results.json"
-    if not results_json.exists():
-        return {}
-    try:
-        with results_json.open() as f:
-            results = json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-
-    for key in [split, *[k for k in results if k.startswith(f"{split}_")]]:
-        entry = results.get(key)
-        if entry:
-            return entry.get("metrics") or {}
-    return {}
+def load_metrics(log_dir: Path, split: str) -> tuple[dict[str, float], SplitEntry]:
+    """Return the split's metrics and the provenance they were derived from."""
+    resolved = load_split_entry(log_dir / "results.json", split)
+    return (resolved.entry.get("metrics") or {}), resolved
 
 
 def fmt_val(key: str, val: Any, fmt: str) -> str:
@@ -66,33 +55,40 @@ def build_axis_table(
     axis_label = axis.get("label", axis.get("name", ""))
     scenarios = axis.get("scenarios", [])
 
-    rows: list[tuple[str, dict[str, float], bool]] = []
+    rows: list[tuple[str, dict[str, float], SplitEntry, bool]] = []
     for sc in scenarios:
         label = sc.get("label", "?")
         log_dir = Path(sc.get("log_dir", ""))
         is_baseline = sc.get("baseline", False)
-        metrics = load_metrics(log_dir, split)
-        rows.append((label, metrics, is_baseline))
+        metrics, resolved = load_metrics(log_dir, split)
+        rows.append((label, metrics, resolved, is_baseline))
 
-    if not any(m for _, m, _ in rows):
+    if not any(m for _, m, _, _ in rows):
         console.print(
             f"[yellow]  {axis_label}: no results.json found — skipping[/yellow]"
         )
         return None
 
+    # A mixed-basis axis is not a comparison at all, so say so above the table
+    # rather than letting the rows imply one.
+    warning = basis_warning([r for _, _, r, _ in rows])
+    if warning:
+        console.print(f"[bold red]  {axis_label}: {warning}[/bold red]")
+
     t = Table(title=axis_label, show_header=True, header_style="bold")
     t.add_column("Variant", style="cyan", no_wrap=True)
+    t.add_column("Basis", justify="right", style="dim")
     for _, display, _ in _METRICS:
         t.add_column(display, justify="right")
 
-    for label, metrics, is_baseline in rows:
+    for label, metrics, resolved, is_baseline in rows:
         if not metrics:
             row_vals = ["—"] * len(_METRICS)
         else:
             row_vals = [fmt_val(key, metrics.get(key), fmt) for key, _, fmt in _METRICS]
 
         style = "bold green" if is_baseline else None
-        t.add_row(label, *row_vals, style=style)
+        t.add_row(label, resolved.label, *row_vals, style=style)
 
     return t
 
@@ -159,8 +155,15 @@ def main() -> None:
 
     legend = [
         "[bold]Legend[/bold]",
-        "[cyan]Sharpe[/cyan]    Annualised Sharpe ratio (higher is better).",
-        "[cyan]Sortino[/cyan]   Annualised Sortino ratio (downside-only penalty).",
+        "[cyan]Basis[/cyan]     'pooled' = one pooled entry; 'mean(N)' = equal-weight "
+        "mean over N per-symbol entries; a bare ticker = that symbol only.",
+        # metrics.py stores sharpe_ratio / sortino_ratio per bar; the ×√ppy
+        # variants live under the *_annualized keys, which this table does not
+        # read. Calling these annualised overstated them by orders of magnitude.
+        "[cyan]Sharpe[/cyan]    Per-bar Sharpe ratio at the reporting frequency, "
+        "not annualised (higher is better).",
+        "[cyan]Sortino[/cyan]   Per-bar Sortino ratio, not annualised "
+        "(downside-only penalty).",
         "[cyan]Return[/cyan]    Cumulative portfolio return over the evaluation horizon.",
         "[cyan]Max DD[/cyan]    Maximum peak-to-trough drawdown (lower magnitude is better).",
         "[cyan]Win Rate[/cyan]  Fraction of steps with positive return.",
