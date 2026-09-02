@@ -120,17 +120,17 @@ static LOB-derived features plus the runtime position feature, giving $d = 11$.
 The ten static features selected in the main TD3 configuration are standardized
 with causal running statistics:
 
-$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t}}{\sqrt{\sigma_{i,t}^2 + \varepsilon}}$$ {#eq-z-score}
+$$\tilde{x}_{i,t} = \frac{x_{i,t} - \mu_{i,t-1}}{\sqrt{\sigma_{i,t-1}^2 + \varepsilon}}$$ {#eq-z-score}
 
 where:
 
 - $x_{i,t}$ — raw value of feature $i$ at step $t$
-- $\mu_{i,t}$ — running mean estimated from observations up to $t$
-- $\sigma_{i,t}^2$ — running variance estimated from observations up to $t$
+- $\mu_{i,t-1}$ — running mean of feature $i$ over observations $1,\dots,t-1$
+- $\sigma_{i,t-1}^2$ — running variance of feature $i$ over observations $1,\dots,t-1$
 - $\varepsilon > 0$ — small constant for numerical stability
 
-The mean $\mu_{i,t}$ and variance $\sigma_{i,t}^2$ are updated online
-from observations available up to timestep $t$ within the current chronological
+The mean $\mu_{i,t-1}$ and variance $\sigma_{i,t-1}^2$ are updated online
+from observations available up to timestep $t-1$ within the current chronological
 split and trading session. The running statistics are reset at detected session
 boundaries, preventing previous-day market conditions from contaminating the
 opening representation of the next session. When cyclical encodings are used in

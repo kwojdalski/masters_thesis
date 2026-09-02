@@ -178,15 +178,15 @@ denominators of early-session observations.
 
 The resulting normalized value is the single-feature case of @eq-z-score
 (Chapter 4), with the feature index $i$ suppressed and the running mean and
-variance written as $\bar{x}_t, \sigma_t^2$ rather than $\mu_{i,t},
-\sigma_{i,t}^2$:
+variance written as $\bar{x}_{t-1}, \sigma_{t-1}^2$ rather than $\mu_{i,t-1},
+\sigma_{i,t-1}^2$:
 
 $$
-\tilde{x}_t = \frac{x_t - \bar{x}_t}{\sqrt{\sigma_t^2 + \varepsilon}}
+\tilde{x}_t = \frac{x_t - \bar{x}_{t-1}}{\sqrt{\sigma_{t-1}^2 + \varepsilon}}
 $$ {#eq-running-normalize}
 
-Because $\bar{x}_t$ and $\sigma_t^2$ incorporate only observations
-$1, \dots, t$, and $x_t$ is available before the action at step $t$ is
+Because $\bar{x}_{t-1}$ and $\sigma_{t-1}^2$ incorporate only observations
+$1, \dots, t-1$, and $x_t$ is available before the action at step $t$ is
 chosen, this transformation never uses future information.
 
 #### Session-Aware Normalization

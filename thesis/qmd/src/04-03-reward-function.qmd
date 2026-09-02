@@ -104,7 +104,7 @@ The Differential Sharpe Ratio [@Moody1998] resolves both issues. It is defined
 as the first-order approximation of how the current portfolio log-return $R_t$ changes the
 exponentially weighted Sharpe ratio:
 
-$$D_t = \frac{B_{t-1}\,\Delta A_t - \frac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2 + \varepsilon\right)^{3/2}}$$ {#eq-dsr}
+$$D_t = \frac{B_{t-1}\,\Delta A_t - \tfrac{1}{2}A_{t-1}\,\Delta B_t}{\bigl(\max(B_{t-1} - A_{t-1}^2,\,0)\bigr)^{3/2} + \varepsilon}$$ {#eq-dsr}
 
 where:
 
@@ -112,7 +112,7 @@ where:
 - $B_{t-1}$ — exponentially weighted estimate of the second moment of returns (defined in @eq-dsr-moments)
 - $\Delta A_t = R_t - A_{t-1}$ — one-step increment of $A$
 - $\Delta B_t = R_t^2 - B_{t-1}$ — one-step increment of $B$
-- $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$ — running variance raised to the power $3/2$, stabilized by a small constant $\varepsilon$
+- $\bigl(\max(B_{t-1} - A_{t-1}^2,\,0)\bigr)^{3/2} + \varepsilon$ — running variance raised to the power $3/2$, floored at zero against floating-point drift and offset by a small constant $\varepsilon$
 
 This replaces the simple log-return in @eq-log-return-reward with a
 risk-adjusted measure that penalizes volatility. When DSR training is
@@ -173,12 +173,12 @@ penalizes upside and downside volatility symmetrically, whereas traders
 typically care more about downside risk. The Sortino ratio, the Calmar ratio,
 or utility-based rewards would align better with that preference, but are
 non-recursive or computationally intractable at tick frequency. Third, it can
-become unstable when the denominator $(B_{t-1} - A_{t-1}^2 + \varepsilon)^{3/2}$
+become unstable when the denominator of @eq-dsr
 is small (early in training or during low-variance regimes), amplifying
 microstructure noise into extreme reward values. The implementation clamps
 $D_t$ to $[-10, 10]$, following standard reward-clipping practice
 [@Mnih2015].^[In the DSR scenario, the reward scale is $\kappa = 1$. At tick
-frequency the empirical variance term dominates $\varepsilon = 10^{-16}$ by
+frequency the empirical variance term dominates $\varepsilon = 10^{-20}$ by
 several orders of magnitude, so the resulting signal falls naturally in a
 well-conditioned $\mathcal{O}(1)$ range for the Adam optimiser and Huber
 critic loss, and no ad-hoc reward rescaling is required.] Fourth, because the

@@ -76,6 +76,10 @@ $S_t = P^{ask}_0-P^{bid}_0$: spread;
 $QWM_t = \tfrac{V^{ask}_0P^{bid}_0+V^{bid}_0P^{ask}_0}{V^{bid}_0+V^{ask}_0}$: queue-weighted midpoint (legacy feature name `microprice`);
 $\bar{P}^{vw}_N = \tfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$: volume-weighted mid-price over the top $N$ levels;
 $\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change;
+$e^{bid}_t = V^{bid}_{0,t}\mathbf{1}[P^{bid}_{0,t}>P^{bid}_{0,t-1}] + \Delta V^{bid}_t\,\mathbf{1}[P^{bid}_{0,t}=P^{bid}_{0,t-1}] - V^{bid}_{0,t-1}\mathbf{1}[P^{bid}_{0,t}<P^{bid}_{0,t-1}]$,
+$e^{ask}_t = V^{ask}_{0,t}\mathbf{1}[P^{ask}_{0,t}<P^{ask}_{0,t-1}] + \Delta V^{ask}_t\,\mathbf{1}[P^{ask}_{0,t}=P^{ask}_{0,t-1}] - V^{ask}_{0,t-1}\mathbf{1}[P^{ask}_{0,t}>P^{ask}_{0,t-1}]$:
+best-level order-flow events, which contribute the full standing queue when the quote moves and only the increment when it holds [@Cont2014];
+$\mathrm{OFI}_t = e^{bid}_t - e^{ask}_t$: best-level order flow imbalance;
 $W$: rolling window in events;
 $\sum_W\,x_t = \sum_{\tau=t-W+1}^{t} x_\tau$: rolling sum;
 $\bar{x}_W$: rolling mean over $W$ events;
@@ -123,7 +127,7 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_ask\_convexity} & Spread/cost & $(P^{ask}_2-P^{ask}_1)-(P^{ask}_1-P^{ask}_0)$ & ask & & Bouchaud et al.\ (2002) \\
 \texttt{hft\_bid\_slope} & Spread/cost & $(P^{bid}_0-P^{bid}_4)\,/\,\sum_{i<5}V^{bid}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
 \texttt{hft\_ask\_slope} & Spread/cost & $(P^{ask}_4-P^{ask}_0)\,/\,\sum_{i<5}V^{ask}_i$ & 5 levels & $\checkmark$ & Bouchaud et al.\ (2002); Kyle (1985) \\
-\texttt{hft\_ofi} & Order flow & $\Delta V^{bid}_t\cdot\mathbf{1}[P^{bid}_{0,t}\geq P^{bid}_{0,t-1}] - \Delta V^{ask}_t\cdot\mathbf{1}[P^{ask}_{0,t}\leq P^{ask}_{0,t-1}]$ & --- & $\checkmark$ & Cont et al.\ (2014) \\
+\texttt{hft\_ofi} & Order flow & $\mathrm{OFI}_t = e^{bid}_t - e^{ask}_t$ & --- & $\checkmark$ & Cont et al.\ (2014) \\
 \texttt{hft\_ofi\_rolling} & Order flow & $\sum_W\,\mathrm{OFI}_t$ & $W=50$ & $W=50$ & Cont et al.\ (2014) \\
 \texttt{hft\_ofi\_multilevel} & Order flow & $\sum_{i<N}\mathrm{OFI}^{(i)}_t$ (event classification at each level $i$) & \mbox{$N\in\{3,5\}$} & & Cont et al.\ (2014) \\
 \texttt{hft\_bid\_queue\_depletion} & Order flow & $\max(V^{bid}_{0,t-1}-V^{bid}_{0,t},\,0)\,/\,V^{bid}_{0,t-1}$ & bid & & Foucault et al.\ (2005) \\
@@ -590,7 +594,7 @@ $$y_t = \log \frac{P_{t+h}}{P_t}$$ {#eq-app-forward-return}
 **Scoring.** The Information Coefficient (IC) of feature $f_i$ is its Spearman rank correlation with the forward return:
 $$\text{IC}_{i,t} = \rho_{\text{Sp}}\!\left(f_{i,t},\, y_t\right)$$ {#eq-app-ic}
 
-computed over rolling windows on the validation split. Features are ranked by the IC Information Ratio (ICIR):
+computed over rolling windows on the training split. Features are ranked by the IC Information Ratio (ICIR):
 $$\text{ICIR}_i = \frac{\overline{\text{IC}}_i}{\sigma(\text{IC}_i)}$$ {#eq-app-icir}
 
 which jointly rewards signal strength and consistency; features with $|\text{ICIR}_i| < 0.02$ are dropped.
