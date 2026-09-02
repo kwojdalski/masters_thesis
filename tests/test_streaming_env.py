@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 
 from trading_rl.data_loading import MemmapPaths, save_symbol_memmap
+from trading_rl.envs.latency import ActionThrottle
 from trading_rl.envs.streaming_env import StreamingTradingEnv
 from trading_rl.envs.tradingenvxy_wrapper import StreamingTradingEnvXY
 
@@ -65,6 +66,9 @@ def _bare_xy_env(
     env._obs_clip = None
     env._obs_latency = None
     env._exec_latency = None
+    # reset() calls self._throttle.reset(); every_n=1 leaves it disabled, which
+    # matches the default and keeps these reset tests about symbol selection.
+    env._throttle = ActionThrottle(1)
     return env
 
 
