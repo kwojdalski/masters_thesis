@@ -57,6 +57,11 @@ algorithm for this comparison: it should be read as matched experimental
 evidence on the available exports, not as a multi-seed estimate of the
 population distribution of outcomes.
 
+All three learning algorithms are trained for three million environment steps
+on identical data, features, reward, and evaluation protocol, so the comparison
+in this section is matched on training budget. The robustness experiments of
+Section 6.2 use a shorter budget, stated there.
+
 ### Performance Comparison
 
 The table below reports test-split metrics for each algorithm, all trained on
