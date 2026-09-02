@@ -411,9 +411,19 @@ mid-price is half a cent. At each instrument's mean price over the evaluation
 window (2 March 2026), this sets a break-even fee: the proportional trading
 cost at which a single minimum-tick move stops covering the fee.
 
+The realised bid-ask half-spread over the same session is reported beside it.
+The two quantities are often conflated and should not be: the half-spread runs
+between 2.8 and 24.3 times the tick figure across these six instruments,
+averaging 1.151 basis points against a tick range of 0.077 to 0.240. The tick
+figure is the scale at which a minimum quote movement stops paying for itself;
+the half-spread is the cost actually incurred when crossing to trade. Since the
+fee sweep in @sec-h2-transaction-cost-sensitivity locates the behavioural break
+between 0.01 and 0.1 basis points, the learned margin is below the tick scale
+and roughly an order of magnitude below the half-spread.
+
 ```{python}
 #| label: tbl-tick-breakeven-fee
-#| tbl-cap: "Per-instrument break-even transaction fee by mean price."
+#| tbl-cap: "Per-instrument break-even transaction fee and realised half-spread."
 #| echo: false
 #| warning: false
 
@@ -432,14 +442,22 @@ if _tick_path.exists():
     df["Symbol"] = df["symbol"]
     df["Mean Price"] = df["mean_price"].apply(lambda x: f"{x:,.2f}")
     df["Break-Even Fee"] = df["breakeven_fee_bp"].apply(lambda x: f"{x:.3f}")
-    display_df(df[["Symbol", "Mean Price", "Break-Even Fee"]])
+    df["Half-Spread"] = df["half_spread_bp_mean"].apply(lambda x: f"{x:.3f}")
+    df["Ratio"] = (df["half_spread_bp_mean"] / df["breakeven_fee_bp"]).apply(
+        lambda x: f"{x:.1f}"
+    )
+    display_df(df[["Symbol", "Mean Price", "Break-Even Fee", "Half-Spread", "Ratio"]])
     table_note(
         source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
         note=(
             "Break-even fee, in basis points, is the proportional trading cost at "
             "which a one-sided minimum-tick move stops covering the fee: (half of "
-            "the one-cent minimum price increment / mean mid-price) x 10,000. Mean "
-            "price is in US dollars, over the 2 March 2026 evaluation session."
+            "the one-cent minimum price increment / mean mid-price) x 10,000. "
+            "Half-spread, also in basis points, is the mean realised cost of "
+            "crossing the quoted spread: ((ask - bid) / 2 / mid) x 10,000. Ratio "
+            "is half-spread divided by break-even fee, showing how far the two "
+            "scales diverge. Mean price is in US dollars, over the 2 March 2026 "
+            "evaluation session."
         ),
     )
 else:

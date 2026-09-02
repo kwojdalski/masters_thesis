@@ -18,14 +18,16 @@ the previous one; together they make the case that robustness analysis is a
 precondition for any credible economic claim:
 
 1. A TD3 agent trained on limit-order-book features learns a risk-adjusted edge
-   that survives out of sample. The edge is real but small: its magnitude is of
-   the same order as the cost of trading on it, so it is realised under
-   frictionless mid-price execution and eliminated by realistic spread-crossing
-   costs.
+   that survives out of sample. The edge is real but very small: it is realised
+   under frictionless mid-price execution and is roughly an order of magnitude
+   smaller than the cost of crossing the spread to trade on it, so realistic
+   execution eliminates it rather than merely eroding it.
 2. That edge depends on the assumed transaction cost. It is positive when
-   trading is costless and changes sign once the per-trade cost reaches a
-   fraction of a basis point — the scale of the bid-ask half-spread on these
-   instruments.
+   trading is costless and the policy stops trading altogether once the
+   per-trade cost reaches a tenth of a basis point — below the scale at which a
+   one-sided minimum-tick move stops covering the fee, and well below the
+   realised bid-ask half-spread on these instruments, which averages just over
+   one basis point (@tbl-tick-breakeven-fee).
 3. A broader state representation improves out-of-sample performance. Replacing
    basic snapshot features with a microstructure-aware feature set raises
    risk-adjusted returns under otherwise identical training and evaluation
@@ -42,8 +44,14 @@ signal from limit-order-book microstructure at tick frequency, and what bounds
 that signal economically. The four hypotheses above are tested on one common
 apparatus: a TD3 agent trained on six US equities from Nasdaq MBP-10 data,
 evaluated out-of-sample against buy-and-hold, TWAP and VWAP execution
-benchmarks and a random-action control, with significance assessed by
-bootstrap confidence intervals and nonparametric tests.
+benchmarks and a random-action control. Significance is assessed against an
+economic threshold rather than against zero. At tick frequency each instrument
+contributes on the order of a million steps, and a test of the null that the
+agent's mean per-step return equals a benchmark's rejects at effect sizes far
+below any tradable margin; the question that binds the result is therefore not
+whether the difference is distinguishable from zero but whether it exceeds the
+cost of trading on it. That is measured directly, by the transaction-cost
+sweep in Section 6.2 and the fixed-path bid/ask repricing in Section 7.2.
 
 Each hypothesis is tested as a single-factor comparison. Arms differ only in
 the quantity under study — the transaction-cost rate for Hypothesis 2, the
