@@ -96,10 +96,12 @@ def test_log_volume_uses_log1p() -> None:
     np.testing.assert_allclose(result.to_numpy(), np.log1p([0.0, 10.0, 20.0, 40.0]))
 
 
-def test_volume_change_handles_previous_zero_with_unit_denominator() -> None:
+def test_volume_change_reads_previous_zero_as_no_change() -> None:
+    # A zero prior volume leaves the ratio undefined; the row reads as 0.0, not
+    # the raw volume level the old replace(0, 1) guard produced (issue #670).
     result = VolumeChangeFeature(_cfg("volume_change")).compute(_priced_frame())
 
-    np.testing.assert_allclose(result.to_numpy(), [0.0, 9.0, 1.0, 1.0])
+    np.testing.assert_allclose(result.to_numpy(), [0.0, 0.0, 1.0, 1.0])
 
 
 def test_volume_ma_ratio_uses_causal_rolling_average() -> None:
