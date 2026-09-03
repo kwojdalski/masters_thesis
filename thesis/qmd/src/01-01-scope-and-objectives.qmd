@@ -60,6 +60,6 @@ from Hypothesis 2.
 
 Beyond testing the four hypotheses, the study aims to identify which constraint
 binds out-of-sample performance: the simplifications in the execution model,
-the coverage of the feature set, or the volume of training data. Separating
-these determines which extension is worth pursuing and grounds the
+the coverage of the feature set, or the stability of training itself.
+Separating these determines which extension is worth pursuing and grounds the
 recommendations in Chapter 7.
