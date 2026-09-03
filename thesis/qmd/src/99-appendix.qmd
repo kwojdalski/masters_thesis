@@ -320,6 +320,15 @@ _inv_path = (
 if _inv_path.exists():
     df = pd.DataFrame(json.loads(_inv_path.read_text()))
     df["Split"] = df["split"].str.capitalize()
+    # The exporter emits the six training rows first, then walks the symbols
+    # again emitting validation and test as a pair per symbol, so the split
+    # column read in three clean groups only for training. Sort by split in
+    # pipeline order -- not alphabetically, which would put Test before Train
+    # -- then by symbol within each split.
+    df["Split"] = pd.Categorical(
+        df["Split"], categories=["Train", "Val", "Test"], ordered=True
+    )
+    df = df.sort_values(["Split", "symbol"]).reset_index(drop=True)
     df["Events"] = df["rows"].apply(lambda x: f"{int(x):,}")
     df["Trades"] = df["trades"].apply(lambda x: f"{int(x):,}")
     df["Mean Δt"] = df["mean_delta_s"].apply(fmt_duration)
