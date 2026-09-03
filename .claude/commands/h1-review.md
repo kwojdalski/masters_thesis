@@ -18,7 +18,7 @@ Read these files from the thesis snapshots:
 cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/latest_finished/evaluation_report.json
 cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/latest_finished/statistical_tests.json
 # the fee sweep — the H1 edge should shrink/flip across these
-for f in pooled_td3_h3_fees_1e6 pooled_td3_h3_fees_1e5 pooled_td3_h3_fees_1e4; do
+for f in pooled_td3_h2_fees_1e6_dsr pooled_td3_h2_fees_1e5_dsr pooled_td3_h2_fees_1e4_dsr; do
   cat "thesis/qmd/results/$f/latest_finished/evaluation_report.json"
 done
 ```
