@@ -49,13 +49,29 @@ ThesisExportRegistry.register(
     )
 )
 
+# Order 15, ahead of the order-20 group, and the reason is a genuine overlap.
+# This stage does not compute anything: it copies four files out of
+# reports/peek/<scenario>/, the gitignored scratch that `cli.py peek dataset
+# --export` writes. Two of those four -- correlations.csv and
+# feature_stats.csv -- are also produced, from the memmaps directly, by the
+# feature-correlations and feature-stats stages below. Sorting inside a group
+# is alphabetical, so at equal order "peek" would run last and overwrite the
+# freshly computed pair with whatever the scratch happened to hold; the
+# checked-in correlations.csv is 2,370 bytes against the scratch copy's 740,
+# because the computed version is the current one. Running first makes the
+# computed stages authoritative and leaves peek owning only the two files
+# nothing else writes: raw_file_inventory.json and splits.json.
+#
+# It also means this stage is only as fresh as the last `peek dataset
+# --export`, which is not part of the pipeline. That is the remaining
+# staleness hole a manifest would surface.
 ThesisExportRegistry.register(
     Stage(
         name="peek",
         description="Split sizes, timestamp ranges and the raw file inventory",
         command=_script("export_peek_to_thesis.py"),
-        requires=frozenset({Requirement.PREPARED_DATA}),
-        order=20,
+        requires=frozenset({Requirement.PEEK_SCRATCH}),
+        order=15,
     )
 )
 
