@@ -77,7 +77,7 @@ An auxiliary `close` series is used only for reward and portfolio valuation.
 Unless stated otherwise, all timestamps in this thesis are reported in UTC and
 all monetary values in US dollars.
 
-@tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The three events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book. The first event is a resting limit-order addition on the bid side at a non-top-of-book level. The second is a trade print that consumes displayed size at the best ask. The third and fourth are additions that refresh the ask side after the trade.
+@tbl-raw-sample shows four consecutive events from the AAPL feed at market open on 25 February 2026. The four events span roughly 9 milliseconds, illustrating the sub-millisecond cadence typical of the feed. Each row advances the state of the order book. The first event is a resting limit-order addition on the bid side at a non-top-of-book level. The second is a trade print that consumes displayed size at the best ask. The third and fourth are additions that refresh the ask side after the trade.
 
 | Timestamp | Action | Side | Price | Size | Best Bid | Best Ask | Bid Sz | Ask Sz |
 |:---|:---:|:---:|---:|---:|---:|---:|---:|---:|
