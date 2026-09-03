@@ -2,42 +2,42 @@
 
 The thesis proceeds from problem formulation and motivating literature to agent design and implementation, and finally to empirical evaluation.
 
-Chapter 1 introduces the problem context, defines the research scope, and
+Chapter I introduces the problem context, defines the research scope, and
 presents the methodological framework used throughout the thesis.
 
-Chapter 2 reviews the literature most directly relevant to the present research
+Chapter II reviews the literature most directly relevant to the present research
 question. It covers market microstructure evidence motivating order-book-derived
 features, the landscape of alternative machine learning paradigms and trading
 decision architectures, the structural case for reinforcement learning in
 trading, and prior RL trading applications with attention to action-space
 design, transaction-cost modeling, and evaluation rigor.
 
-Chapter 3 develops the reinforcement learning foundations required for the
+Chapter III develops the reinforcement learning foundations required for the
 thesis, with particular emphasis on the progression from earlier methods to TD3
 and on the distinctions that matter for continuous-control trading problems.
 
-Chapter 4 presents the design of the trading agent itself. It defines the
+Chapter IV presents the design of the trading agent itself. It defines the
 continuous action space, the microstructure-aware state representation, the
 reward formulation, and the main policy and value-function design choices used
 in the empirical system.
 
-Chapter 5 describes the implementation of the research pipeline, including the
+Chapter V describes the implementation of the research pipeline, including the
 simulation architecture, data preparation, reproducible feature engineering,
 code structure, and the TD3-based training workflow used to produce
 reproducible experiments.
 
-Chapter 6 reports the empirical results. It combines experiment snapshots,
+Chapter VI reports the empirical results. It combines experiment snapshots,
 performance evaluation, statistical validation, and robustness assessment to
 separate promising outcomes from noise, overfitting, or fragile conclusions.
 
-Chapter 7 synthesizes the findings, discusses the main limitations of the
+Chapter VII synthesizes the findings, discusses the main limitations of the
 current framework, and draws implications for future research and practical
 trading-system development.
 
 Accompanying these chapters is the codebase that produced every result reported
 in them, released as an open repository [@Wojdalski2026]. It is an inherent part
-of the work rather than supporting material: the pipeline described in Chapter 5,
-the scenario configurations defining each hypothesis test in Chapter 6, and the
+of the work rather than supporting material: the pipeline described in Chapter V,
+the scenario configurations defining each hypothesis test in Chapter VI, and the
 evaluation and statistical-testing code behind every reported figure all reside
 there. Experiments are specified declaratively, so each scenario compared in
 Chapters 6 and 7 can be re-run from its configuration file without modifying

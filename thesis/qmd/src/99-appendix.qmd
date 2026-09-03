@@ -202,9 +202,9 @@ else:
 \addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Baseline Algorithm Pseudocode}
 ```
 
-Chapter 5.2 gives TD3's full training loop (Algorithm 2) since TD3 is this
+Section 5.2 gives TD3's full training loop (Algorithm 2) since TD3 is this
 thesis's primary method. DDPG and PPO are baseline comparisons used in
-Chapter 6's algorithm comparison; their training loops are recorded here for
+Chapter VI's algorithm comparison; their training loops are recorded here for
 reproducibility.
 
 ```pseudocode
@@ -262,7 +262,7 @@ reproducibility.
 \end{algorithm}
 ```
 
-**For DDPG** (beyond the symbols already defined in Chapter 5.2 for TD3):
+**For DDPG** (beyond the symbols already defined in Section 5.2 for TD3):
 
 - $\mu_\phi$ is the deterministic actor; $Q_\theta$ is DDPG's single critic
 - Primed symbols denote slowly updated target networks

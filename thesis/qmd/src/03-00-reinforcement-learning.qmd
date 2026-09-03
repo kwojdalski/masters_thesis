@@ -1,7 +1,7 @@
 # Reinforcement Learning
 
 The formal RL framework comprises states, actions, rewards, policies, and value
-functions. Financial environments make each component challenging; Chapter 4
+functions. Financial environments make each component challenging; Chapter IV
 specifies the features, reward, and network architectures used here. Two
 algorithmic distinctions (model-free versus model-based and on-policy versus
 off-policy) then frame the progression from early value-based methods to TD3 for
@@ -45,9 +45,9 @@ from the limit order book: imbalance measures, spread, order flow signals, and
 temporal encodings. States can be terminal, ending an episode, or
 non-terminal, continuing the interaction sequence. The Markov property requires
 that the optimal action depend only on $s_t$ and not on the full history; the
-feature engineering in Chapter 4 is designed to approximate this property.
+feature engineering in Chapter IV is designed to approximate this property.
 
-Chapter 4.2 discusses how specific microstructure features are selected and
+Section 4.2 discusses how specific microstructure features are selected and
 normalized to construct a useful decision state under this partial
 observability.
 
@@ -72,7 +72,7 @@ that is particularly salient in trading environments. Stochastic policies can
 provide more flexible exploration and robustness to uncertainty, but they require
 selecting between sampling or taking the mode at deployment time. Deterministic
 policies eliminate this ambiguity but require explicit exploration mechanisms.
-Chapter 4.5 compares both approaches (PPO's stochastic policy vs. DDPG/TD3's
+Section 4.5 compares both approaches (PPO's stochastic policy vs. DDPG/TD3's
 deterministic policy) in the context of the trading problem.
 
 **Reward.** The reward $r_t$ is a scalar signal returned by the environment after the agent
@@ -81,14 +81,14 @@ to the agent — there are no labels, no supervisor. The reward function is
 therefore a critical design choice: it determines what the agent actually
 optimizes. In trading, rewards are typically derived from portfolio returns,
 possibly adjusted for risk and transaction costs. The specific reward formulation
-used here is developed in Chapter 4.
+used here is developed in Chapter IV.
 
 Reward misspecification is a fundamental risk in trading applications. A
 naive reward function that optimizes raw returns without accounting for risk,
 transaction costs, or tail risk can lead to pathological behaviors such as
 excessive turnover, overconcentration in volatile positions, or ignoring rare but
 catastrophic events. The Differential Sharpe Ratio formulation used in
-Chapter 4.3 addresses this by providing a risk-adjusted learning signal that
+Section 4.3 addresses this by providing a risk-adjusted learning signal that
 penalizes volatility while remaining recursively computable for online learning.
 
 **Value Function.** The value function $V^\pi(s)$ estimates the expected cumulative discounted reward

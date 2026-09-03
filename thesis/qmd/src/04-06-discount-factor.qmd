@@ -1,6 +1,6 @@
 ## Discount Factor
 
-The main TD3 HFT experiment uses a discount factor of $\gamma = 0.9$. Chapter 3
+The main TD3 HFT experiment uses a discount factor of $\gamma = 0.9$. Chapter III
 defines its role in the value function.
 
 With $\gamma = 0.9$ the effective planning horizon is approximately

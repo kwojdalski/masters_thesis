@@ -35,6 +35,6 @@ Together these three properties point toward a model-free, off-policy,
 continuous-action algorithm, which is the class to which TD3 belongs. This is a
 reasoned design choice, not a claim that TD3 is universally superior for trading.
 The MDP formulation remains approximate because market states are partially
-observable and non-stationary. Chapter 3 derives TD3's formal algorithmic
+observable and non-stationary. Chapter III derives TD3's formal algorithmic
 properties. The broader RL literature informs the trading-specific design choices
 made here.
