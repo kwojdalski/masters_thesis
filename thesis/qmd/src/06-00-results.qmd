@@ -259,20 +259,21 @@ three algorithms, even though all three were trained on identical data, features
 and reward specification.
 
 All three learners take balanced two-sided exposure. Long-position shares span a
-narrow band, $49.8\%$ for TD3, $53.7\%$ for DDPG, and $51.9\%$ for PPO, against
-the random baseline's $50.0\%$. None commits to a persistent directional bet, so
+narrow band, $\valTdThreePctLong$ for TD3, $\valDdpgPctLong$ for DDPG, and
+$\valPpoPctLong$ for PPO, against
+the random baseline's $\valRandomPctLong$. None commits to a persistent directional bet, so
 none of the returns reported here is explained by a standing long or short
 position in a drifting market. All three also turn over at broadly comparable
-rates, between $0.36$ and $0.45$ per step, well below the random policy's
-$0.67$, which is what a policy that changes exposure deliberately rather than
+rates, between $\valPpoTurnover$ and $\valTdThreeTurnover$ per step, well below the random policy's
+$\valRandomTurnover$, which is what a policy that changes exposure deliberately rather than
 indiscriminately looks like.
 
-**DDPG** records the highest cumulative return, $312.8\%$, with a profit factor
-of $3.64$ and a Sharpe ratio of $4.96$. **TD3** is close behind at $304.9\%$,
-with a profit factor of $3.41$ and a per-bar Sharpe of $5.04$, marginally ahead
-of DDPG's $4.96$ though below PPO's $5.44$. **PPO** returns $205.6\%$ on the highest profit factor, $4.59$, at the
-lowest turnover, $0.36$. On drawdown the order reverses: DDPG and PPO hold their
-worst loss to $-0.45\%$ and $-0.47\%$, while TD3's $-0.65\%$ is the deepest of
+**DDPG** records the highest cumulative return, $\valDdpgReturn$, with a profit factor
+of $\valDdpgProfitFactor$ and a Sharpe ratio of $\valDdpgSharpe$. **TD3** is close behind at $\valTdThreeReturn$,
+with a profit factor of $\valTdThreeProfitFactor$ and a per-bar Sharpe of $\valTdThreeSharpe$, marginally ahead
+of DDPG's $\valDdpgSharpe$ though below PPO's $\valPpoSharpe$. **PPO** returns $\valPpoReturn$ on the highest profit factor, $\valPpoProfitFactor$, at the
+lowest turnover, $\valPpoTurnover$. On drawdown the order reverses: DDPG and PPO hold their
+worst loss to $\valDdpgMaxDrawdown$ and $\valPpoMaxDrawdown$, while TD3's $\valTdThreeMaxDrawdown$ is the deepest of
 the learners, driven almost entirely by META (a $-3.3\%$ excursion on the
 instrument with the fewest events). The ordering on cumulative return is
 therefore not the ordering on risk-adjusted return or on drawdown, and no single
