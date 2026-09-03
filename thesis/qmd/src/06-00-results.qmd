@@ -1,9 +1,9 @@
-# Results
+# Results {#sec-ch-results}
 <!-- [PLACEHOLDER] -->
 
 The thesis-facing experiment evaluates a TD3 agent trained on high-frequency
 order-book features from six Nasdaq equities (AAPL, MSFT, TSLA, META, AMZN, and
-AVGO) using the state-space design defined in Chapters IV and V. The evidence
+AVGO) using the state-space design defined in Chapters [-@sec-ch-design] and [-@sec-ch-implementation]. The evidence
 covers repeated-run variability, robustness to nearby design changes, and final
 held-out performance.
 
@@ -11,7 +11,7 @@ held-out performance.
 <!-- [PLACEHOLDER] -->
 
 Beyond benchmark performance, the key empirical question is how the algorithmic
-choices in Chapter III affect trading results. Comparing PPO, DDPG, and TD3 on
+choices in @sec-ch-reinforcement-learning affect trading results. Comparing PPO, DDPG, and TD3 on
 identical data, features, and evaluation protocols isolates their practical
 effects.
 
@@ -245,7 +245,7 @@ transaction-cost analysis.
 
 ### Key Empirical Questions
 
-The results below are read through the theoretical lens from Chapter III:
+The results below are read through the theoretical lens from @sec-ch-reinforcement-learning:
 whether TD3's overestimation correction improves on DDPG, how PPO's
 stability trades off against TD3's efficiency, and which algorithm best
 balances risk-adjusted return against practical deployment constraints.

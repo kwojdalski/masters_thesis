@@ -31,7 +31,7 @@ chronological split.
 
 The processed training split is used to construct the trading environment with
 a continuous action space $a_t \in [-1, 1]$ representing target portfolio
-exposure. Training follows the TD3 procedure described in Chapter III, with
+exposure. Training follows the TD3 procedure described in @sec-ch-reinforcement-learning, with
 comparable implementations for DDPG and PPO for experimental comparison.
 All three algorithms share a common training infrastructure: experience
 collection, network updates, and evaluation. The primary differences are in the
@@ -110,7 +110,7 @@ computed. The clipped surrogate objective (@eq-ppo-clip), together with a
 value loss and entropy bonus, is optimized jointly over multiple epochs per
 batch, with no replay buffer.
 
-The notation follows the conventions established in Chapter III:
+The notation follows the conventions established in @sec-ch-reinforcement-learning:
 
 - $\mu_\phi$ is the deterministic actor; $Q_{\theta_1}$, $Q_{\theta_2}$ are TD3's twin critics
 - Primed symbols denote slowly updated target networks
@@ -141,7 +141,7 @@ question: whether the environment, reward function, and accounting logic are
 free of structural bias that would generate returns even without a signal.
 The random policy produced approximately zero return, consistent with an
 unbiased implementation. Results for the random policy on the empirical
-dataset are reported in Chapter VI.
+dataset are reported in @sec-ch-results.
 
 Beyond the ad-hoc checks above, a suite of automated tests guards the
 implementation against the failure modes most common in RL codebases.
@@ -165,4 +165,4 @@ evaluation environment. Training reward and realized portfolio return are kept
 as two separate output streams: one for optimization diagnostics, one for the
 financial metrics computed from the deterministic rollout. This separation
 follows the reasons discussed in Section 4.3. Metrics derived from the test rollout are described
-in Chapter VI.
+in @sec-ch-results.

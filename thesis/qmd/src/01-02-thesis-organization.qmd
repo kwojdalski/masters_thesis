@@ -2,45 +2,45 @@
 
 The thesis proceeds from problem formulation and motivating literature to agent design and implementation, and finally to empirical evaluation.
 
-Chapter I introduces the problem context, defines the research scope, and
+@sec-ch-introduction introduces the problem context, defines the research scope, and
 presents the methodological framework used throughout the thesis.
 
-Chapter II reviews the literature most directly relevant to the present research
+@sec-ch-literature-review reviews the literature most directly relevant to the present research
 question. It covers market microstructure evidence motivating order-book-derived
 features, the landscape of alternative machine learning paradigms and trading
 decision architectures, the structural case for reinforcement learning in
 trading, and prior RL trading applications with attention to action-space
 design, transaction-cost modeling, and evaluation rigor.
 
-Chapter III develops the reinforcement learning foundations required for the
+@sec-ch-reinforcement-learning develops the reinforcement learning foundations required for the
 thesis, with particular emphasis on the progression from earlier methods to TD3
 and on the distinctions that matter for continuous-control trading problems.
 
-Chapter IV presents the design of the trading agent itself. It defines the
+@sec-ch-design presents the design of the trading agent itself. It defines the
 continuous action space, the microstructure-aware state representation, the
 reward formulation, and the main policy and value-function design choices used
 in the empirical system.
 
-Chapter V describes the implementation of the research pipeline, including the
+@sec-ch-implementation describes the implementation of the research pipeline, including the
 simulation architecture, data preparation, reproducible feature engineering,
 code structure, and the TD3-based training workflow used to produce
 reproducible experiments.
 
-Chapter VI reports the empirical results. It combines experiment snapshots,
+@sec-ch-results reports the empirical results. It combines experiment snapshots,
 performance evaluation, and robustness assessment across the four hypotheses to
 separate promising outcomes from noise, overfitting, or fragile conclusions.
 
-Chapter VII synthesizes the findings, discusses the main limitations of the
+@sec-ch-conclusions synthesizes the findings, discusses the main limitations of the
 current framework, and draws implications for future research and practical
 trading-system development.
 
 Accompanying these chapters is the codebase that produced every result reported
 in them, released as an open repository [@Wojdalski2026]. It is an inherent part
-of the work rather than supporting material: the pipeline described in Chapter V,
-the scenario configurations defining each hypothesis test in Chapter VI, and the
+of the work rather than supporting material: the pipeline described in @sec-ch-implementation,
+the scenario configurations defining each hypothesis test in @sec-ch-results, and the
 evaluation and statistical-testing code behind every reported figure all reside
 there. Experiments are specified declaratively, so each scenario compared in
-Chapters VI and VII can be re-run from its configuration file without modifying
+Chapters [-@sec-ch-results] and [-@sec-ch-conclusions] can be re-run from its configuration file without modifying
 source code. That matters for more than convenience: normalization from past
 observations only, chronological splits, and one varying factor per hypothesis
 are properties of the implementation, so the repository is what makes them

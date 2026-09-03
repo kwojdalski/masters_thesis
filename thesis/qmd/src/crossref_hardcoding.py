@@ -23,17 +23,22 @@ still needs a human or `thesis-crossref-auditor` -- but it turns "the number
 doesn't exist at all" and "a new hardcoded reference was added instead of a
 crossref" into a build-time failure instead of a silent drift.
 
-"Chapter N" (57 instances, Roman numerals: `pracamgrwne.cls` renders body
-chapters as "CHAPTER I".."CHAPTER VII") gets the weaker existence-only check,
-not the Section/Algorithm/Appendix treatment of "convert to `@sec-...` so the
-whole class of bug is impossible." That conversion was tried and reverted:
-`\thesection` bakes the literal word "CHAPTER" into the chapter number, and
+"Chapter N" references (Roman numerals) were originally hardcoded prose --
+`\\thesection` bakes the literal word "CHAPTER" into the chapter number, and
 Quarto's crossref system independently, unconditionally prepends its own
-"Section" prefix to any `@sec-...` reference. The two collide -- a rendered
-test came back as "see Section CHAPTER I for background" -- and fixing it
-needs custom crossref-prefix engineering in the class file, not a text
-substitution. Existence-checking 57 references for free is still strictly
-better than checking none, which was the state before this function existed.
+"Section" prefix to a plain `@sec-...` reference, so a naive conversion
+collided and rendered "see Section CHAPTER I for background". That is fixed:
+`crossref: chapters: true` in masters-thesis.qmd's front matter, combined
+with `pracamgrwne.cls` stripping "CHAPTER" out of `\\thesection` and
+reinjecting it only in `\\titleformat` and the TOC's `\\numberline` (gated by
+`\\ifpmwne@inbody`, which flips false at `\\appendix`), lets Quarto resolve
+`@sec-ch-...` labels through its native chapter-prefix path instead. All
+prose "Chapter N" references are now `@sec-ch-...` crossrefs. The check
+below still walks any *remaining* literal "Chapter N" text and treats it as
+a violation -- not because it can't be converted, but as a backstop against
+someone typing a hardcoded chapter number again instead of using the
+crossref, the same regression class the Section/Algorithm/Appendix checks
+already guard.
 
 `find_orphaned_equations` answers a related but different question: which
 `{#eq-...}`-labelled equations are never cited via `@eq-...` anywhere. This is
@@ -323,15 +328,8 @@ def find_violations() -> list[Violation]:
                                 numeral,
                                 f"only {hmap.max_chapter} chapter(s) exist "
                                 f"(I..{_int_to_roman(hmap.max_chapter)}) -- "
-                                "'Chapter N' cannot be converted to @sec-... here: "
-                                "pracamgrwne.cls bakes the word CHAPTER into "
-                                "\\thesection, and Quarto's crossref system always "
-                                "prepends its own 'Section' prefix to @sec-..., so "
-                                "the two collide and render as 'Section CHAPTER "
-                                "I' (confirmed by rendering a test reference) -- "
-                                "this checks existence only, the same as the "
-                                "other hardcoded reference types, without "
-                                "attempting that conversion",
+                                "prefer @sec-ch-... instead of a literal chapter "
+                                "number",
                             )
                         )
     return violations

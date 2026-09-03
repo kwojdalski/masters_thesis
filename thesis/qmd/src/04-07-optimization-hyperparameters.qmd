@@ -8,7 +8,7 @@ $3 \times 10^{-4}$ default common in continuous-control benchmarks. Preliminary
 experiments with more aggressive rates produced Q-value explosions and policy
 collapse. These failure modes are consistent with the high noise-to-signal
 ratio of tick-frequency rewards and the sensitivity of bootstrapped TD targets
-to large gradient steps. Stability was prioritized over sample efficiency. This rate did not prevent saturation in every case: three of the zero-fee runs reported in Chapter VI still converged to a fixed position at it, and @sec-limitations-and-future-research lists the actor learning rate among the parameters a stability sweep should revisit.
+to large gradient steps. Stability was prioritized over sample efficiency. This rate did not prevent saturation in every case: three of the zero-fee runs reported in @sec-ch-results still converged to a fixed position at it, and @sec-limitations-and-future-research lists the actor learning rate among the parameters a stability sweep should revisit.
 
 Actor and critic use the same nominal rate, but TD3's policy delay (every
 2 critic updates) effectively halves the actor's update frequency,

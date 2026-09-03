@@ -400,7 +400,7 @@
 % period itself, so the two are set by independent mechanisms and only this
 % one changes. Appendices restore the period in \appendix below, since "A"
 % alone reads as part of the title where "CHAPTER I" does not.
-\titleformat{\section}[block]{\normalsize\bfseries\filcenter}{\thesection}{0.5em}{\MakeUppercase}
+\titleformat{\section}[block]{\normalsize\bfseries\filcenter}{CHAPTER~\thesection}{0.5em}{\MakeUppercase}
 \titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
 % Annex D numbers chapters in Roman and sections in Arabic. Its contents runs
@@ -409,11 +409,19 @@
 % digits rather than inheriting the Roman form. article.cls derives
 % \thesubsection from \thesection, which would give "I.1", so the sub-levels
 % are rebound to \arabic{section} directly.
-% The word rides in \thesection rather than in \titleformat, so the heading
-% and the contents entry (written as \numberline{\thesection}) agree without
-% stating it twice. \appendix overwrites \thesection with \Alph{section},
-% which is why appendices stay "A." and do not inherit the prefix.
-\renewcommand*\thesection{CHAPTER \Roman{section}}
+% \thesection is now a bare Roman numeral so Quarto's native chapter
+% crossref support (crossref: chapters: true) can resolve @sec-... references
+% through a plain \ref{} without the word "CHAPTER" leaking into the
+% resolved text and colliding with Quarto's own "Chapter " prefix -- a
+% rendered @sec-... test previously came back as "Chapter CHAPTER I" with the
+% word baked into the counter. The word is reinjected at the two places that
+% lose it: \titleformat above (the body heading) and the \numberline
+% override inside \l@section below (the contents entry), gated by
+% \ifpmwne@inbody so appendix-lettered contents entries do not pick it up.
+% \appendix overwrites \thesection with \Alph{section} and flips the flag.
+\newif\ifpmwne@inbody
+\pmwne@inbodytrue
+\renewcommand*\thesection{\Roman{section}}
 \renewcommand*\thesubsection{\arabic{section}.\arabic{subsection}}
 \renewcommand*\thesubsubsection{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
 % \appendix resets \thesection to \Alph{section} but leaves the sub-levels
@@ -422,6 +430,7 @@
 \let\pmwne@appendix\appendix
 \renewcommand*\appendix{%
   \pmwne@appendix
+  \pmwne@inbodyfalse
   % Restore the period the chapter headings drop: an appendix number is a bare
   % letter, so "A Feature Inventory" would read as a sentence rather than as a
   % label, where "CHAPTER I Introduction" does not.
@@ -453,7 +462,7 @@
       % itself; \@tempdima then governs only the hanging indent of a wrapped
       % title. Scoped to this group, so the fixed-box form still applies to the
       % sub-levels below.
-      \def\numberline##1{##1.\enspace}%
+      \def\numberline##1{\ifpmwne@inbody CHAPTER~\fi##1.\enspace}%
       \parindent \z@ \rightskip \@pnumwidth
       \parfillskip -\@pnumwidth
       \leavevmode

@@ -1,6 +1,6 @@
-# Design of the Trading Agent
+# Design of the Trading Agent {#sec-ch-design}
 
-The RL framework from Chapter III defines seven components of the single-asset HFT
+The RL framework from @sec-ch-reinforcement-learning defines seven components of the single-asset HFT
 agent: action space, state representation, reward function, value function,
 policy, discount factor, and step size. The trading problem's structure and
 constraints motivate each choice.

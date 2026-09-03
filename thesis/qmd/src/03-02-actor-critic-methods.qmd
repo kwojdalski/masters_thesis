@@ -3,7 +3,7 @@
 Reinforcement learning algorithms have advanced through conceptual breaks, each
 addressing a limitation of its predecessor. The lineage leading to TD3 isolates
 the properties relevant to the continuous-action, single-asset trading problem
-formulated in Chapter IV.
+formulated in @sec-ch-design.
 
 ### Value-Based Methods and Their Limitations in Continuous Control
 
@@ -69,7 +69,7 @@ architecture with deterministic policies and twin critics as described in
 ### DDPG: Deterministic Policies for Continuous Control
 
 The deterministic policy gradient (DPG) theorem was established,
-showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form [@Silver2014]:^[The original DPG paper uses $\theta$ for the actor and $w$ for the critic [@Silver2014]; the DDPG paper uses $\theta^\mu$ and $\theta^Q$ [@Lillicrap2015]. This thesis adopts the TD3 convention throughout ($\phi$ for the actor and $\theta$ for the critic(s)) to maintain consistency with the TD3 equations in Chapter IV [@Fujimoto2018].]
+showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form [@Silver2014]:^[The original DPG paper uses $\theta$ for the actor and $w$ for the critic [@Silver2014]; the DDPG paper uses $\theta^\mu$ and $\theta^Q$ [@Lillicrap2015]. This thesis adopts the TD3 convention throughout ($\phi$ for the actor and $\theta$ for the critic(s)) to maintain consistency with the TD3 equations in @sec-ch-design [@Fujimoto2018].]
 
 $$
 \begin{aligned}
@@ -285,7 +285,7 @@ replay, deterministic actor, explicit overestimation corrections) most
 directly match this thesis's simulation design.
 
 This choice should be read together with the trading constraints discussed in
-Chapter II, which motivate continuous exposure control, off-policy learning
+@sec-ch-literature-review, which motivate continuous exposure control, off-policy learning
 from historical data, and caution about transaction costs, non-stationarity,
 and partial observability. TD3 satisfies the first two through deterministic
 continuous actions and replay-based learning; it does not solve the remaining
@@ -295,8 +295,8 @@ market-design problems, which the empirical chapters address separately.
 
 The preceding sections establish how PPO, DDPG, and TD3 differ in learning
 paradigm, policy type, and stability mechanism, and why TD3 is selected under
-this thesis's constraints. @tbl-policy-comparison in Chapter IV summarizes
+this thesis's constraints. @tbl-policy-comparison in @sec-ch-design summarizes
 these differences at the implementation level (actor output, exploration
 noise, target smoothing, and update frequency) as configured for the
-controlled comparison in Chapter VI, where all three algorithms are evaluated
+controlled comparison in @sec-ch-results, where all three algorithms are evaluated
 on identical trading tasks.

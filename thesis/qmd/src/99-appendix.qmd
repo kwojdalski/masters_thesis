@@ -204,7 +204,7 @@ else:
 
 @sec-implementation-training-pipeline gives TD3's full training loop (@alg-td3) since TD3 is this
 thesis's primary method. DDPG and PPO are baseline comparisons used in
-Chapter VI's algorithm comparison; their training loops are recorded here for
+@sec-ch-results's algorithm comparison; their training loops are recorded here for
 reproducibility.
 
 ```pseudocode
