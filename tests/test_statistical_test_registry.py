@@ -158,6 +158,55 @@ class TestConfidenceLevelAffectsSignificance:
         assert bool(strict["significant"]) is False
 
 
+def test_healthy_bootstrap_reports_no_degenerate_resamples() -> None:
+    # ~100 losing bars out of 200: a resample with zero downside is
+    # astronomically unlikely, so no draw is dropped.
+    series = np.where(np.arange(200) % 2 == 0, 0.01, -0.008)
+    result = sortino_ratio_bootstrap_test(
+        series, series, n_bootstrap=500, confidence_level=0.95, seed=1
+    )
+
+    assert result["n_bootstrap"] == 500
+    assert result["n_bootstrap_valid"] == 500
+    assert result["bootstrap_degenerate_fraction"] == 0.0
+
+
+def test_near_lossless_series_exposes_dropped_sortino_resamples() -> None:
+    # Issue #669 regime: 2 losing bars out of 237. Many resamples contain no
+    # loss -> zero downside deviation -> NaN Sortino -> dropped.
+    strategy = np.full(237, 0.001)
+    strategy[[10, 50]] = -0.002
+    baseline = np.where(np.arange(237) % 2 == 0, 0.001, -0.001)
+
+    result = sortino_ratio_bootstrap_test(
+        strategy, baseline, n_bootstrap=2000, confidence_level=0.95, seed=0
+    )
+
+    assert result["n_bootstrap"] == 2000
+    assert result["n_bootstrap_valid"] < 2000
+    assert result["bootstrap_degenerate_fraction"] > 0.01
+    # A CI built from a heavily conditioned resample set must not read as a
+    # positive significance result.
+    assert result["significant"] is False
+
+
+def test_all_degenerate_bootstrap_returns_nan_ci_without_crashing() -> None:
+    # No losing bar anywhere: every Sortino resample is undefined.
+    strategy = np.full(50, 0.001)
+    baseline = np.full(50, 0.0005)
+
+    result = sortino_ratio_bootstrap_test(
+        strategy, baseline, n_bootstrap=200, confidence_level=0.95, seed=0
+    )
+
+    assert result["n_bootstrap_valid"] == 0
+    assert result["bootstrap_degenerate_fraction"] == 1.0
+    assert np.isnan(result["difference_ci_lower"])
+    assert np.isnan(result["difference_ci_upper"])
+    assert np.isnan(result["p_value"])
+    assert result["significant"] is False
+
+
 def test_run_statistical_tests_records_counts_and_skips_unknown_tests() -> None:
     config = SimpleNamespace(
         tests=["t_test", "unknown_test"],

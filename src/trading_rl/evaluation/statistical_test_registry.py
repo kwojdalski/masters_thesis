@@ -20,6 +20,13 @@ def _safe_div(numerator: float, denominator: float) -> float:
     return numerator / denominator
 
 
+# Above this fraction of degenerate (undefined-metric) bootstrap resamples the
+# surviving draws are too conditioned to support a significance verdict, so
+# BootstrapTest reports significant=False regardless of where the truncated
+# interval falls. See issue #669.
+_BOOTSTRAP_DEGENERATE_SIGNIFICANCE_LIMIT = 0.05
+
+
 def _two_sided_bootstrap_p_value(samples: np.ndarray) -> float:
     """Return the empirical two-sided probability of crossing zero."""
     lower_tail = float(np.mean(samples <= 0))
@@ -124,25 +131,68 @@ class BootstrapTest(StatisticalTest, ABC):
         baseline_metrics = np.array(baseline_metrics)
         diff_metrics = np.array(diff_metrics)
 
+        # A bootstrap ratio estimator is undefined on a degenerate resample: a
+        # Sortino draw with no losing bar has zero downside deviation, a Sharpe
+        # draw that is constant has zero standard deviation, and compute_metric
+        # returns NaN for both. Simply dropping those draws (below) leaves a
+        # distribution conditioned on "this resample had downside / variance",
+        # which non-randomly truncates the optimistic tail and narrows the
+        # interval. Count the attrition, expose it, and warn when it is
+        # material so the CI and p-value can be read for what they are.
+        # See issue #669.
+        n_requested = int(n_bootstrap)
+        n_valid = int(np.sum(~np.isnan(diff_metrics)))
+        degenerate_fraction = 1.0 - n_valid / n_requested if n_requested else 0.0
+
         strategy_metrics = strategy_metrics[~np.isnan(strategy_metrics)]
         baseline_metrics = baseline_metrics[~np.isnan(baseline_metrics)]
         diff_metrics = diff_metrics[~np.isnan(diff_metrics)]
 
+        if degenerate_fraction > 0:
+            emit = logger.warning if degenerate_fraction > 0.01 else logger.debug
+            emit(
+                "{}: {}/{} bootstrap resamples ({:.1%}) produced an undefined "
+                "{} and were dropped; the reported CI and p-value are "
+                "conditional on excluding those draws, not the unconditional "
+                "bootstrap distribution",
+                self.name,
+                n_requested - n_valid,
+                n_requested,
+                degenerate_fraction,
+                self.metric_name,
+            )
+
         alpha = 1 - confidence_level
-        strategy_ci_lower = float(np.percentile(strategy_metrics, 100 * alpha / 2))
-        strategy_ci_upper = float(
-            np.percentile(strategy_metrics, 100 * (1 - alpha / 2))
-        )
-        baseline_ci_lower = float(np.percentile(baseline_metrics, 100 * alpha / 2))
-        baseline_ci_upper = float(
-            np.percentile(baseline_metrics, 100 * (1 - alpha / 2))
-        )
-        diff_ci_lower = float(np.percentile(diff_metrics, 100 * alpha / 2))
-        diff_ci_upper = float(np.percentile(diff_metrics, 100 * (1 - alpha / 2)))
 
-        p_value = _two_sided_bootstrap_p_value(diff_metrics)
+        def _pct(values: np.ndarray, q: float) -> float:
+            return float(np.percentile(values, q)) if values.size else float("nan")
 
-        significant = not (diff_ci_lower <= 0 <= diff_ci_upper)
+        strategy_ci_lower = _pct(strategy_metrics, 100 * alpha / 2)
+        strategy_ci_upper = _pct(strategy_metrics, 100 * (1 - alpha / 2))
+        baseline_ci_lower = _pct(baseline_metrics, 100 * alpha / 2)
+        baseline_ci_upper = _pct(baseline_metrics, 100 * (1 - alpha / 2))
+        diff_ci_lower = _pct(diff_metrics, 100 * alpha / 2)
+        diff_ci_upper = _pct(diff_metrics, 100 * (1 - alpha / 2))
+
+        p_value = (
+            _two_sided_bootstrap_p_value(diff_metrics)
+            if diff_metrics.size
+            else float("nan")
+        )
+
+        # A CI assembled from a heavily conditioned resample set does not
+        # support a significance verdict; fall back to "not significant" rather
+        # than let a truncated interval that happens to exclude zero — or a
+        # NaN interval from an all-degenerate run — read as a positive result.
+        ci_excludes_zero = (
+            np.isfinite(diff_ci_lower)
+            and np.isfinite(diff_ci_upper)
+            and not (diff_ci_lower <= 0 <= diff_ci_upper)
+        )
+        significant = bool(
+            ci_excludes_zero
+            and degenerate_fraction <= _BOOTSTRAP_DEGENERATE_SIGNIFICANCE_LIMIT
+        )
         metric = self.metric_name
         return {
             "test_name": self.name,
@@ -157,7 +207,9 @@ class BootstrapTest(StatisticalTest, ABC):
             "difference_ci_upper": diff_ci_upper,
             "p_value": float(p_value),
             "confidence_level": confidence_level,
-            "n_bootstrap": n_bootstrap,
+            "n_bootstrap": n_requested,
+            "n_bootstrap_valid": n_valid,
+            "bootstrap_degenerate_fraction": float(degenerate_fraction),
             "significant": significant,
         }
 
