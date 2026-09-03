@@ -40,7 +40,7 @@ avoid it: fitting the normalisation on the training split alone and applying
 it frozen, or computing it as a strictly causal online transformation. This
 thesis uses the second, with statistics maintained per symbol and reset at
 session boundaries, and verifies the property directly rather than asserting
-it (Section 5.3).
+it (@sec-feature-normalization-and-causality-preservation).
 
 **Reward optimisation and financial evaluation measure different things.** A
 shaped reward such as the Differential Sharpe Ratio is a training objective,

@@ -61,7 +61,7 @@ not to move quoted prices, consume displayed depth, or alter subsequent order-bo
 states. The environment therefore treats the agent as price-taking rather than
 market-shaping. This is defensible only while position sizes remain small
 relative to displayed order-book depth, which holds for the MBP-10 dataset
-used here (defined in Section 5.3)^[All six instruments (AAPL, MSFT, TSLA,
+used here (defined in @sec-input-format)^[All six instruments (AAPL, MSFT, TSLA,
 META, AMZN, and AVGO) are highly liquid Nasdaq-listed blue-chips with tight
 spreads, deep displayed depth, and continuous two-sided quoting. This ensures
 that simulated agent trades represent a negligible fraction of resting book
