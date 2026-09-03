@@ -2,7 +2,8 @@
 <!-- [PLACEHOLDER] -->
 
 The thesis set out to answer four hypotheses concerning deep reinforcement learning
-for high-frequency single-asset trading using order-book-derived features. This
+for high-frequency single-asset trading (one position at a time, trained and
+evaluated pooled across six equities) using order-book-derived features. This
 section summarizes the empirical evidence for each.
 
 **Hypothesis 1: a TD3 agent learns an assumption-sensitive risk-adjusted edge

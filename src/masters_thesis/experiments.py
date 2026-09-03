@@ -67,8 +67,10 @@ _H1_SCENARIOS = [
     "pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr",
 ]
 
-# Transaction-cost sensitivity. The 0 bp arm is the H1 agent itself, and each
-# fee arm differs from it by `env.trading_fees` alone.
+# Transaction-cost sensitivity. The 0 bp arm is a config-identical clone of
+# the H1 scenario, trained at the sweep budget (a separate run, not the H1
+# checkpoint re-priced), and each fee arm differs from it by
+# `env.trading_fees` alone.
 #
 # The previous ladder was built on `td3_hft_lob_state_space_pooled_streaming_selected`
 # (log-return reward, `train_size: 50000`). That agent holds a near-constant
@@ -77,7 +79,7 @@ _H1_SCENARIOS = [
 # training budget. It also meant the sweep did not measure the cost sensitivity
 # of the agent H1 actually reports. Both are fixed by sweeping the H1 agent.
 _H2_SCENARIOS = [
-    "pooled/td3_h2_fees_0_dsr",  # 0 bp; byte-identical to the H1 scenario
+    "pooled/td3_h2_fees_0_dsr",  # 0 bp; config-identical clone of the H1 scenario
     "pooled/td3_h2_fees_1e6_dsr",
     "pooled/td3_h2_fees_1e5_dsr",
     "pooled/td3_h2_fees_1e4_dsr",
