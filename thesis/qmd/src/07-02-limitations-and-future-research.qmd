@@ -9,8 +9,9 @@ mid-price-proxy valuation and reward computation, zero market impact, zero
 latency, and no baseline fee. These assumptions materially favor a
 microstructure strategy. The implemented queue-weighted midpoint lies between
 the best bid and ask, so its divergence from the ordinary midpoint is bounded
-by half the spread. This identity was verified across the 2.4-million-row AAPL
-sample. It describes the scale of one contemporaneous input feature. It does
+by half the spread. This identity was verified across the AAPL evaluation-day
+sample (2.41 million order-book events, validation and test combined; Appendix,
+@tbl-raw-file-inventory). It describes the scale of one contemporaneous input feature. It does
 not bound future price changes, the policy's combined signal, or strategy
 profit. The execution limitation must therefore be assessed through the
 empirical sensitivity tests, not through a theoretical signal-ceiling claim.

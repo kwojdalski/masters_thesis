@@ -15,7 +15,7 @@ hypotheses:
     - pooled/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/ppo_hft_lob_state_space_pooled_streaming_selected_dsr
     - pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr
-  h2:  # transaction-cost sensitivity (0 bp arm is the H1 agent; fee is the only factor)
+  h2:  # transaction-cost sensitivity (0 bp arm is a config-identical clone of the H1 scenario; fee is the only factor)
     - pooled/td3_h2_fees_0_dsr
     - pooled/td3_h2_fees_1e6_dsr
     - pooled/td3_h2_fees_1e5_dsr

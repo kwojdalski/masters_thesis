@@ -360,10 +360,12 @@ neither isolates the effect of the factor it varies. The results are
 not yet strong evidence of robustness across market regimes, longer samples,
 alternative chronological splits, or repeated random seeds.
 
-Seed-level robustness was spot-checked outside the formal hypotheses: a small
-number of independent short-budget TD3 trials with different random seeds, using
-the baseline configuration, were run to confirm that the reported performance
-reflects systematic learning rather than a single favourable initialisation. A
-full multi-seed study at the training budget used in the main experiments was
+Seed-level robustness was informally spot-checked outside the formal hypotheses:
+a small number of independent short-budget TD3 trials with different random
+seeds, using the baseline configuration, suggested that the reported
+performance reflects systematic learning rather than a single favourable
+initialisation, though these trials were not exported as reproducible
+artifacts. A full multi-seed study at the training budget used in the main
+experiments was
 not carried out, so single-run variance remains a limitation (Section 6.1;
 @sec-execution-realism).
