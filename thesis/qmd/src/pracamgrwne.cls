@@ -394,7 +394,13 @@
 % number hanging at the margin. Multi-line titles wrap and centre line by line,
 % which is what the requirement's "longer text ... wrapped" allows for.
 \RequirePackage{titlesec}
-\titleformat{\section}[block]{\normalsize\bfseries\filcenter}{\thesection.}{0.5em}{\MakeUppercase}
+% No period after the number in the body heading ("CHAPTER I", not
+% "CHAPTER I."). The contents entry keeps its period: it is written as
+% \numberline{\thesection}, and \numberline (redefined below) appends the
+% period itself, so the two are set by independent mechanisms and only this
+% one changes. Appendices restore the period in \appendix below, since "A"
+% alone reads as part of the title where "CHAPTER I" does not.
+\titleformat{\section}[block]{\normalsize\bfseries\filcenter}{\thesection}{0.5em}{\MakeUppercase}
 \titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
 % Annex D numbers chapters in Roman and sections in Arabic. Its contents runs
@@ -416,6 +422,11 @@
 \let\pmwne@appendix\appendix
 \renewcommand*\appendix{%
   \pmwne@appendix
+  % Restore the period the chapter headings drop: an appendix number is a bare
+  % letter, so "A Feature Inventory" would read as a sentence rather than as a
+  % label, where "CHAPTER I Introduction" does not.
+  \titleformat{\section}[block]%
+    {\normalsize\bfseries\filcenter}{\thesection.}{0.5em}{\MakeUppercase}%
   \renewcommand*\thesubsection{\Alph{section}.\arabic{subsection}}%
   \renewcommand*\thesubsubsection{\Alph{section}.\arabic{subsection}.\arabic{subsubsection}}%
 }
