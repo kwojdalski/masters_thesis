@@ -5,8 +5,8 @@ produced it to the sentence that prints it.
 
 The intended contract is: **the thesis reads only from `thesis/qmd/results/**`,
 which is written by the export scripts.** Nothing in a `.qmd` should reach past
-that boundary into MLflow, `output/experiments/`, or a scenario YAML. Three paths currently
-break that contract; they are marked in red below and listed in
+that boundary into MLflow, `output/experiments/`, or a scenario YAML. Two paths
+still break that contract; they are marked in red below and listed in
 [Bypass paths](#bypass-paths).
 
 ## The pipeline
@@ -68,10 +68,9 @@ flowchart LR
     PLOTS --> HELP
 
     MLF -. "BYPASS 1+2: live DB and<br/>artifact store preferred" .-> HELP
-    OUT -. "BYPASS 3: results.json<br/>read directly" .-> HELP
 
     classDef leak stroke:#c0392b,stroke-width:3px,color:#c0392b
-    class MLF,OUT leak
+    class MLF leak
 ```
 
 ## What each chapter consumes
@@ -127,11 +126,22 @@ is **assigned and never used** — dead code that can simply be deleted.
 `find_exported_plot_data()`. A machine without `mlruns/` renders the exported
 plots; a machine with it may render a different run's.
 
-### 3. `load_scenario_metrics()` has two non-snapshot fallbacks
+### 3. `load_scenario_metrics()` raw-results fallback — REMOVED
 
-Preference order is snapshot → MLflow artifact store → `output/experiments/<name>/results.json`
-read directly. The first is what normally fires, but the third would silently
-publish a number that was never exported.
+Historical. Preference order used to be snapshot → MLflow artifact store →
+`output/experiments/<name>/results.json` read directly. The third tier was
+added in the commit that first wired up the results tables, when snapshots
+were not yet reliably exported, and was still present long after they were.
+
+It was the worst of the three because it failed *silently*: `_log_fallback()`
+only fires on an exception, and a missing snapshot is a falsy `exists()`, not
+an exception — so a number sourced from raw run output, with no manifest, run
+id or provenance, would render exactly like an exported one.
+
+Removed, along with the two helpers it was the only caller of. All 20 scenario
+snapshots exist, so nothing changed in the rendered output; a missing snapshot
+now yields `{}` and the table reports the gap instead of inventing a number.
+The MLflow tier (2) is retained.
 
 ## Provenance of the hyperparameters
 
