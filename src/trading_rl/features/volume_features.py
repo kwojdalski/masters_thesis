@@ -34,8 +34,16 @@ class VolumeChangeFeature(Feature):
         return ["volume"]
 
     def compute(self, df: pd.DataFrame) -> pd.Series:
-        """Compute volume change."""
-        return (df["volume"] / df["volume"].shift(1).replace(0, 1) - 1).fillna(0)
+        """Compute volume change; zero prior volume has no defined ratio."""
+        volume = df["volume"].astype(float)
+        prev = volume.shift(1)
+        # Zero prior volume makes the ratio undefined. Substituting 1 for the
+        # denominator (the previous behaviour) turned the result into the raw
+        # volume level, e.g. 4999 for a 0 -> 5000 step.
+        change = pd.Series(0.0, index=volume.index, dtype=float)
+        mask = prev.notna() & (prev != 0)
+        change[mask] = volume[mask] / prev[mask] - 1.0
+        return change
 
 
 @register_feature("volume_ma_ratio")

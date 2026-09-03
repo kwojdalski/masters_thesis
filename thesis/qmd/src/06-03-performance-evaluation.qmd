@@ -333,9 +333,10 @@ edge survives the cost of trading on it. Section 6.2 shows it does not.
 One interpretation of why this particular feature family carries signal is
 worth stating, with the caveat that the present evidence cannot test it. The
 state is built around displayed queue imbalance and the queue-weighted
-midpoint, and Section 5.3.5 finds that the imbalance family carries the
+midpoint, and Section 5.3.5 finds that the top-of-book imbalance features carry the
 strongest marginal association with the next price move of any group in the
-state, while every remaining feature sits below $|r| = 0.02$. Those are also
+state, while the state's other features carry smaller but non-negligible
+correlations, roughly $0.02$ to $0.09$. Those are also
 the quantities a liquidity provider uses to position quotes. If providers
 reprice against displayed imbalance, the next movement in the mid-price is not
 purely an exogenous process the agent forecasts; it is in part the outcome of

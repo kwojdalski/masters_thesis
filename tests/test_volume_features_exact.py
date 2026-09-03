@@ -96,14 +96,13 @@ class TestVolumeChangeFeature:
         result = VolumeChangeFeature(_cfg("volume_change")).compute(df)
         np.testing.assert_allclose(result.values, [0.0, 1.0, -0.5], atol=1e-10)
 
-    def test_zero_previous_volume_uses_one_as_denominator(self):
-        # Previous 0 → replace(0, 1) → change = vol/1 - 1 = vol - 1
-        df = _vol_df([0.0, 100.0])
+    def test_zero_previous_volume_gives_zero_change(self):
+        # A zero prior volume leaves the ratio undefined, so the row reads as
+        # "no change" (0.0) rather than the raw volume level. The old
+        # replace(0, 1) guard emitted 99.0 here (issue #670).
+        df = _vol_df([0.0, 5000.0, 5000.0])
         result = VolumeChangeFeature(_cfg("volume_change")).compute(df)
-        # Row 0: first row → 0
-        # Row 1: prev=0, replaced with 1 → 100/1 - 1 = 99
-        assert result.iloc[0] == pytest.approx(0.0, abs=1e-12)
-        assert result.iloc[1] == pytest.approx(99.0, rel=1e-10)
+        np.testing.assert_allclose(result.values, [0.0, 0.0, 0.0], atol=1e-12)
 
     def test_no_nan_in_output(self):
         df = _vol_df([100.0, 200.0, 50.0, 300.0])
