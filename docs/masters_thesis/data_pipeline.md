@@ -12,68 +12,66 @@ break that contract; they are marked in red below and listed in
 ## The pipeline
 
 ```mermaid
-flowchart TD
-    subgraph produce["Producers (training / evaluation)"]
-        TRAIN["uv run thesis-experiments hN<br/><i>src/masters_thesis/experiments.py</i>"]
-        CFG["src/configs/scenarios/**/train.yaml<br/><i>configured defaults</i>"]
-        MLF[("mlruns/**<br/>mlflow.db<br/><i>runs, artifacts,<br/>effective_config_*.yaml</i>")]
-        LOGS[("logs/&lt;scenario&gt;/<br/><i>results.json,<br/>checkpoint ladder</i>")]
+flowchart LR
+    subgraph produce["1 - Producers"]
+        direction TB
+        CFG["src/configs/scenarios/**/train.yaml"]
+        TRAIN["thesis-experiments hN"]
+        MLF[("mlruns/** + mlflow.db")]
+        LOGS[("logs/scenario/")]
+        CFG --> TRAIN
+        TRAIN --> MLF
+        TRAIN --> LOGS
     end
 
-    subgraph export["Export scripts (the only writers of the snapshot)"]
-        EALL["export_all_to_thesis.py<br/><i>fans out per scenario</i>"]
+    subgraph export["2 - Export scripts"]
+        direction TB
         EEVAL["export_eval_to_thesis.py"]
         EPEEK["export_peek_to_thesis.py"]
-        ETICK["export_tick_breakeven_to_thesis.py"]
-        ESTAT["export_streaming_feature_stats_to_thesis.py"]
-        ECORR["export_streaming_feature_correlations_to_thesis.py"]
-        EPLOT["export_rollout_plots_to_thesis.py<br/>export_algo_comparison_plots.py"]
-        EOBS["export_observation_sample_to_thesis.py"]
+        EOTHER["export_tick_breakeven / feature_stats /<br/>feature_correlations / rollout_plots /<br/>algo_comparison / observation_sample"]
     end
 
-    subgraph snap["thesis/qmd/results/&lt;scenario&gt;/ — the snapshot"]
+    subgraph snap["3 - Snapshot: thesis/qmd/results/scenario/"]
+        direction TB
         HP["latest_finished/hyperparams.json<br/>latest_finished/effective_config.yaml"]
-        EVAL["latest_finished/evaluation_report.json"]
-        STAT["latest_finished/statistical_tests.json"]
-        RUN["latest_finished/run.json<br/>manifest.json"]
-        PEEK["peek/splits.json<br/>peek/raw_file_inventory.json<br/>peek/tick_breakeven.json<br/>peek/feature_stats.csv<br/>peek/correlations.csv"]
-        PLOTS["evaluation_plots/**<br/>evaluation_plots_comparison/**"]
+        EVAL["latest_finished/evaluation_report.json<br/>latest_finished/statistical_tests.json"]
+        RUN["latest_finished/run.json + manifest.json"]
+        PEEK["peek/splits.json, raw_file_inventory.json,<br/>tick_breakeven.json, feature_stats.csv,<br/>correlations.csv"]
+        PLOTS["evaluation_plots/**"]
     end
 
-    subgraph render["Render (pre-render hook, then Quarto)"]
-        MACRO["generate_thesis_value_macros.py<br/><i>emits _generated_values.tex</i>"]
-        TEX["_generated_values.tex<br/><i>\\valDdpgReturn etc.</i>"]
+    subgraph render["4 - Render"]
+        direction TB
+        MACRO["generate_thesis_value_macros.py"]
+        TEX["_generated_values.tex"]
         HELP["thesis_mlflow_results.py<br/>thesis_tables.py"]
         QMD["thesis/qmd/src/*.qmd"]
-        PDF["masters_thesis.pdf"]
+        PDF(["masters_thesis.pdf"])
+        MACRO --> TEX --> QMD
+        HELP --> QMD --> PDF
     end
 
-    TRAIN --> MLF
-    TRAIN --> LOGS
-    CFG --> TRAIN
-    CFG -.fallback only.-> EEVAL
-
-    EALL --> EEVAL
     MLF --> EEVAL
     LOGS --> EEVAL
-    EEVAL --> HP & EVAL & STAT & RUN
+    CFG -. "fallback only" .-> EEVAL
+    EEVAL --> HP
+    EEVAL --> EVAL
+    EEVAL --> RUN
     EPEEK --> PEEK
-    ETICK --> PEEK
-    ESTAT --> PEEK
-    ECORR --> PEEK
-    EPLOT --> PLOTS
-    EOBS --> PEEK
+    EOTHER --> PEEK
+    EOTHER --> PLOTS
 
-    HP --> MACRO --> TEX --> QMD
-    HP & EVAL & STAT & PEEK & PLOTS --> HELP --> QMD
-    QMD --> PDF
+    HP --> MACRO
+    HP --> HELP
+    EVAL --> HELP
+    PEEK --> HELP
+    PLOTS --> HELP
 
-    MLF -. "BYPASS 1<br/>load_experiment_snapshot" .-> HELP
-    MLF -. "BYPASS 2<br/>find_evaluation_plot_data" .-> HELP
-    LOGS -. "BYPASS 3<br/>load_scenario_metrics fallback" .-> HELP
+    MLF -. "BYPASS 1+2: live DB and<br/>artifact store preferred" .-> HELP
+    LOGS -. "BYPASS 3: results.json<br/>read directly" .-> HELP
 
-    classDef bypass stroke:#c0392b,stroke-width:2px,color:#c0392b
-    class MLF,LOGS bypass
+    classDef leak stroke:#c0392b,stroke-width:3px,color:#c0392b
+    class MLF,LOGS leak
 ```
 
 ## What each chapter consumes
