@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import math
-import re
 import shutil
 import sqlite3
 from dataclasses import dataclass
@@ -696,7 +695,6 @@ def _load_experiment_snapshot_from_mlflow(experiment_name: str) -> ExperimentSna
 
 def _sanitise_for_json(obj: Any) -> Any:
     """Recursively replace NaN/Inf floats with None so json.dumps produces valid JSON."""
-    import math
 
     if isinstance(obj, float):
         return None if not math.isfinite(obj) else obj
@@ -1053,15 +1051,6 @@ def runs_overview_table(experiment_name: str) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 
-def _load_results_json_tolerant(path: Path) -> dict:
-    """Parse results.json that may contain bare NaN/Infinity tokens."""
-    raw = path.read_text(encoding="utf-8")
-    raw = re.sub(r"\bNaN\b", "null", raw)
-    raw = re.sub(r"\bInfinity\b", "null", raw)
-    raw = re.sub(r"\b-Infinity\b", "null", raw)
-    return json.loads(raw)
-
-
 def _results_split_entries(results: dict, prefix: str) -> tuple[dict, dict]:
     """Return ``(pooled, per_symbol)`` metric entries for one split prefix.
 
@@ -1084,58 +1073,6 @@ def _results_split_entries(results: dict, prefix: str) -> tuple[dict, dict]:
         elif key.startswith(f"{prefix}_"):
             per_symbol[key] = entry
     return pooled, per_symbol
-
-
-def _aggregate_from_results_json(results: dict, split: str = "test") -> dict[str, Any]:
-    """Average metrics for the requested split in a results.json dict.
-
-    Falls back to val then train when the requested split is absent, but stamps
-    ``__source_split__`` on the result so callers can tell that a substitution
-    happened -- these numbers are rendered by the results chapters as
-    out-of-sample performance, and a silent train-for-test swap presents
-    in-sample figures as held-out ones.
-
-    Pooled and per-symbol entries are never averaged together: a pooled figure
-    is already an aggregate over the same symbols, so mixing it with its own
-    components double-counts them.
-    """
-    # dict.fromkeys keeps order while dropping the duplicate that appears when
-    # split is itself "val" or "train".
-    entries: dict = {}
-    source_split: str | None = None
-    for prefix in dict.fromkeys((split, "test", "val", "train")):
-        pooled, per_symbol = _results_split_entries(results, prefix)
-        # Prefer the disaggregated per-symbol entries when both are present.
-        entries = per_symbol or pooled
-        if entries:
-            source_split = prefix
-            break
-
-    if not entries or source_split is None:
-        return {}
-
-    all_keys: set[str] = set()
-    for entry in entries.values():
-        all_keys.update(entry["metrics"].keys())
-
-    aggregated: dict[str, Any] = {}
-    for key in sorted(all_keys):
-        vals = [
-            entry["metrics"][key]
-            for entry in entries.values()
-            if key in entry["metrics"]
-            and isinstance(entry["metrics"][key], int | float)
-            and entry["metrics"][key] is not None
-            and math.isfinite(entry["metrics"][key])
-        ]
-        aggregated[key] = (sum(vals) / len(vals)) if vals else None
-
-    # Provenance travels with the numbers; load_scenario_metrics warns on a
-    # mismatch. Consumers address metrics by explicit key, so this is inert
-    # for the result tables.
-    aggregated["__source_split__"] = source_split
-    aggregated["__source_keys__"] = sorted(entries)
-    return aggregated
 
 
 def _warn_on_split_mismatch(
@@ -1169,8 +1106,9 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
     Preference order:
     1. Thesis snapshot: thesis/qmd/results/{scenario_name}/latest_finished/evaluation_report.json
     2. MLflow artifact store (if experiment exists in the tracking DB)
-    3. logs/{log_name}/results.json read directly (strips first '_'-delimited component
-       so "pooled_td3_..." maps to logs/td3_.../results.json)
+
+    There is no raw-results fallback: anything the thesis reports must have
+    gone through the export pipeline, so it carries a manifest and a run id.
     """
     # 1. Thesis snapshot (fastest — no DB round-trip)
     snap_path = (
@@ -1202,24 +1140,13 @@ def load_scenario_metrics(scenario_name: str, *, split: str = "test") -> dict[st
             f"loading live MLflow evaluation_report for {scenario_name!r}", exc
         )
 
-    # 3. logs/{log_name}/results.json
-    logs_root = _repo_root() / _EXPERIMENT_OUTPUT_DIR
-    parts = scenario_name.split("_", 1)
-    log_name = parts[1] if len(parts) == 2 else scenario_name
-    for candidate in (log_name, scenario_name):
-        results_path = logs_root / candidate / "results.json"
-        if results_path.exists():
-            try:
-                results = _load_results_json_tolerant(results_path)
-                aggregated = _aggregate_from_results_json(results, split)
-                if aggregated:
-                    _warn_on_split_mismatch(
-                        scenario_name, aggregated, split, str(results_path)
-                    )
-                    return aggregated
-            except Exception as exc:
-                _log_fallback(f"reading logs results.json at {results_path}", exc)
-
+    # Deliberately no third tier. This used to read
+    # output/experiments/<name>/results.json directly, which would publish a
+    # number that never went through the export pipeline -- no manifest, no
+    # run id, no provenance -- and did so silently: a *missing* snapshot is a
+    # falsy exists(), not an exception, so _log_fallback never fired. Every
+    # scenario the thesis renders has a snapshot; if one is absent the caller
+    # gets {} and the table reports the gap.
     return {}
 
 
@@ -1235,7 +1162,7 @@ def load_scenario_per_symbol_metrics(
     intact so a table can report them side by side. ``n_steps`` is folded into
     each metrics dict so callers can normalise per decision.
 
-    Reads the same sources as ``load_scenario_metrics`` in the same order.
+    Reads the same sources as ``load_scenario_metrics``, in the same order.
     Returns an empty dict when the scenario has no per-symbol entries (a pooled
     run, or results not yet exported).
     """
@@ -1275,19 +1202,7 @@ def load_scenario_per_symbol_metrics(
         except Exception as exc:
             _log_fallback(f"reading per-symbol snapshot for {scenario_name!r}", exc)
 
-    logs_root = _repo_root() / _EXPERIMENT_OUTPUT_DIR
-    parts = scenario_name.split("_", 1)
-    log_name = parts[1] if len(parts) == 2 else scenario_name
-    for candidate in (log_name, scenario_name):
-        results_path = logs_root / candidate / "results.json"
-        if results_path.exists():
-            try:
-                found = _extract(_load_results_json_tolerant(results_path))
-                if found:
-                    return found
-            except Exception as exc:
-                _log_fallback(f"reading per-symbol results.json at {results_path}", exc)
-
+    # No raw-results fallback here either -- see load_scenario_metrics.
     return {}
 
 
