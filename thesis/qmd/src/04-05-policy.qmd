@@ -50,20 +50,20 @@ $a_t^{\text{eval}}=\mu_\phi(s_t)$.
 
 TD3 additionally applies independent target-policy smoothing only when computing
 Bellman targets (@eq-bellman-target; @eq-td3-target). Its smoothing noise
-$\epsilon_{\text{smooth}}\sim\mathcal{N}(0,0.2^2)$ is clipped to
-$[-0.3,0.3]$, preventing the critics from fitting sharp value peaks. DDPG does
+$\epsilon_{\text{smooth}}\sim\mathcal{N}(0,\valPolicyNoise^2)$ is clipped to
+$[-\valNoiseClip,\valNoiseClip]$, preventing the critics from fitting sharp value peaks. DDPG does
 not apply this regularizer.
 
 **Target actor.** Both algorithms maintain a slowly updated copy of the actor,
 $\mu_{\phi'}$, used only when computing Bellman targets:
 
-$$\phi' \leftarrow \tau\,\phi + (1 - \tau)\,\phi', \qquad \tau = 0.005$$ {#eq-target-actor-update}
+$$\phi' \leftarrow \tau\,\phi + (1 - \tau)\,\phi', \qquad \tau = \valTau$$ {#eq-target-actor-update}
 
 where:
 
 - $\phi$ — online actor parameters
 - $\phi'$ — target actor parameters
-- $\tau = 0.005$ — soft-update coefficient controlling how quickly the target tracks the online network
+- $\tau = \valTau$ — soft-update coefficient controlling how quickly the target tracks the online network
 
 The slow rate ensures the bootstrap target shifts gradually, even while the online
 actor receives more aggressive gradient updates. The target actor is never used for

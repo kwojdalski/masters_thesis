@@ -167,7 +167,7 @@ At $t=0$, $A_0 = B_0 = 0$.
 The smoothing parameter $\eta$ controls the effective memory of the estimator:
 larger $\eta$ makes the estimate more reactive to recent returns, smaller
 $\eta$ averages over a longer history. The effective window length is
-approximately $1/\eta$ steps. In the empirical experiments, $\eta = 0.01$,
+approximately $1/\eta$ steps. In the empirical experiments, $\eta = \valRewardEta$,
 giving an effective memory of roughly 100 ticks — long enough to smooth
 microstructure noise while short enough to adapt to intraday regime shifts.
 
