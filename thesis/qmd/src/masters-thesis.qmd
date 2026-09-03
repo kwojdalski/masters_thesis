@@ -120,6 +120,11 @@ format:
       - \nralbumu{310284}
       - \speciality{Quantitative Finance}
       - \opiekun{dr Pawel Sakowski}
+      # Annex D's supervisor block runs over four flush-right lines: the
+      # lead-in, the supervisor, "from (name of the supervisor's unit)", then
+      # "WNE UW". \jednostka supplies the third; without it the block printed
+      # only three lines and the unit was missing.
+      - \jednostka{from the Department of Quantitative Finance and Machine Learning}
       # Keywords are lowercased except proper nouns, per the faculty model
       # thesis ("pisane malymi literami - z wyjatkiem nazw wlasnych"; the
       # English edition mistranslates this as "except for generic names",
