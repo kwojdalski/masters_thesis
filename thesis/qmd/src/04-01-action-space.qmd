@@ -55,7 +55,7 @@ $$a_t^{\text{noisy}} = \operatorname{clip}(a_t + \epsilon, -1, 1)$$ {#eq-explora
 where:
 
 - $\epsilon \sim \mathcal{N}(0, \sigma^2)$ — Gaussian exploration noise
-- $\sigma$ — exploration noise standard deviation^[The main experiment uses $\sigma = 0.3$. This value is at the upper end of the 0.1--0.3 range commonly used in continuous-action TD3 applications and was chosen to maintain sufficient action diversity in the low-signal tick-level setting.]
+- $\sigma$ — exploration noise standard deviation^[The main experiment uses $\sigma = \valExplorationNoise$. This value is at the upper end of the 0.1--0.3 range commonly used in continuous-action TD3 applications and was chosen to maintain sufficient action diversity in the low-signal tick-level setting.]
 
 DDPG and TD3 use this mechanism during data collection; at evaluation they
 apply the unperturbed deterministic policy. PPO instead obtains action diversity
