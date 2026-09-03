@@ -44,8 +44,8 @@ a retrospective reference rather than a rule executable in real time; TWAP is
 the implementable execution baseline.
 
 **Random** selects actions uniformly from $[-1, 1]$ at each step without
-reference to market state. Evaluation uses 10 independent random-seed trials
-and reports aggregate performance to obtain a stable stochastic baseline.
+reference to market state. It is evaluated once over the same test window as
+the learned policies.
 Failure to consistently outperform a random policy would indicate that the
 agent has not learned a meaningful relationship between observations and
 actions.
