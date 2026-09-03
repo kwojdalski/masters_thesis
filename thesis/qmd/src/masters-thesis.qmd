@@ -216,7 +216,7 @@ on a held-out fourth. Under frictionless mid-price execution it earns positive
 returns with low drawdown and a high profit factor. Independently trained
 policies stay active at 0 and 0.01 basis points but collapse to static
 positions at higher fees, showing cost sensitivity without a clean break-even;
-fixed-path bid/ask repricing reverses the result. Of three feature sets only
+re-pricing that action path at the bid/ask reverses its sign. Of three feature sets only
 the curated ten-feature microstructure state converged, leaving feature choice
 unresolved. Only the Differential Sharpe objective produced a trading policy;
 the log-return objective did not train, so that comparison turns on whether

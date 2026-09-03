@@ -8,8 +8,8 @@ directionally coherent, risk-controlled policy that outperformed the evaluated
 benchmark strategies on this held-out window. That outperformance is clear
 within the simulator but highly sensitive to its execution assumptions. The fee
 sweep shows that higher-fee policies collapse to static positions. It does not
-identify a precise break-even fee. Fixed-path bid/ask repricing reverses the
-result (Section 7.2). The qualitative character of
+identify a precise break-even fee. Re-pricing that action path at the bid/ask reverses
+its sign (@sec-execution-realism). The qualitative character of
 the learned policy is consistent with a deliberate strategy rather than noise:
 turnover well below that of a random policy, responsive rather than static
 positioning, and a maximum drawdown materially shallower than that of passive
