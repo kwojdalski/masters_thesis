@@ -155,7 +155,7 @@ misattribute the reason they do.
 #| label: tbl-h1-per-symbol
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 1 per-instrument test-split results for the TD3 agent, with the cumulative return restated as a mean edge per decision."
+#| tbl-cap: "Hypothesis 1 per-instrument test-split results for the TD3 agent."
 
 import numpy as np
 import pandas as pd
