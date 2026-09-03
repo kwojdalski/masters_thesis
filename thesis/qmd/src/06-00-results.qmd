@@ -3,7 +3,7 @@
 
 The thesis-facing experiment evaluates a TD3 agent trained on high-frequency
 order-book features from six Nasdaq equities (AAPL, MSFT, TSLA, META, AMZN, and
-AVGO) using the state-space design defined in Chapters 4 and 5. The evidence
+AVGO) using the state-space design defined in Chapters IV and V. The evidence
 covers repeated-run variability, robustness to nearby design changes, and final
 held-out performance.
 
