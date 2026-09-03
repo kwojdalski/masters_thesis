@@ -202,7 +202,7 @@ else:
 \addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Baseline Algorithm Pseudocode}
 ```
 
-Section 5.2 gives TD3's full training loop (Algorithm 2) since TD3 is this
+Section 5.4 gives TD3's full training loop (Algorithm 2) since TD3 is this
 thesis's primary method. DDPG and PPO are baseline comparisons used in
 Chapter VI's algorithm comparison; their training loops are recorded here for
 reproducibility.
@@ -212,9 +212,9 @@ reproducibility.
 #| pdf-line-number: true
 
 \begin{algorithm}
-\caption{DDPG Training (follows Algorithm 0)}
+\caption{DDPG Training (follows Algorithm 1)}
 \begin{algorithmic}
-\REQUIRE Processed environments from Algorithm 0; DDPG hyperparameters
+\REQUIRE Processed environments from Algorithm 1; DDPG hyperparameters
 \ENSURE Trained policy $\mu_\phi$, evaluation metrics
 \STATE Initialise actor $\mu_\phi$, critic $Q_\theta$, target networks $\mu_{\phi'}$, $Q_{\theta'}$, replay buffer $\mathcal{D}$
 \FOR{each step $t = 1, \ldots, \texttt{max\_steps}$}
@@ -238,9 +238,9 @@ reproducibility.
 #| pdf-line-number: true
 
 \begin{algorithm}
-\caption{PPO Training (follows Algorithm 0)}
+\caption{PPO Training (follows Algorithm 1)}
 \begin{algorithmic}
-\REQUIRE Processed environments from Algorithm 0; PPO hyperparameters
+\REQUIRE Processed environments from Algorithm 1; PPO hyperparameters
 \ENSURE Trained policy $\pi_\theta$, evaluation metrics
 \STATE Initialise stochastic actor $\pi_\theta$ (TanhNormal), value network $V_\phi$
 \FOR{each batch iteration $k = 1, \ldots, \texttt{max\_steps} / \texttt{frames\_per\_batch}$}
@@ -262,7 +262,7 @@ reproducibility.
 \end{algorithm}
 ```
 
-**For DDPG** (beyond the symbols already defined in Section 5.2 for TD3):
+**For DDPG** (beyond the symbols already defined in Section 5.4 for TD3):
 
 - $\mu_\phi$ is the deterministic actor; $Q_\theta$ is DDPG's single critic
 - Primed symbols denote slowly updated target networks

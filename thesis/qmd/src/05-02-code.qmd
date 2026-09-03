@@ -72,9 +72,9 @@ entropy bonuses rather than explicit noise injection.
 #| pdf-line-number: true
 
 \begin{algorithm}
-\caption{TD3 Training (follows Algorithm 0)}
+\caption{TD3 Training (follows Algorithm 1)}
 \begin{algorithmic}
-\REQUIRE Processed environments from Algorithm 0; TD3 hyperparameters
+\REQUIRE Processed environments from Algorithm 1; TD3 hyperparameters
 \ENSURE Trained policy $\mu_\phi$, evaluation metrics
 \STATE Initialise actor $\mu_\phi$, twin critics $Q_{\theta_1}$, $Q_{\theta_2}$, target networks $\mu_{\phi'}$, $Q_{\theta_1'}$, $Q_{\theta_2'}$, replay buffer $\mathcal{D}$
 \FOR{each step $t = 1, \ldots, \texttt{max\_steps}$}
