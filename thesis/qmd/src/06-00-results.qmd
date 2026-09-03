@@ -154,7 +154,9 @@ else:
             "represent frictionless gross performance, not net-of-cost "
             "performance; transaction-cost sensitivity is in Section 6.2 "
             "(@tbl-h2-transaction-costs). Every agent is evaluated over the same "
-            "full per-symbol test window."
+            "full per-symbol test window. Cumulative return over a fixed session "
+            "reflects event frequency as much as skill; the per-step figures in "
+            "@tbl-h1-per-symbol are the unit comparable across instruments."
         ),
     )
     show_table_meta(finished, audit=_audit)
