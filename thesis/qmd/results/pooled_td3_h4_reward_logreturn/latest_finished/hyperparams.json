@@ -15,11 +15,11 @@
   "loss_function": "smooth_l1",
   "gamma": 0.9,
   "tau": 0.005,
-  "policy_delay": null,
-  "policy_noise": null,
-  "noise_clip": null,
-  "exploration_noise_std": null,
-  "max_steps": 3000000,
+  "policy_delay": 2,
+  "policy_noise": 0.2,
+  "noise_clip": 0.3,
+  "exploration_noise_std": 0.3,
+  "max_steps": 500000,
   "init_rand_steps": 5000,
   "frames_per_batch": 200,
   "optim_steps_per_batch": 5,
@@ -29,5 +29,7 @@
   "reward_eta": null,
   "trading_fees": 0.0,
   "streaming_episode_length": 10000,
-  "train_size": null
+  "train_size": null,
+  "max_steps_configured": 3000000,
+  "trained_steps": 500000
 }

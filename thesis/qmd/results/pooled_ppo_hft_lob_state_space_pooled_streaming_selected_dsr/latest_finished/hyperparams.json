@@ -29,5 +29,7 @@
   "reward_eta": 0.01,
   "trading_fees": 0.0,
   "streaming_episode_length": 10000,
-  "train_size": null
+  "train_size": null,
+  "max_steps_configured": 3000000,
+  "trained_steps": 3000000
 }
