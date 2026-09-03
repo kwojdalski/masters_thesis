@@ -16,8 +16,8 @@ providing additional stability without a separate hyperparameter.
 
 ### Weight Decay
 
-L2 weight decay of $\lambda = 2 \times 10^{-6}$ is applied to the critic
-networks, while the actor uses no explicit weight decay. The critic regularizer
+L2 weight decay of $\lambda = 2 \times 10^{-6}$ is applied to both the actor
+and the critic networks. The regularizer
 is intentionally small, sufficient to discourage memorization of
 training-period noise without restricting the network's capacity to represent
 nonlinear market dynamics. No further regularization (dropout, batch
