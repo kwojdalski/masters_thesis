@@ -334,12 +334,12 @@ Two observations support reading this as an optimization failure rather than a
 learned preference for passive exposure. First, a saturated policy would be
 expected to sit at a neutral position if it had learned that trading is
 unprofitable, not at a bound. Second, the same degenerate behaviour appears in
-an independent scenario that also uses the log-return reward, the
-minimal-feature run of Hypothesis 3, which saturates at the *opposite* bound
-(fully short) rather than converging to any intermediate exposure. A single
-frozen run could be attributed to seed or budget; the same collapse in two
-separate scenarios sharing one reward specification points at the reward
-configuration itself.
+scenarios that do not share this reward. The minimal-feature and full-feature
+runs of Hypothesis 3 both saturate under the Differential Sharpe objective, and
+at opposite bounds to each other. A single frozen run could be attributed to
+seed or budget; the same collapse recurring across three scenarios that differ
+in both reward and feature count points at the optimization rather than at any
+one design choice.
 
 Hypothesis 4 is therefore not settled by this run. What can be said is narrower
 than a performance comparison: under an identical configuration and a matched

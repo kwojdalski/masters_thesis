@@ -27,8 +27,8 @@ still slightly positive, but the policy is static and fully short. At 1 basis
 point, the policy is static and fully long, and its small negative return is
 passive drift. The sweep therefore shows cost-sensitive training outcomes. It
 does not establish the predicted sign threshold for a functioning policy.
-Fixed-path bid/ask repricing separately shows that the Hypothesis 1 action path is not
-robust to spread-crossing costs.
+Re-pricing the Hypothesis 1 action path at the bid/ask, on one instrument,
+separately shows it is not robust to spread-crossing costs.
 
 **Hypothesis 3: a broader microstructure-aware feature set improves out-of-sample
 performance relative to a simpler snapshot-based state representation.** This

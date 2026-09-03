@@ -514,9 +514,10 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
         "18.7 million pairs), with the first 500 events of each session skipped. "
         "Pearson measures linear association, Spearman any monotone association. "
         "The largest magnitude is a Spearman correlation of 0.26 for best-level "
-        "order-count imbalance; the imbalance and order-flow features sit near "
-        "0.15-0.26 on Spearman and below 0.16 on Pearson, and every other feature "
-        "is below 0.02 on both. Section 5.3.5 interprets this."
+        "order-count imbalance; four top-of-book imbalance and order-flow features "
+        "sit between 0.15 and 0.26 on Spearman and below 0.16 on Pearson. Fourteen "
+        "further features fall between 0.02 and 0.15 on at least one measure, and "
+        "the remaining fifteen are below 0.02 on both. Section 5.3.5 interprets this."
     )
 
     # ── HTML version ──────────────────────────────────────────────────
