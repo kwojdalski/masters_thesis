@@ -101,6 +101,18 @@ local function nil_to_default(value, default)
   end
 end
 
+-- LOCAL PATCH (not upstream leovan/pseudocode; see thesis/qmd/src/_extensions/README.md).
+--
+-- A crossref written inside the fence -- in \caption{} or on a \REQUIRE line --
+-- is part of the CodeBlock's opaque text, so Pandoc never turns it into a Cite
+-- element and Quarto's crossref pass cannot rewrite it. The two handlers below
+-- pass that text through verbatim, so an unresolved "@alg-setup" reaches the
+-- rendered page as literal text in both PDF and HTML.
+--
+-- This pattern matches the label prefixes the extension itself references
+-- ("alg-", and "algo-" as accepted by render_pseudocode_ref_latex).
+local PSEUDOCODE_REF_PATTERN = "@(alg[o]?%-[%w_%-]+)"
+
 local function ensure_latex_deps()
   quarto.doc.use_latex_package("algorithm")
   quarto.doc.use_latex_package(
@@ -210,6 +222,21 @@ local function render_pseudocode_block_html(global_options)
         end
       end
 
+      -- LOCAL PATCH: resolve in-fence crossrefs against the numbers already
+      -- assigned. Blocks are walked in render order, so a reference to an
+      -- earlier algorithm resolves; a forward or unknown one is left as-is
+      -- (visible in the output) rather than silently rendered as a wrong number.
+      source_code = string.gsub(source_code, PSEUDOCODE_REF_PATTERN, function(ref)
+        local number = global_options.html_identifier_number_mapping[ref]
+        if number == nil then
+          return "@" .. ref
+        end
+        if global_options.html_chapter_level then
+          number = global_options.html_chapter_level .. "." .. number
+        end
+        return global_options.reference_prefix .. " " .. number
+      end)
+
       local inner_el = pandoc.Div(source_code)
       inner_el.attr.classes = pandoc.List()
       inner_el.attr.classes:insert("pseudocode")
@@ -275,7 +302,7 @@ local function render_pseudocode_block_latex(global_options)
       options["pdf-right-comment"] = nil_to_default(options["pdf-right-comment"], "false")
       options["pdf-comment-color"] = nil_to_default(options["pdf-comment-color"], "black")
       options["pdf-comment-delimiter"] = nil_to_default(options["pdf-comment-delimiter"], "//"):gsub("%%", "%%%%")
-      
+
       if string.lower(options["pdf-no-end"]) == "true" then
         algpseudocodex_options = algpseudocodex_options
           .. [[
@@ -335,6 +362,15 @@ local function render_pseudocode_block_latex(global_options)
         source_code =
           string.gsub(source_code, "\\begin{algorithmic}%s*\n", "\\begin{algorithmic}[0]\n" .. algpseudocodex_options)
       end
+
+      -- LOCAL PATCH: resolve in-fence crossrefs into real \ref commands. LaTeX
+      -- resolves these itself, so unlike the HTML path this needs no ordering
+      -- assumption; an unknown label surfaces as LaTeX's own "??" warning.
+      source_code = string.gsub(
+        source_code,
+        PSEUDOCODE_REF_PATTERN,
+        global_options.reference_prefix .. "~\\ref{%1}"
+      )
 
       if options["label"] then
         source_code = string.gsub(source_code, "\\caption{", "\\caption{\\label{" .. options["label"] .. "}")
