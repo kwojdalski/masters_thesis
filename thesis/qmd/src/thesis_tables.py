@@ -655,9 +655,13 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
     rows_latex = [f"{_esc(comp)} & {_esc(spec)} \\\\" for comp, spec in rows]
     latex_block = "\n".join(
         [
-            r"\begin{landscape}",
             r"\footnotesize",
-            r"\begin{longtable}{p{0.22\linewidth} p{0.68\linewidth}}",
+            # Portrait. The two p-column widths sum to 0.93\linewidth, leaving
+            # room for the four \tabcolsep gaps longtable adds at the column
+            # edges; 0.32 is what keeps the longest label, "Optimisation steps
+            # per batch", on one line at \footnotesize, and the Specification
+            # column wraps the long entries rather than running off the page.
+            r"\begin{longtable}{p{0.32\linewidth} p{0.61\linewidth}}",
             f"\\caption{{{_esc(caption)}\\label{{tbl-main-experiment-spec}}}} \\\\",
             r"\toprule",
             r"\multicolumn{1}{c}{\textbf{Component}} & \multicolumn{1}{c}{\textbf{Specification}} \\",
@@ -678,7 +682,6 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
             # does it: the label italic at 10 pt, the rest roman.
             r"\vspace{-0.5em}",
             r"{\footnotesize\textit{Source:} Author's own compilation.\par}",
-            r"\end{landscape}",
         ]
     )
 
