@@ -346,7 +346,16 @@ if _splits_path.exists():
         "median_delta_s": "Median Δt",
     }).drop(columns=["columns"])
     display_df(out)
-    table_note(source="Author's own calculations based on DataBento Nasdaq MBP-10 data.")
+    table_note(
+        source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
+        legend=(
+            "Events: order-book events passing the level-0–4 filter. First / "
+            "Last timestamp: split endpoints, trimmed to whole seconds. Δt: "
+            "inter-event time, computed from positive within-session deltas "
+            "only, so the overnight gaps between the three training sessions "
+            "are excluded."
+        ),
+    )
 else:
     missing_data_notice(
         "splits.json not found — run: "

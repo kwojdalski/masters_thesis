@@ -41,7 +41,11 @@ signal from limit-order-book microstructure at tick frequency, and what bounds
 that signal economically. The four hypotheses above are tested on one common
 apparatus: a TD3 agent trained on six US equities from Nasdaq MBP-10 data,
 evaluated out-of-sample against buy-and-hold, TWAP and VWAP execution
-benchmarks and a random-action control. Significance is assessed against an
+benchmarks and a random-action control. DDPG and PPO are trained under the
+same configuration, not as claims of their own but so that Hypothesis 1 can be
+read as a statement about a learnable signal rather than about one optimizer:
+if only TD3 separated from the random control, the edge would be an artefact
+of that algorithm rather than a property of the state representation. Significance is assessed against an
 economic threshold rather than against zero. At tick frequency each instrument
 contributes on the order of a million steps, and a test of the null that the
 agent's mean per-step return equals a benchmark's rejects at effect sizes far

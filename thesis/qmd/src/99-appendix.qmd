@@ -145,8 +145,8 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_hour\_cos} & Regime/temp. & $\cos(2\pi h_t/24)$ & --- & & Wood et al.\ (1985) \\
 \end{longtable}
 \vspace{-0.5\baselineskip}
-{\footnotesize\itshape\parindent0pt\raggedright\relax\textbf{Source:} author's own compilation.\par}
-{\footnotesize\itshape\parindent0pt\raggedright\relax\textbf{Note:} formulas are implementations or adaptations; citations identify conceptual sources where applicable. A dash denotes an author's construction or no direct originating formula.\par}
+{\footnotesize\parindent0pt\raggedright\relax\textit{Source:} Author's own compilation.\par}
+{\footnotesize\parindent0pt\raggedright\relax\textit{Note:} formulas are implementations or adaptations; citations identify conceptual sources where applicable. A dash denotes an author's construction or no direct originating formula.\par}
 \end{landscape}
 ```
 
