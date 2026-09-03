@@ -18,10 +18,9 @@ the previous one; together they make the case that robustness analysis is a
 precondition for any credible economic claim:
 
 1. A TD3 agent trained on limit-order-book features learns a risk-adjusted edge
-   that survives out of sample. The edge is real but very small: it is realised
-   under frictionless mid-price execution and is roughly an order of magnitude
-   smaller than the cost of crossing the spread to trade on it, so realistic
-   execution eliminates it rather than merely eroding it.
+   that survives out of sample. The edge is real but small: it is realised under
+   frictionless mid-price execution and is eliminated, not merely eroded, by the
+   cost of crossing the spread to trade on it.
 2. That edge depends on the assumed transaction cost. It is positive when
    trading is costless and degrades as the per-trade cost rises, with the
    policy ceasing to trade at costs well below the half-spread that must be
