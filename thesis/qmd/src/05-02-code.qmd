@@ -1,4 +1,4 @@
-## Implementation and Training Pipeline
+## Implementation and Training Pipeline {#sec-implementation-training-pipeline}
 
 ### Experiment Specification Design
 
@@ -49,6 +49,7 @@ constrains policy changes. The stochastic policy handles exploration through
 entropy bonuses rather than explicit noise injection.
 
 ```pseudocode
+#| label: alg-setup
 #| html-line-number: true
 #| pdf-line-number: true
 
@@ -68,13 +69,14 @@ entropy bonuses rather than explicit noise injection.
 ```
 
 ```pseudocode
+#| label: alg-td3
 #| html-line-number: true
 #| pdf-line-number: true
 
 \begin{algorithm}
-\caption{TD3 Training (follows Algorithm 1)}
+\caption{TD3 Training (follows @alg-setup)}
 \begin{algorithmic}
-\REQUIRE Processed environments from Algorithm 1; TD3 hyperparameters
+\REQUIRE Processed environments from @alg-setup; TD3 hyperparameters
 \ENSURE Trained policy $\mu_\phi$, evaluation metrics
 \STATE Initialise actor $\mu_\phi$, twin critics $Q_{\theta_1}$, $Q_{\theta_2}$, target networks $\mu_{\phi'}$, $Q_{\theta_1'}$, $Q_{\theta_2'}$, replay buffer $\mathcal{D}$
 \FOR{each step $t = 1, \ldots, \texttt{max\_steps}$}
@@ -96,12 +98,12 @@ entropy bonuses rather than explicit noise injection.
 \end{algorithm}
 ```
 
-DDPG (Algorithm 3, Appendix @sec-appendix-baseline-algorithms) follows the
-same loop as Algorithm 2 with three simplifications. It uses a single critic in
+DDPG (@alg-ddpg, Appendix @sec-appendix-baseline-algorithms) follows the
+same loop as @alg-td3 with three simplifications. It uses a single critic in
 place of the twin critics, so the Bellman target uses
 $Q_{\theta'}(s_{t+1}, \mu_{\phi'}(s_{t+1}))$ directly, without the minimum. The actor is
 updated every step rather than every `policy_delay` critic steps, and there is
-no target-action smoothing noise. PPO (Algorithm 4, same appendix section)
+no target-action smoothing noise. PPO (@alg-ppo, same appendix section)
 instead follows the on-policy paradigm summarized above: batches are
 collected with the current stochastic policy, and GAE advantage estimates are
 computed. The clipped surrogate objective (@eq-ppo-clip), together with a

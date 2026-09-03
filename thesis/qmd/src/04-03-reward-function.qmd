@@ -109,7 +109,7 @@ a first-order approximation, not an exact identity for arbitrary exposure.
 
 This is the first term of @eq-reward-baseline without the transaction cost
 penalty. At tick frequency, this signal is dominated by microstructure noise.
-Individual price changes on an MBP-10 order book (defined in Section 5.3) are
+Individual price changes on an MBP-10 order book (defined in @sec-input-format) are
 a fraction of the spread. The agent cannot distinguish genuine directional
 movement from quote flickering in a single step.
 
