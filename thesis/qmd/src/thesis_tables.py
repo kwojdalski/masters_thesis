@@ -337,6 +337,7 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
     )
 
     caption = "Distributional statistics of engineered microstructure features."
+    source_text = "Author's own calculations based on DataBento Nasdaq MBP-10 data."
     note_base = (
         "Computed over the full pooled training set streamed to the agent -- six "
         "instruments over three sessions (25-27 February 2026), roughly 18.7 "
@@ -368,6 +369,8 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
 
     html_table = html_df.to_html(index=False, classes="dataframe")
     note_p = (
+        f'<p style="font-size:0.85em"><em><strong>Source:</strong> {source_text}'
+        f"</em></p>\n"
         f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note_html}</em></p>'
     )
 
@@ -430,7 +433,12 @@ def feature_stats_table(raw_df: pd.DataFrame, *, obs_clip: float = 5.0) -> None:
             r"\end{tabular}",
             r"\vspace{4pt}",
             r"\begin{minipage}{\linewidth}",
-            f"\\singlespacing\\footnotesize\\textit{{{note_latex}}}",
+            # Source line and "Note:" label to match table_note's Source/Note
+            # block, which every other table in the document carries. This
+            # table builds its LaTeX directly and so bypasses tablenote.lua.
+            r"\singlespacing\footnotesize\parindent0pt",
+            f"\\textit{{Source:}} {_esc(source_text)}\\par",
+            f"\\textit{{Note:}} {note_latex}\\par",
             r"\end{minipage}",
             r"\end{table}",
             r"\end{landscape}",
@@ -681,7 +689,10 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
             # its tables without exception. This one had none. Set as Annex D
             # does it: the label italic at 10 pt, the rest roman.
             r"\vspace{-0.5em}",
-            r"{\footnotesize\textit{Source:} Author's own compilation.\par}",
+            # \parindent0pt: without it this starts a fresh paragraph and picks
+            # up the document indent, so the source line sits a quad to the
+            # right of the table it belongs to.
+            r"{\footnotesize\parindent0pt\textit{Source:} Author's own compilation.\par}",
         ]
     )
 

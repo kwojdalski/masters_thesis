@@ -145,7 +145,8 @@ Feature & Group & Formula & Param & In model & Citation \\
 \texttt{hft\_hour\_cos} & Regime/temp. & $\cos(2\pi h_t/24)$ & --- & & Wood et al.\ (1985) \\
 \end{longtable}
 \vspace{-0.5\baselineskip}
-{\footnotesize\itshape\parindent0pt\raggedright\relax\textbf{Source:} author's own compilation. Formulas are implementations or adaptations; citations identify conceptual sources where applicable. A dash denotes an author's construction or no direct originating formula.\par}
+{\footnotesize\itshape\parindent0pt\raggedright\relax\textbf{Source:} author's own compilation.\par}
+{\footnotesize\itshape\parindent0pt\raggedright\relax\textbf{Note:} formulas are implementations or adaptations; citations identify conceptual sources where applicable. A dash denotes an author's construction or no direct originating formula.\par}
 \end{landscape}
 ```
 
@@ -285,12 +286,6 @@ reproducibility.
 \addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Raw Data Inventory}
 ```
 
-@tbl-raw-file-inventory reports raw MBP-10 event counts and inter-event
-timing per symbol and split, before the level-0-4 filter described in
-@sec-dataset-split-summary is applied. Training aggregates all three
-training days per symbol (February 25-27, 2026); validation and test each
-cover one chronological half of the March 2 session.
-
 ```{=latex}
 % Table 12 fits on one page but its source and note did not, so longtable
 % spilled and emitted a second chunk carrying a repeated caption and header
@@ -338,10 +333,12 @@ if _inv_path.exists():
     table_note(
         source="Author's own calculations based on DataBento Nasdaq MBP-10 data.",
         note=(
-            "Mean and median Δt computed from positive within-session inter-event deltas only "
-            "(overnight gaps excluded for the training split). "
-            "Training aggregates all three days per symbol (February 25–27, 2026); "
-            "validation and test each cover one chronological half of the March 2 session."
+            "Counts are taken before the level-0–4 filter described in "
+            "@sec-dataset-split-summary. Mean and median Δt use positive "
+            "within-session inter-event deltas only, so overnight gaps are excluded "
+            "from the training split. Training aggregates all three days per symbol "
+            "(February 25–27, 2026); validation and test each cover one chronological "
+            "half of the March 2 session."
         ),
     )
 else:
@@ -368,9 +365,7 @@ features used by the RL agent. Each row is one order-book event; the left
 columns display the raw state (best bid/ask prices and sizes), the right
 columns show the corresponding normalized microstructure features computed
 from that state via the causal running normalization in
-@eq-running-normalize. The table is wide (nine columns), so in the PDF it is
-placed on its own landscape-oriented page; the HTML version scrolls
-horizontally instead.
+@eq-running-normalize.
 
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
@@ -419,15 +414,20 @@ mid-price is half a cent. At each instrument's mean price over the evaluation
 window (2 March 2026), this sets a break-even fee: the proportional trading
 cost at which a single minimum-tick move stops covering the fee.
 
-The realised bid-ask half-spread over the same session is reported beside it.
-The two quantities are often conflated and should not be: the half-spread runs
-between 2.8 and 24.3 times the tick figure across these six instruments,
-averaging 1.151 basis points against a tick range of 0.077 to 0.240. The tick
-figure is the scale at which a minimum quote movement stops paying for itself;
-the half-spread is the cost actually incurred when crossing to trade. Since the
-fee sweep in @sec-h2-transaction-cost-sensitivity locates the behavioural break
-between 0.01 and 0.1 basis points, the learned margin is below the tick scale
-and roughly an order of magnitude below the half-spread.
+The realised bid-ask half-spread over the same session is reported beside it,
+because the two are easily conflated and measure different things. The
+break-even fee is the scale at which a minimum quote movement stops paying for
+itself; the half-spread is the cost actually incurred when crossing the quote
+to trade. The half-spread is the larger of the two on every instrument, from
+2.8 times the break-even fee on AMZN to 24.3 times on META, and averages
+$1.151$ basis points against a break-even range of $0.077$ to $0.240$.
+
+The distinction decides how the fee sweep should be read. That sweep
+(@sec-h2-transaction-cost-sensitivity) puts the point at which the policy stops
+trading between $0.01$ and $0.1$ basis points. That is below every
+instrument's break-even fee, and roughly an order of magnitude below the mean
+half-spread, so the learned margin is too small to survive either measure of
+cost.
 
 ```{python}
 #| label: tbl-tick-breakeven-fee
@@ -490,14 +490,15 @@ zero and standard deviations near one confirm that causal running normalisation
 is operating as intended. Q1, Q2, and Q3 show the interquartile spread; Skew and
 Kurt (excess kurtosis) characterise the shape of each marginal distribution.
 
-Several features, most notably `ofi` and `ofi_rolling_50`, exhibit extreme
+Several features, most notably `ofi` and `ofi_multilevel_3l`, exhibit extreme
 minimum and maximum values despite their near-unit standard deviations. This is
 a structural property of order-flow imbalance, not a data-quality issue. Most
 tick events represent small queue adjustments that produce z-scores close to
 zero, while occasional aggressive orders consume multiple price levels in
 rapid succession. Because the running standard deviation is dominated by the
-quiet majority, these rare spikes emerge as z-scores of $\pm 290$ or more and
-produce the large positive excess kurtosis visible for OFI features.
+quiet majority, these rare spikes emerge as z-scores beyond $\pm 500$ for
+`ofi` and beyond $\pm 300$ for `ofi_multilevel_3l`, and produce the large
+positive excess kurtosis visible for OFI features.
 
 The values in @tbl-feature-stats are post-normalisation but pre-clipping. The
 environment applies a hard observation clip of $[-5, 5]$ through `obs_clip`, so
