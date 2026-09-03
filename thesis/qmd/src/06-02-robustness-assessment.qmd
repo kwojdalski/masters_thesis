@@ -335,11 +335,11 @@ learned preference for passive exposure. First, a saturated policy would be
 expected to sit at a neutral position if it had learned that trading is
 unprofitable, not at a bound. Second, the same degenerate behaviour appears in
 scenarios that do not share this reward. The minimal-feature and full-feature
-runs of Hypothesis 3 both saturate under the Differential Sharpe objective, and
-at opposite bounds to each other. A single frozen run could be attributed to
-seed or budget; the same collapse recurring across three scenarios that differ
-in both reward and feature count points at the optimization rather than at any
-one design choice.
+runs of Hypothesis 3 both saturate under the Differential Sharpe objective, the
+minimal run fully long and the 33-feature run fully short. A single frozen run
+could be attributed to seed or budget; the same collapse recurring across three
+scenarios that differ in both reward and feature count points at the
+optimization rather than at any one design choice.
 
 Hypothesis 4 is therefore not settled by this run. What can be said is narrower
 than a performance comparison: under an identical configuration and a matched
