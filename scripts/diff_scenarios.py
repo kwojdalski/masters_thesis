@@ -7,7 +7,7 @@ Usage:
                                              pooled/random_hft_lob_state_space_pooled_streaming_selected_dsr
 
     # Compare by short name (resolved under src/configs/scenarios/)
-    uv run python scripts/diff_scenarios.py pooled/td3_h3_fees_1e4 pooled/td3_h3_fees_1e5 pooled/td3_h3_fees_1e6
+    uv run python scripts/diff_scenarios.py pooled/td3_h2_fees_1e4_dsr pooled/td3_h2_fees_1e5_dsr pooled/td3_h2_fees_1e6_dsr
 
     # Show ALL keys, not just differing ones
     uv run python scripts/diff_scenarios.py --all pooled/td3_... pooled/ddpg_...

@@ -13,17 +13,19 @@ Read the H2 section inside:
 The H2 comparison sweeps proportional fee levels on the shared baseline. For each, read its thesis snapshot evaluation report:
 
 ```bash
-# 0 bp — the shared baseline
-cat thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected/latest_finished/evaluation_report.json
+# 0 bp — the fee ladder's own baseline
+cat thesis/qmd/results/pooled_td3_h2_fees_0_dsr/latest_finished/evaluation_report.json
 # 0.01 bp
-cat thesis/qmd/results/pooled_td3_h3_fees_1e6/latest_finished/evaluation_report.json
+cat thesis/qmd/results/pooled_td3_h2_fees_1e6_dsr/latest_finished/evaluation_report.json
 # 0.1 bp
-cat thesis/qmd/results/pooled_td3_h3_fees_1e5/latest_finished/evaluation_report.json
+cat thesis/qmd/results/pooled_td3_h2_fees_1e5_dsr/latest_finished/evaluation_report.json
 # 1 bp
-cat thesis/qmd/results/pooled_td3_h3_fees_1e4/latest_finished/evaluation_report.json
+cat thesis/qmd/results/pooled_td3_h2_fees_1e4_dsr/latest_finished/evaluation_report.json
 ```
 
-The scenario directories keep their legacy `td3_h3_fees_*` names. If a snapshot directory is missing, run `ls thesis/qmd/results/` and note it as a gap.
+These are the four directories `_fees_scenarios` in `06-02-robustness-assessment.qmd`
+actually loads, so the review reads what the chapter renders. If a snapshot
+directory is missing, run `ls thesis/qmd/results/` and note it as a gap.
 
 ## Step 3 — Cross-check numbers
 
@@ -73,10 +75,10 @@ Track the issue numbers created.
 ## H2 Review
 
 ### Data available
-- [x/missing] pooled_td3_hft_lob_state_space_pooled_streaming_selected (0 bp baseline)
-- [x/missing] pooled_td3_h3_fees_1e6 (0.01 bp)
-- [x/missing] pooled_td3_h3_fees_1e5 (0.1 bp)
-- [x/missing] pooled_td3_h3_fees_1e4 (1 bp)
+- [x/missing] pooled_td3_h2_fees_0_dsr (0 bp baseline)
+- [x/missing] pooled_td3_h2_fees_1e6_dsr (0.01 bp)
+- [x/missing] pooled_td3_h2_fees_1e5_dsr (0.1 bp)
+- [x/missing] pooled_td3_h2_fees_1e4_dsr (1 bp)
 
 ### Fee ladder (from data)
 | Metric        | 0 bp | 0.01 bp | 0.1 bp | 1 bp |
