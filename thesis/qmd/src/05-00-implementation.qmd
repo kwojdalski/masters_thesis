@@ -1,6 +1,6 @@
 # Implementation of the Trading Agent
 
-The experimental pipeline implements the Chapter 4 design through its simulation
+The experimental pipeline implements the Chapter IV design through its simulation
 architecture, data preparation, code organization, and TD3 training workflow.
 
 ## Simulation Architecture
@@ -61,7 +61,7 @@ not to move quoted prices, consume displayed depth, or alter subsequent order-bo
 states. The environment therefore treats the agent as price-taking rather than
 market-shaping. This is defensible only while position sizes remain small
 relative to displayed order-book depth, which holds for the MBP-10 dataset
-used here (defined in Chapter 5.1)^[All six instruments (AAPL, MSFT, TSLA,
+used here (defined in Section 5.1)^[All six instruments (AAPL, MSFT, TSLA,
 META, AMZN, and AVGO) are highly liquid Nasdaq-listed blue-chips with tight
 spreads, deep displayed depth, and continuous two-sided quoting. This ensures
 that simulated agent trades represent a negligible fraction of resting book
@@ -86,8 +86,8 @@ executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
 reward accounting, but it makes the reported backtest returns optimistic for
 the evaluated action path. Real execution may cross the spread and incur
 maker/taker fees, queue uncertainty, partial fills, and slippage. Section 4.3
-(@sec-execution-model-signal-friction) explains this assumption, while Chapter
-6 measures how the small per-step edge responds to modeled transaction costs.
+(@sec-execution-model-signal-friction) explains this assumption, while
+Chapter VI measures how the small per-step edge responds to modeled transaction costs.
 
 **Zero latency.** Observations are assumed to be acted on immediately, with no
 transport, decision, or matching-engine delay between state observation and

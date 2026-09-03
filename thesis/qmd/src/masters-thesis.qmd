@@ -175,7 +175,7 @@ csl: ../../bibliography/apa.csl
 # list any source cited only there. Keep in step with CITATION_KEYS in
 # feature_table_citations.py; `uv run python -c "from feature_table_citations
 # import nocite_keys; print(', '.join('@'+k for k in nocite_keys()))"` prints
-# the current list. Most are also cited by key in Chapter 4.2; Foucault2005 and
+# the current list. Most are also cited by key in Section 4.2; Foucault2005 and
 # Abergel2016 are not, and appear in the bibliography only because of this.
 nocite: |
   @Cao2004, @Biais1995, @Cont2014, @Stoikov2018, @Bouchaud2002, @Kyle1985,

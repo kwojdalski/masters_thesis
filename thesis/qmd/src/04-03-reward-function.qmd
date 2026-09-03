@@ -109,7 +109,7 @@ a first-order approximation, not an exact identity for arbitrary exposure.
 
 This is the first term of @eq-reward-baseline without the transaction cost
 penalty. At tick frequency, this signal is dominated by microstructure noise.
-Individual price changes on an MBP-10 order book (defined in Chapter 5.1) are
+Individual price changes on an MBP-10 order book (defined in Section 5.1) are
 a fraction of the spread. The agent cannot distinguish genuine directional
 movement from quote flickering in a single step.
 
@@ -181,7 +181,7 @@ recursively computable from $A_{t-1}$ and $B_{t-1}$ alone. This means no fixed w
 no look-ahead, and no discontinuity as old observations expire.
 
 A shaped reward such as DSR is used to stabilize learning. However, it is not
-equivalent to the financial performance metrics reported in Chapter 6.
+equivalent to the financial performance metrics reported in Chapter VI.
 
 The
 Sharpe ratio, annualized return, and drawdown statistics reported in the
@@ -229,4 +229,4 @@ Second, while variance is an imperfect proxy for risk, it provides a
 tractable baseline that discourages the most pathological high-turnover
 behaviors. Whether an alternative reward
 formulation performs better is a question for future work, addressed in
-Chapter 7.
+Chapter VII.

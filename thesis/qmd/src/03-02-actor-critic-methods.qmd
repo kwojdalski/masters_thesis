@@ -3,7 +3,7 @@
 Reinforcement learning algorithms have advanced through conceptual breaks, each
 addressing a limitation of its predecessor. The lineage leading to TD3 isolates
 the properties relevant to the continuous-action, single-asset trading problem
-formulated in Chapter 4.
+formulated in Chapter IV.
 
 ### Value-Based Methods and Their Limitations in Continuous Control
 
@@ -69,7 +69,7 @@ architecture with deterministic policies and twin critics as described in
 ### DDPG: Deterministic Policies for Continuous Control
 
 The deterministic policy gradient (DPG) theorem was established,
-showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form [@Silver2014]:^[The original DPG paper uses $\theta$ for the actor and $w$ for the critic [@Silver2014]; the DDPG paper uses $\theta^\mu$ and $\theta^Q$ [@Lillicrap2015]. This thesis adopts the TD3 convention throughout ($\phi$ for the actor and $\theta$ for the critic(s)) to maintain consistency with the TD3 equations in Chapter 4 [@Fujimoto2018].]
+showing that for a deterministic policy $\mu_\phi: \mathcal{S} \rightarrow \mathcal{A}$ the policy gradient takes the form [@Silver2014]:^[The original DPG paper uses $\theta$ for the actor and $w$ for the critic [@Silver2014]; the DDPG paper uses $\theta^\mu$ and $\theta^Q$ [@Lillicrap2015]. This thesis adopts the TD3 convention throughout ($\phi$ for the actor and $\theta$ for the critic(s)) to maintain consistency with the TD3 equations in Chapter IV [@Fujimoto2018].]
 
 $$
 \begin{aligned}
@@ -205,7 +205,7 @@ This differs from the standard Q-learning target in @eq-qlearning-update
 through two key modifications: (1) the minimum operator over two critics
 reduces overestimation bias, and (2) the deterministic target action
 $\tilde{a}'$ replaces the maximum over actions. The TD3 instantiation in
-Chapter 4.4 uses the same formulation, shown in @eq-bellman-target.
+Section 4.4 uses the same formulation, shown in @eq-bellman-target.
 
 Taking the minimum provides a conservative estimate of target value and
 substantially reduces overestimation bias. This is analogous to the original
@@ -285,7 +285,7 @@ replay, deterministic actor, explicit overestimation corrections) most
 directly match this thesis's simulation design.
 
 This choice should be read together with the trading constraints discussed in
-Chapter 2, which motivate continuous exposure control, off-policy learning
+Chapter II, which motivate continuous exposure control, off-policy learning
 from historical data, and caution about transaction costs, non-stationarity,
 and partial observability. TD3 satisfies the first two through deterministic
 continuous actions and replay-based learning; it does not solve the remaining
@@ -295,8 +295,8 @@ market-design problems, which the empirical chapters address separately.
 
 The preceding sections establish how PPO, DDPG, and TD3 differ in learning
 paradigm, policy type, and stability mechanism, and why TD3 is selected under
-this thesis's constraints. @tbl-policy-comparison in Chapter 4 summarizes
+this thesis's constraints. @tbl-policy-comparison in Chapter IV summarizes
 these differences at the implementation level (actor output, exploration
 noise, target smoothing, and update frequency) as configured for the
-controlled comparison in Chapter 6, where all three algorithms are evaluated
+controlled comparison in Chapter VI, where all three algorithms are evaluated
 on identical trading tasks.

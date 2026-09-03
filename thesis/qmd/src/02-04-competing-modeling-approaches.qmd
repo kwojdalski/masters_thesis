@@ -120,6 +120,6 @@ states to actions and rewards them from realized returns net of transaction
 costs, eliminating the calibration gap between a forecasting objective and a
 separate decision rule. It does not eliminate modeling assumptions: the
 Differential Sharpe Ratio used here approximates risk-adjusted return, so its
-relationship with out-of-sample performance remains empirical. Chapter 4
+relationship with out-of-sample performance remains empirical. Chapter IV
 develops this distinction, explains the need for reward shaping at tick
 frequency, and separates the training objective from financial evaluation.

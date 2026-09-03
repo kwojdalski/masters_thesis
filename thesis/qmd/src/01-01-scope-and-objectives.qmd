@@ -2,7 +2,7 @@
 
 ### Novelty of This Research
 
-Building on the TD3/HFT/order-book focus introduced in Chapter 1, the novelty
+Building on the TD3/HFT/order-book focus introduced in Chapter I, the novelty
 claim here is comparative. A large share of prior RL trading studies target
 lower-frequency inputs and evaluate algorithms such as Q-learning, DQN, or PPO
 primarily in bar-level settings, whereas this thesis aligns algorithm class,
@@ -62,4 +62,4 @@ Beyond testing the four hypotheses, the study aims to identify which constraint
 binds out-of-sample performance: the simplifications in the execution model,
 the coverage of the feature set, or the stability of training itself.
 Separating these determines which extension is worth pursuing and grounds the
-recommendations in Chapter 7.
+recommendations in Chapter VII.

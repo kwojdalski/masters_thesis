@@ -53,7 +53,7 @@ adding cross-asset signals would answer a different question and prevent
 clean attribution of any observed performance to LOB structure. Augmenting
 the observation with synchronized cross-asset regime indicators once baseline
 LOB-only performance is established is a natural extension left for future
-work (Chapter 7).
+work (Chapter VII).
 
 ### Feature Groups and Selection Rationale
 
@@ -82,7 +82,7 @@ from the price-improvement-based retail-identification method
 [@Boehmer2021]; the latter is not direct evidence for the odd-lot mechanism used
 here. Odd-lot share is computed from the February 25–27, 2026 MBP-10
 dataset across AAPL, MSFT, TSLA, META, AMZN, and AVGO and should not be interpreted as a
-long-run population statistic. See Chapter 5.1 for the MBP-10 format definition.] **Regime and temporal
+long-run population statistic. See Section 5.1 for the MBP-10 format definition.] **Regime and temporal
 features** condition the agent on activity
 rate via log inter-event time [@Engle2000], on price momentum via mid-price
 acceleration, and on the intraday seasonal pattern via cyclical sine and cosine

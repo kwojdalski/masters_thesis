@@ -11,7 +11,7 @@ held-out performance.
 <!-- [PLACEHOLDER] -->
 
 Beyond benchmark performance, the key empirical question is how the algorithmic
-choices in Chapter 3 affect trading results. Comparing PPO, DDPG, and TD3 on
+choices in Chapter III affect trading results. Comparing PPO, DDPG, and TD3 on
 identical data, features, and evaluation protocols isolates their practical
 effects.
 
@@ -219,7 +219,7 @@ transaction-cost analysis.
 
 ### Key Empirical Questions
 
-The results below are read through the theoretical lens from Chapter 3:
+The results below are read through the theoretical lens from Chapter III:
 whether TD3's overestimation correction improves on DDPG, how PPO's
 stability trades off against TD3's efficiency, and which algorithm best
 balances risk-adjusted return against practical deployment constraints.

@@ -1,6 +1,6 @@
 # Design of the Trading Agent
 
-The RL framework from Chapter 3 defines seven components of the single-asset HFT
+The RL framework from Chapter III defines seven components of the single-asset HFT
 agent: action space, state representation, reward function, value function,
 policy, discount factor, and step size. The trading problem's structure and
 constraints motivate each choice.

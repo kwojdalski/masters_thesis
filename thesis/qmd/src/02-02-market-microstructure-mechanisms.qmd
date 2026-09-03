@@ -3,7 +3,7 @@
 Market microstructure is grounded in a theoretical literature that models the
 strategic interactions between informed
 traders, uninformed liquidity demanders, and market makers in a limit order book.
-Chapter 4 derives its features from three elements of each theoretical framework:
+Chapter IV derives its features from three elements of each theoretical framework:
 the market mechanism, its observable proxy, and its limitation. Each framework
 motivates a candidate state variable, but none alone establishes profitability
 after costs.
@@ -23,7 +23,7 @@ order-processing components to the adverse-selection component isolated here.
 
 This decomposition has a direct implication for trading signal design. A
 narrowing spread signals reduced adverse selection risk; a widening spread
-signals elevated informed activity. These measures, operationalized in Chapter 4
+signals elevated informed activity. These measures, operationalized in Chapter IV
 as spread in basis points and the spread ratio, are therefore motivated as
 candidate state variables by this theoretical framework.
 
@@ -37,7 +37,7 @@ relationship between order imbalance and price change is linear, with slope
 $\lambda = \sqrt{\Sigma_0}/(2\sigma_u)$: the ratio of the standard deviation of
 fundamental-value uncertainty to that of uninformed order flow, so price impact
 rises with information asymmetry and falls as noise trading supplies more
-camouflage. The order flow features in Chapter 4 (OFI and signed trade
+camouflage. The order flow features in Chapter IV (OFI and signed trade
 flow) can be understood as empirical proxies for Kyle's order imbalance
 variable, with the bid-ask slope features measuring the depth analogue of
 $\lambda$ across levels of the order book. The limitation is that these proxies
@@ -55,7 +55,7 @@ are more likely to be information-driven, the price schedule must slope upward:
 deeper levels are compensated for bearing more adverse selection per unit, not
 less, alongside the uncertainty of whether they execute at all.
 
-This theoretical result motivates the multi-level features used in Chapter 4.
+This theoretical result motivates the multi-level features used in Chapter IV.
 The book is not a single price but a price schedule. The shape of that
 profile (measured by depth ratios, slopes, and convexity features)
 may encode information about how informed the marginal liquidity provider
@@ -110,5 +110,5 @@ queue-weighted midpoint summarizes the current top-of-book imbalance
 
 These mechanisms are not independent: they all reflect aspects of information
 aggregation through order flow, motivating the candidate feature families
-introduced in Chapter 4: spread-based, order-flow, depth-shape, and
+introduced in Chapter IV: spread-based, order-flow, depth-shape, and
 fair-value signals.

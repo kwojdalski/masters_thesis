@@ -64,7 +64,7 @@ about whether the edge would persist at all once the strategy's own order flow
 is allowed to feed back into the signal it exploits. Answering it needs either
 an explicit impact model (for example, a price-impact term keyed to trade size
 in the spirit of Kyle's lambda, already used as a feature-construction concept
-in Chapter 2) or a multi-agent analysis of what happens once the same signal
+in Chapter II) or a multi-agent analysis of what happens once the same signal
 is traded by more than one participant; both are left for future work.
 
 ### Evaluation Scope
@@ -121,10 +121,10 @@ thesis does not test.
 
 Action saturation is the most consequential unresolved issue in the
 experimental package, and it is not confined to a few discarded runs. Three
-zero-fee runs reported in Chapter 6 converged to a constant, saturated
+zero-fee runs reported in Chapter VI converged to a constant, saturated
 position: the 3-feature and 33-feature runs of Hypothesis 3 and the log-return
 run of Hypothesis 4. So did an earlier log-return baseline that preceded the
-formal hypothesis tests and is not reported in Chapter 6. Each records turnover
+formal hypothesis tests and is not reported in Chapter VI. Each records turnover
 of order $10^{-5}$ with zero position changes and sits at $100\%$ long or
 $100\%$ short for the entire evaluation. Three saturate at the upper bound and
 one at the lower. The bound a run settles at does not track the factor it
@@ -177,7 +177,7 @@ begins producing actions in regions the critic has seen rarely or never, the
 critic's estimates there are extrapolations from the training distribution
 rather than reliable values. The actor receives no signal that it has
 left the buffer's support. This is distinct from the overestimation-bias
-correction discussed in Chapter 3 (@sec-td3-lineage). The twin-critic
+correction discussed in Chapter III (@sec-td3-lineage). The twin-critic
 minimum addresses optimistic bias at the target computation, not exposure to
 out-of-distribution actions at the actor update. Stochastic-policy methods
 such as SAC are structurally less exposed to this failure mode, since the

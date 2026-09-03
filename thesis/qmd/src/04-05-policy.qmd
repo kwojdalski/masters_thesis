@@ -134,7 +134,7 @@ linear output layer producing a scalar value estimate.
 All three algorithms are trained with the same state representation, reward function,
 data split, random seed, learning rates, and weight decay. The network capacity is
 equalized: both actor and value networks use hidden dimensions [128, 64] across all
-three algorithms. This ensures that differences in empirical performance in Chapter 6
+three algorithms. This ensures that differences in empirical performance in Chapter VI
 are attributable to the algorithmic properties (policy type, update rule, and
 stability mechanisms) and not to differences in model capacity or input features.
 
