@@ -99,8 +99,9 @@ is excluded from z-score normalization because its bimodal distribution,
 concentrating near $\pm 1$ under the continuous action space, makes
 standardization counterproductive relative to the raw bounded signal.
 
-The candidate pool from which these groups were drawn contained over forty
-computable statistics. Features eliminated by the IC/ICIR filter or excluded on
+The candidate pool from which these groups were drawn contained roughly forty
+computable statistics (39 by the feature registry in Appendix A, counting each
+parameterisation separately). Features eliminated by the IC/ICIR filter or excluded on
 redundancy grounds include VPIN [@Easley2012], cancel-to-trade ratio, trade
 arrival rate, OFI autocorrelation, large trade ratio, depth ratio, and price vamp.
 VPIN proved collinear with rolling OFI after conditional screening. Cancel-to-trade
@@ -173,7 +174,8 @@ Feature selection follows a two-stage procedure that combines theoretical
 constraints with empirical ranking.
 
 **Stage 1: Theory-constrained candidate pool.** The LOB feature registry
-contains over forty computable statistics. The candidate pool is restricted to
+contains roughly forty computable statistics (39, counting each parameterisation
+separately). The candidate pool is restricted to
 features that represent a distinct mechanism identified in the market
 microstructure literature. Each of the five groups (imbalance, fair value,
 spread, order flow, and regime) corresponds to a specific theoretical construct:
