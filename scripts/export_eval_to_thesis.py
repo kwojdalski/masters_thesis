@@ -298,22 +298,78 @@ def _copy_plots(plots: dict[str, Path], dest_dir: Path) -> dict[str, str]:
     return copied
 
 
-def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | None:
-    """Extract training hyperparameters from the scenario train.yaml.
+def _find_effective_config(
+    experiment_name: str, repo_root: Path, trained_steps: int | None
+) -> tuple[Path, str] | None:
+    """Locate the MLflow-logged effective config for this experiment.
 
-    Returns a flat dict of the key parameters used in the main experiment table,
-    or None if the YAML cannot be found or read.
+    `log_config_artifact()` serialises the *resolved* in-memory config --
+    CLI overrides included -- to `config/effective_config_*.yaml` under the
+    run's artifact directory. The random suffix comes from the
+    NamedTemporaryFile handed to `mlflow.log_artifact`, so the file is
+    discovered by glob rather than by a fixed name.
+
+    Several runs of one experiment usually exist, and they can genuinely
+    disagree (issue #816 documents four full-budget runs of the H1 scenario
+    split between `actor_weight_decay` 0.0 and 2e-06). `trained_steps`, read
+    from the checkpoint ladder, is the strongest available discriminator:
+    prefer a run whose configured `max_steps` matches what was actually
+    reached. Ties break on recency.
+
+    Returns (path, run_id) or None.
     """
-    if scenario is None:
-        return None
-    yaml_path = repo_root / "src" / "configs" / "scenarios" / scenario / "train.yaml"
-    if not yaml_path.exists():
-        return None
-    try:
-        raw = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
-    except Exception:
+    pattern = "mlruns/*/*/artifacts/config/effective_config_*.yaml"
+    candidates: list[tuple[float, Path, str, object]] = []
+    for path in repo_root.glob(pattern):
+        try:
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            # An unreadable artifact from some other run must not abort the
+            # scan; log it so a systematically corrupt store is still visible.
+            logger.debug("skipping unreadable effective config {}: {}", path, exc)
+            continue
+        if not isinstance(raw, dict) or raw.get("experiment_name") != experiment_name:
+            continue
+        max_steps = (raw.get("training") or {}).get("max_steps")
+        # mlruns/<experiment_id>/<run_id>/artifacts/config/<file>
+        run_id = path.parent.parent.parent.name
+        candidates.append((path.stat().st_mtime, path, run_id, max_steps))
+
+    if not candidates:
         return None
 
+    matching = [
+        c for c in candidates if trained_steps is not None and c[3] == trained_steps
+    ]
+    pool = matching or candidates
+    if not matching and trained_steps is not None:
+        logger.warning(
+            "no effective config for {!r} has max_steps == trained steps ({}); "
+            "falling back to the most recent of {} candidate run(s)",
+            experiment_name,
+            trained_steps,
+            len(candidates),
+        )
+    pool.sort(key=lambda c: c[0])
+    _, chosen_path, chosen_run, _ = pool[-1]
+
+    if len(pool) > 1:
+        logger.warning(
+            "{} effective configs match {!r}; using the most recent (run {}). "
+            "Snapshot provenance is ambiguous -- see issue #816.",
+            len(pool),
+            experiment_name,
+            chosen_run,
+        )
+    return chosen_path, chosen_run
+
+
+def _extract_hyperparams(raw: dict) -> dict:
+    """Flatten a resolved config dict into the fields the thesis quotes.
+
+    Shared by the effective-config and train.yaml paths so both produce the
+    same shape; only the source of `raw` differs.
+    """
     training = raw.get("training", {})
     env = raw.get("env", {})
     network = raw.get("network", {})
@@ -355,6 +411,25 @@ def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | 
         "streaming_episode_length": env.get("streaming_episode_length"),
         "train_size": data.get("train_size"),
     }
+
+
+def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | None:
+    """Extract training hyperparameters from the scenario train.yaml.
+
+    Fallback only. This is the *configured* default: a launch-time
+    `--config-override` never reaches this file, so it can disagree with what
+    the run actually used. Prefer `_find_effective_config()`.
+    """
+    if scenario is None:
+        return None
+    yaml_path = repo_root / "src" / "configs" / "scenarios" / scenario / "train.yaml"
+    if not yaml_path.exists():
+        return None
+    try:
+        raw = yaml.safe_load(yaml_path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    return _extract_hyperparams(raw)
 
 
 def _resolve_eval_dir(
@@ -682,13 +757,53 @@ def main() -> int:
     if not (snapshot_dir / "latest_metrics.json").exists():
         _write_json(snapshot_dir / "latest_metrics.json", {})
 
-    hyperparams = _load_scenario_hyperparams(args.scenario, repo_root)
+    trained_steps = _trained_steps_from_checkpoints(eval_dir)
+
+    # The run's effective config is the resolved, post-override record of what
+    # the agent was actually trained with; the scenario train.yaml is only the
+    # configured default and cannot see a `--config-override` (#816). #797
+    # already special-cased max_steps by reading the checkpoint ladder, but
+    # every other knob still came from the YAML. Prefer the effective config,
+    # fall back to the YAML, and record which was used so a reader can tell
+    # whether the reported hyperparameters are the run's or the scenario's.
+    hyperparams: dict | None = None
+    hyperparams_source: str | None = None
+    effective_run_id: str | None = None
+
+    found = _find_effective_config(experiment_name, repo_root, trained_steps)
+    if found is not None:
+        eff_path, effective_run_id = found
+        try:
+            eff_raw = yaml.safe_load(eff_path.read_text(encoding="utf-8"))
+            hyperparams = _extract_hyperparams(eff_raw)
+            hyperparams_source = "effective_config"
+            # Keep the resolved config verbatim beside the snapshot so any
+            # figure taken from it can be checked without MLflow present.
+            shutil.copyfile(eff_path, snapshot_dir / "effective_config.yaml")
+            logger.info(
+                "exported hyperparams from effective config (run {})", effective_run_id
+            )
+        except Exception as exc:
+            logger.warning("could not read effective config {}: {}", eff_path, exc)
+            hyperparams = None
+
+    if hyperparams is None:
+        hyperparams = _load_scenario_hyperparams(args.scenario, repo_root)
+        if hyperparams is not None:
+            hyperparams_source = "scenario_train_yaml"
+            logger.warning(
+                "no effective config found for {!r}; falling back to the scenario "
+                "train.yaml, which cannot reflect launch-time overrides (#816)",
+                experiment_name,
+            )
+
     hyperparams_file: str | None = None
     if hyperparams is not None:
-        # max_steps from the YAML is the requested budget; a launch-time
-        # override leaves no trace there. Record what the run actually reached
-        # so the snapshot cannot contradict the prose (#797).
-        trained_steps = _trained_steps_from_checkpoints(eval_dir)
+        hyperparams["source"] = hyperparams_source
+        hyperparams["source_run_id"] = effective_run_id
+        # max_steps is the requested budget; a run stopped early still needs
+        # the outcome, not the intent. Record what it actually reached so the
+        # snapshot cannot contradict the prose (#797).
         hyperparams["max_steps_configured"] = hyperparams.get("max_steps")
         hyperparams["trained_steps"] = trained_steps
         if trained_steps is not None:
@@ -696,14 +811,13 @@ def main() -> int:
             if hyperparams["max_steps_configured"] not in (None, trained_steps):
                 logger.warning(
                     "trained steps ({}) differ from the configured max_steps ({}): "
-                    "the run was launched with an override. Exporting the trained "
-                    "value; max_steps_configured keeps the YAML figure.",
+                    "the run stopped short of its budget. Exporting the trained "
+                    "value; max_steps_configured keeps the configured figure.",
                     trained_steps,
                     hyperparams["max_steps_configured"],
                 )
         _write_json(snapshot_dir / "hyperparams.json", hyperparams)
         hyperparams_file = "hyperparams.json"
-        logger.info("exported hyperparams from train.yaml")
 
     plot_relpaths = _copy_plots(plots, snapshot_dir) if plots else {}
 
@@ -735,7 +849,10 @@ def main() -> int:
         )
 
     run_json: dict = {
-        "run_id": None,
+        # The MLflow run whose effective config supplied the exported
+        # hyperparameters, when one was found. Without it a snapshot cannot be
+        # traced back to the run that produced it (#816).
+        "run_id": effective_run_id,
         "run_name": experiment_name,
         # Not "FINISHED": this script exports an evaluate-CLI results file and
         # has no way to confirm the training run completed. start_time is
@@ -744,6 +861,7 @@ def main() -> int:
         "start_time": None,
         "end_time": results_mtime,
         "artifact_uri": None,
+        "hyperparams_source": hyperparams_source,
         "experiment_name": experiment_name,
         "experiment_id": None,
         "source": {
