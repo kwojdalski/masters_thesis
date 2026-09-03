@@ -94,7 +94,7 @@ transport, decision, or matching-engine delay between state observation and
 execution. This is appropriate for a study focused on strategy learning rather
 than low-latency execution engineering. In production HFT systems, such delays
 can invalidate short-lived signals; Section 7.2 (@sec-execution-realism)
-quantifies this against the dataset's event cadence.
+sets this against the dataset's event cadence.
 
 **Bounded continuous exposure.** Position constraints are enforced via the
 continuous action interval $[-1, 1]$, preventing unbounded leverage.

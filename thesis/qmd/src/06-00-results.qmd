@@ -250,7 +250,7 @@ instrument with the fewest events). The ordering on cumulative return is
 therefore not the ordering on risk-adjusted return or on drawdown, and no single
 scenario dominates across the three.
 
-The **random baseline** returns $0.2\%$ with a profit factor of $1.01$, which
+The **random baseline** returns $0.25\%$ with a profit factor of $1.006$, which
 is what noise looks like: gross gains and gross losses almost exactly offset. It
 does so at the highest turnover, $0.67$, and a drawdown of $-0.59\%$. The
 separation from the learned policies is therefore large and consistent. Each learner
