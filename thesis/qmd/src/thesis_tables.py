@@ -544,10 +544,15 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
         '<table class="dataframe" style="font-size:0.85em">'
         f"<thead>{_hdr}</thead><tbody>{_body}</tbody></table>"
     )
+    source_p = (
+        '<p style="font-size:0.85em"><em><strong>Source:</strong> Author&#39;s own calculations '
+        "based on DataBento Nasdaq MBP-10 data.</em></p>"
+    )
     note_p = f'<p style="font-size:0.85em"><em><strong>Note:</strong> {note}</em></p>'
     html_block = (
         f"::: {{#tbl-feature-correlations}}\n\n"
         f"{html_table}\n\n"
+        f"{source_p}\n\n"
         f"{note_p}\n\n"
         f"{caption}\n\n"
         f":::"
@@ -587,7 +592,10 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
             # tablenote.lua implements for every other table. This one builds
             # its LaTeX directly, so it carried neither the "Note:" label the
             # HTML branch emits nor the correct emphasis.
-            f"\\footnotesize\\parindent0pt\\textit{{Note:}} {_esc(note)}",
+            r"\footnotesize\parindent0pt",
+            r"\textit{Source:} Author's own calculations based on DataBento "
+            r"Nasdaq MBP-10 data.\par",
+            f"\\textit{{Note:}} {_esc(note)}",
             r"\end{minipage}",
             r"\end{table}",
         ]
