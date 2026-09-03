@@ -686,7 +686,7 @@ intended as a navigation aid.
 **Source:** Author's own elaboration.
 :::
 
-The full machine-readable diagram is maintained as a D2 source file
+The full machine-readable diagram is maintained as a source file
 at `docs/workflow.d2` in the project repository [@Wojdalski2026]. It covers
 CLI entry points, per-step data flows, all configuration guardrail checks,
 environment variants, MLflow logging, and asset provenance metadata. It is too
