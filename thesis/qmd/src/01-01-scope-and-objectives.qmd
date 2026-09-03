@@ -50,7 +50,7 @@ whether the difference is distinguishable from zero but whether it exceeds the
 cost of trading on it. That is measured directly, by the transaction-cost
 sweep in Section 6.2 and the fixed-path bid/ask repricing in Section 7.2.
 
-Each hypothesis is tested as a single-factor comparison. Arms differ only in
+Each hypothesis is tested as a single-factor comparison. Scenarios differ only in
 the quantity under study — the transaction-cost rate for Hypothesis 2, the
 feature set for Hypothesis 3, the reward objective for Hypothesis 4 — so that
 any difference in out-of-sample performance is attributable to that factor
