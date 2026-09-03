@@ -44,7 +44,7 @@ observations and the resulting ratio is numerically meaningless: one run
 returned a Sortino below its own Sharpe ratio, which cannot occur for a single
 return series. The statistic is well determined only for the random baseline,
 which loses on roughly half its bars. That the learned policies almost never
-close a four-minute bar at a loss is itself a consequence of the frictionless
+close a one-minute bar at a loss is itself a consequence of the frictionless
 execution model rather than a property to be expected of a deployed strategy.
 
 ```{python}
