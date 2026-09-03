@@ -92,7 +92,9 @@ all monetary values in US dollars.
 **Source:** Author's own elaboration based on DataBento Nasdaq MBP-10 data, AAPL, 25 February 2026.
 :::
 
-*Action: A = limit-order addition, T = trade print. Side: B = bid, A = ask, N = no aggressor side (trade report). Best Bid/Ask and Bid Sz/Ask Sz reflect the level-0 (top-of-book) snapshot after each event is applied.*
+::: {.table-note}
+**Legend:** Action: A = limit-order addition, T = trade print. Side: B = bid, A = ask, N = no aggressor side (trade report). Best Bid/Ask and Bid Sz/Ask Sz reflect the level-0 (top-of-book) snapshot after each event is applied.
+:::
 
 ### Preprocessing and Splitting
 

@@ -134,7 +134,9 @@ else:
     show_table_meta(finished, audit=_audit)
 ```
 
-*Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Win Rate: fraction of steps with positive return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long/Short: fraction of steps with positive/negative position.*
+::: {.table-note}
+**Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: average absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
+:::
 
 ::: {.content-visible when-format="pdf"}
 ```{=latex}
