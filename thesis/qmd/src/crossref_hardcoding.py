@@ -22,6 +22,20 @@ resolves to an *existing* number also points at the *right* content -- that
 still needs a human or `thesis-crossref-auditor` -- but it turns "the number
 doesn't exist at all" and "a new hardcoded reference was added instead of a
 crossref" into a build-time failure instead of a silent drift.
+
+`find_orphaned_equations` answers a related but different question: which
+`{#eq-...}`-labelled equations are never cited via `@eq-...` anywhere. This is
+deliberately NOT wired into `find_violations`/the CI gate, and it is not a
+"the number is wrong" bug the way the checks above are. Most equations in a
+thesis are displayed once, exactly where they are defined and discussed, and
+have no reason for anything elsewhere to point back to them -- an uncited
+equation is normal, not broken. What the list is actually useful for is the
+same thing `thesis-condenser` sessions already used it for by hand: a
+zero-citation equation is a candidate for "does this need its own display
+treatment, or is it restating something already shown" (this is exactly how
+`eq-tw-mean`/`eq-tw-var` and `eq-microprice-ch2` were identified and cut --
+see docs/masters_thesis/length_reduction_plan.md items 8-9). Treat the output
+as an editorial list, not a pass/fail signal.
 """
 
 from __future__ import annotations
@@ -147,6 +161,45 @@ def count_appendix_letters() -> int:
 _SECTION_REF_RE = re.compile(r"\bSection\s+(\d+)\.(\d+)(?:\.(\d+))?\b")
 _ALGORITHM_REF_RE = re.compile(r"\bAlgorithm\s+(\d+)\b")
 _APPENDIX_REF_RE = re.compile(r"\bAppendix\s+([A-Z])\b")
+_EQ_LABEL_DEF_RE = re.compile(r"\{#(eq-[a-zA-Z0-9_-]+)\}")
+_EQ_LABEL_REF_RE = re.compile(r"@(eq-[a-zA-Z0-9_-]+)")
+
+
+def find_orphaned_equations() -> list[Violation]:
+    """Every `{#eq-...}` label must be cited at least once via `@eq-...`.
+
+    A hardcoded "Equation N"/"Eq. N" reference does not count as a citation:
+    if one exists, the equation is still not protected by the crossref
+    mechanism, and #776/#777 are the reason hardcoded numeric references are
+    treated as their own violation elsewhere in this module, not as coverage.
+    """
+    defined: dict[str, tuple[str, int]] = {}
+    referenced: set[str] = set()
+
+    for fname in _include_order():
+        raw = (_SRC / fname).read_text()
+        prose = _strip_non_prose(raw)
+        for lineno, line in enumerate(prose.splitlines(), start=1):
+            for m in _EQ_LABEL_DEF_RE.finditer(line):
+                defined.setdefault(m.group(1), (fname, lineno))
+            for m in _EQ_LABEL_REF_RE.finditer(line):
+                referenced.add(m.group(1))
+
+    violations = []
+    for label, (fname, lineno) in sorted(defined.items(), key=lambda kv: kv[1]):
+        if label not in referenced:
+            violations.append(
+                Violation(
+                    fname,
+                    lineno,
+                    "orphaned-equation",
+                    label,
+                    "labelled but never cited with @"
+                    + label
+                    + " anywhere -- either reference it in prose or drop the label",
+                )
+            )
+    return violations
 
 
 @dataclass
@@ -221,11 +274,20 @@ def main() -> int:
     violations = find_violations()
     if not violations:
         print("crossref_hardcoding: no violations found.")
-        return 0
-    print(f"crossref_hardcoding: {len(violations)} violation(s) found:\n")
-    for v in violations:
+    else:
+        print(f"crossref_hardcoding: {len(violations)} violation(s) found:\n")
+        for v in violations:
+            print(f"  {v}")
+
+    orphans = find_orphaned_equations()
+    print(
+        f"\ncrossref_hardcoding: {len(orphans)} equation(s) defined but never cited "
+        "(report only, not a failure -- see module docstring):\n"
+    )
+    for v in orphans:
         print(f"  {v}")
-    return 1
+
+    return 1 if violations else 0
 
 
 if __name__ == "__main__":
