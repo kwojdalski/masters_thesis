@@ -40,9 +40,12 @@ from trading_rl.evaluation.thesis_theme import (
 # Configure scenarios here
 # ---------------------------------------------------------------------------
 SCENARIOS: list[tuple[str, str]] = [
-    ("logs/td3_hft_lob_state_space_pooled_streaming_selected_dsr", "TD3"),
-    ("logs/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr", "DDPG"),
-    # ("logs/some_other_scenario", "Label"),
+    ("output/experiments/td3_hft_lob_state_space_pooled_streaming_selected_dsr", "TD3"),
+    (
+        "output/experiments/ddpg_hft_lob_state_space_pooled_streaming_selected_dsr",
+        "DDPG",
+    ),
+    # ("output/experiments/some_other_scenario", "Label"),
 ]
 
 # Benchmark run names present in every portfolio_value_plot.csv

@@ -35,7 +35,7 @@ training:
   log_interval: 50
 
 logging:
-  log_dir: "logs/tradingenv_quick_test"
+  log_dir: "output/experiments/tradingenv_quick_test"
   log_level: "INFO"
 EOF
 

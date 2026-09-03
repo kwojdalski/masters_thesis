@@ -39,7 +39,9 @@ _COMMAND_STEMS = {"train", "evaluate", "experiment"}
 # Root directory for per-run experiment artifacts (checkpoints, results.json,
 # benchmark tables, plots) written by train/evaluate. Distinct from the
 # `logger` package's RL_LOG_DIR, which is for rotating text logs only.
-EXPERIMENT_OUTPUT_DIR = Path(os.environ.get("EXPERIMENT_OUTPUT_DIR", "logs"))
+EXPERIMENT_OUTPUT_DIR = Path(
+    os.environ.get("EXPERIMENT_OUTPUT_DIR", "output/experiments")
+)
 
 
 def _derive_experiment_name(path: Path) -> str:

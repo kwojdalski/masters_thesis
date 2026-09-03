@@ -47,7 +47,7 @@ def _log_fallback(context: str, exc: Exception) -> None:
 try:
     from trading_rl.config import EXPERIMENT_OUTPUT_DIR as _EXPERIMENT_OUTPUT_DIR
 except Exception:
-    _EXPERIMENT_OUTPUT_DIR = Path("logs")
+    _EXPERIMENT_OUTPUT_DIR = Path("output/experiments")
 
 
 def _repo_root() -> Path:

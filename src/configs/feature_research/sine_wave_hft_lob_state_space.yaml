@@ -10,4 +10,4 @@ research:
   horizon: 1
   top_k: 12
   corr_threshold: 0.85
-  output_dir: "logs/sine_wave_hft_lob/feature_research"
+  output_dir: "output/experiments/sine_wave_hft_lob/feature_research"

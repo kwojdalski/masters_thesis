@@ -5,7 +5,7 @@ produced it to the sentence that prints it.
 
 The intended contract is: **the thesis reads only from `thesis/qmd/results/**`,
 which is written by the export scripts.** Nothing in a `.qmd` should reach past
-that boundary into MLflow, `logs/`, or a scenario YAML. Three paths currently
+that boundary into MLflow, `output/experiments/`, or a scenario YAML. Three paths currently
 break that contract; they are marked in red below and listed in
 [Bypass paths](#bypass-paths).
 
@@ -18,10 +18,10 @@ flowchart LR
         CFG["src/configs/scenarios/**/train.yaml"]
         TRAIN["thesis-experiments hN"]
         MLF[("mlruns/** + mlflow.db")]
-        LOGS[("logs/scenario/")]
+        OUT[("output/experiments/scenario/")]
         CFG --> TRAIN
         TRAIN --> MLF
-        TRAIN --> LOGS
+        TRAIN --> OUT
     end
 
     subgraph export["2 - Export scripts"]
@@ -52,7 +52,7 @@ flowchart LR
     end
 
     MLF --> EEVAL
-    LOGS --> EEVAL
+    OUT --> EEVAL
     CFG -. "fallback only" .-> EEVAL
     EEVAL --> HP
     EEVAL --> EVAL
@@ -68,10 +68,10 @@ flowchart LR
     PLOTS --> HELP
 
     MLF -. "BYPASS 1+2: live DB and<br/>artifact store preferred" .-> HELP
-    LOGS -. "BYPASS 3: results.json<br/>read directly" .-> HELP
+    OUT -. "BYPASS 3: results.json<br/>read directly" .-> HELP
 
     classDef leak stroke:#c0392b,stroke-width:3px,color:#c0392b
-    class MLF,LOGS leak
+    class MLF,OUT leak
 ```
 
 ## What each chapter consumes
@@ -129,7 +129,7 @@ plots; a machine with it may render a different run's.
 
 ### 3. `load_scenario_metrics()` has two non-snapshot fallbacks
 
-Preference order is snapshot → MLflow artifact store → `logs/<name>/results.json`
+Preference order is snapshot → MLflow artifact store → `output/experiments/<name>/results.json`
 read directly. The first is what normally fires, but the third would silently
 publish a number that was never exported.
 
