@@ -1,0 +1,47 @@
+---
+name: new-machine-bootstrap
+description: This skill should be used when the user asks to "set up a new machine", "bootstrap this laptop", "restore my dotfiles", "get this Mac set up like my other one", or is setting up a fresh macOS install and wants their usual shell/tooling environment restored from github.com/kwojdalski/dotfiles.
+version: 1.0.0
+---
+
+# New Machine Bootstrap
+
+Restores this user's personal environment (zsh config, oh-my-zsh plugins, Claude
+skills/agents) on a fresh macOS machine from their private dotfiles repo.
+
+## Steps
+
+1. **Homebrew** — check `command -v brew`; if missing, install it first (required
+   for everything below).
+2. **oh-my-zsh** — check `~/.oh-my-zsh` exists; if not, install it (this also
+   creates `~/.zshrc`, which the next step will replace via symlink).
+3. **zsh-autosuggestions / zsh-syntax-highlighting** — these are custom oh-my-zsh
+   plugins, not built-in. Clone them into
+   `~/.oh-my-zsh/custom/plugins/zsh-autosuggestions` and
+   `~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting` from their upstream repos
+   if not already present.
+4. **Clone the dotfiles repo**:
+   `git clone git@github.com:kwojdalski/dotfiles.git ~/dotfiles`
+   (falls back to `https://github.com/kwojdalski/dotfiles.git` if SSH isn't set
+   up yet on this machine).
+5. **Run the installer**: `~/dotfiles/install.sh` — symlinks every tracked
+   config into place (see `~/dotfiles/README.md`'s Layout section for the
+   current full list rather than assuming this list is exhaustive). It backs
+   up any real (non-symlink) file it would overwrite to `<file>.bak`.
+6. **Verify CLI dependencies referenced by the plugins list** in `zshrc`
+   (`plugins=(...)`). Check each of: `docker`, `aws`, `gh`, `pyenv`, `uv`,
+   `httpie`, `thefuck`, `node`, `npm`, `yarn`. Install any that are missing via
+   `brew install <name>` (or note to the user that it's missing and ask before
+   installing anything unusual).
+7. **Restart the shell** (`exec zsh` or open a new terminal tab) and confirm no
+   errors on startup (`zsh -i -c 'echo ok'`).
+
+## Notes
+
+- Never force-overwrite a real file without backing it up first — `install.sh`
+  already does this, don't reimplement it inline.
+- This is a personal single-user repo (no bare-repo/chezmoi machinery) — keep
+  suggestions in this spirit; don't introduce a dotfiles manager unless asked.
+- If new config files get added to `~/dotfiles` in the future (e.g.
+  `.gitconfig`, `.vimrc`), they should follow the same pattern: real file lives
+  in the repo, `install.sh` gets a new `link` line, symlink placed in `$HOME`.
