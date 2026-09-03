@@ -87,7 +87,7 @@ _audit = audit_plots_enabled()
 :::
 
 ```{python}
-#| label: h1_algo_comparison
+#| label: tbl-h1-algo-comparison
 #| echo: false
 #| warning: false
 #| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random, under frictionless (mid-price, zero-fee) execution."
@@ -114,6 +114,32 @@ for exp_name, label in _H1_AGENTS:
     row = {"Algorithm": label}
     for key, col, fmt in _H1_COLS:
         row[col] = fmt_val(m.get(key), fmt)
+    rows.append(row)
+
+# TWAP and VWAP are execution benchmarks, not agents, so they are not their own
+# scenarios: each is scored inside every agent run over the identical window.
+# Read them from the TD3 run's per-symbol blocks and average across symbols,
+# which is exactly how the agent rows above are pooled -- verified by
+# reproducing TD3's own 304.94% from the same per-symbol mean. Taking them from
+# statistical_tests.json instead would mix two different aggregations in one
+# table.
+_BENCH_SOURCE = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+_BENCHMARKS = [("twap", "TWAP"), ("vwap", "VWAP")]
+
+_bench_metrics = load_scenario_metrics(_BENCH_SOURCE)
+_per_symbol = _bench_metrics.get("__per_symbol__") or {}
+for _key, _label in _BENCHMARKS:
+    _scored = [
+        s["benchmarks"][_key]["benchmark_metrics"]
+        for s in _per_symbol.values()
+        if s.get("benchmarks", {}).get(_key, {}).get("benchmark_metrics")
+    ]
+    if not _scored:
+        continue
+    row = {"Algorithm": _label}
+    for key, col, fmt in _H1_COLS:
+        vals = [b[key] for b in _scored if isinstance(b.get(key), int | float)]
+        row[col] = fmt_val(sum(vals) / len(vals) if vals else None, fmt)
     rows.append(row)
 
 h1_df = pd.DataFrame(rows)
