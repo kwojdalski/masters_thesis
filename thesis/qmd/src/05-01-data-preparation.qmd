@@ -268,10 +268,12 @@ across all six instruments (per-symbol Spearman between $0.14$ and $0.33$ for
 order-count imbalance) and carry the sign expected when queue imbalance predicts
 which side of the book depletes first, the mechanism set out in Chapter II
 [@Cont2014; @Stoikov2018]. The matching Pearson correlations are smaller
-($\le 0.16$), so the relationship is monotone rather than linear. Every other
-feature (fair-value level, spread regime, book convexity, trade intensity,
-order-flow autocorrelation, and time encodings) has $|r| < 0.02$ on both
-measures in isolation.
+($\le 0.16$), so the relationship is monotone rather than linear. Below these
+four, fourteen features fall between $0.02$ and $0.15$ on at least one measure:
+three-level imbalance and OFI, queue depletion, rolling OFI, signed trade flow,
+book convexity, and the book slopes. The remaining fifteen (fair-value level,
+spread regime, trade intensity, order-flow autocorrelation, and time encodings)
+are below $0.02$ on both.
 
 Two things follow for the choice of function approximator. First, even the
 strongest single feature accounts for under seven per cent of the rank variance
