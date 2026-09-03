@@ -246,12 +246,12 @@ worst loss to $-0.45\%$ and $-0.47\%$, while TD3's $-0.65\%$ is the deepest of
 the learners, driven almost entirely by META (a $-3.3\%$ excursion on the
 instrument with the fewest events). The ordering on cumulative return is
 therefore not the ordering on risk-adjusted return or on drawdown, and no single
-arm dominates across the three.
+scenario dominates across the three.
 
 The **random baseline** returns $0.2\%$ with a profit factor of $1.01$, which
 is what noise looks like: gross gains and gross losses almost exactly offset. It
 does so at the highest turnover, $0.67$, and a drawdown of $-0.59\%$. The
-separation from the learned arms is therefore large and consistent. Each learner
+separation from the learned policies is therefore large and consistent. Each learner
 clears the random policy by about three orders of magnitude on cumulative
 return and by a factor of three to five on profit factor, while trading less.
 That gap, rather than any difference among TD3, DDPG, and PPO, is what the

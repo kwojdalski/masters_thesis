@@ -20,12 +20,12 @@ specifications compared under identical training and evaluation conditions,
 only the curated ten-feature configuration converged to a trading policy; the
 three-feature and thirty-three-feature variants both saturated at a fixed
 position and never trained (Sections 6.3 and 7.1). Because two of the three
-arms did not optimize, the comparison cannot isolate the effect of feature
+runs did not optimize, the comparison cannot isolate the effect of feature
 choice, and Hypothesis 3 is unresolved. The pattern is nonetheless suggestive:
 a compact, theoretically motivated set may give the policy a higher
 signal-to-noise ratio to work with than either a state too sparse to be
 informative or one padded with collinear and noisy channels. Whether that
-intuition survives once every arm is trained to convergence, or whether the
+intuition survives once every scenario is trained to convergence, or whether the
 failures instead reflect optimization budget and observation dimensionality,
 is a question for the training-stability work identified in Section 7.2.
 

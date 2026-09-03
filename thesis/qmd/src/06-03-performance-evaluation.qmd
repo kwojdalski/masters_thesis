@@ -40,7 +40,7 @@ turnover are computed on the raw per-step series.
 The Sortino ratio is not reported. Aggregation leaves roughly 237 bars, and the
 learned policies record fewer than three losing bars among them, so the
 downside deviation $\sigma_{\text{down}}$ is estimated from one or two
-observations and the resulting ratio is numerically meaningless: one arm
+observations and the resulting ratio is numerically meaningless: one run
 returned a Sortino below its own Sharpe ratio, which cannot occur for a single
 return series. The statistic is well determined only for the random baseline,
 which loses on roughly half its bars. That the learned policies almost never
@@ -111,7 +111,7 @@ def _prov_note() -> str:
     syms = ", ".join(_plot_prov.get("symbols") or []) or "the pooled split"
     runs = _plot_prov.get("runs")
     if runs:
-        # Comparison export: name the arms and the matching that makes them
+        # Comparison export: name the runs and the matching that makes them
         # comparable, since the reader is being invited to read one line
         # against another.
         step = _plot_prov.get("checkpoint_step")
@@ -349,7 +349,7 @@ The agent clears the existence bar: it extracts a signal the passive benchmarks
 do not, with better trade-level economics and a shallower maximum drawdown. The
 comparison is, however, run under mid-price execution with zero fees. That is not a neutral choice: zero-cost execution is a subsidy
 proportional to turnover, so a comparison whose only asymmetry is the spread the
-active arm does not pay favours the higher-turnover reinforcement learning policy
+active strategy does not pay favours the higher-turnover reinforcement learning policy
 over the near-static passive benchmarks. Any spread-crossing cost both erases the
 agent's own frictionless return (Section 6.2) and narrows its measured advantage
 over buy-and-hold. The benchmark comparison thus supports the existence half of

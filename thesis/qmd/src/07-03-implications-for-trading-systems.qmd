@@ -9,7 +9,7 @@ determined whether training succeeded at all. Of three feature sets run under
 an identical budget and architecture, only the curated ten-feature set
 converged to a trading policy; both a three-feature subset and a
 thirty-three-feature superset saturated at a fixed position and never trained
-(Section 6.3). Because two of the three arms did not optimise, this does not
+(Section 6.3). Because two of the three runs did not optimise, this does not
 establish that a richer state improves returns. It does show that a poorly
 chosen state can block learning outright, which no amount of algorithm tuning
 recovers. The microstructure literature reviewed in Chapter 2 motivates which
@@ -51,7 +51,7 @@ is maintained throughout the evaluation reported in Chapter 6.
 **Transaction-cost sensitivity bounds what the result can support.** The
 execution model used here is a mid-price proxy and is optimistic relative to
 executable bid and ask prices. Spread-crossing costs are of similar magnitude
-to the price moves the agent targets. The higher-fee retraining arms collapse
+to the price moves the agent targets. The higher-fee retraining runs collapse
 to static positions (Section 6.2). The sweep establishes sensitivity, but not a
 precise break-even fee for a functioning policy. Fixed-path bid/ask repricing
 does reverse the baseline result. The frictionless finding should therefore be
