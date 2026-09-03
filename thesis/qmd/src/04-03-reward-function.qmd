@@ -148,7 +148,12 @@ does not eliminate the noise concerns at tick frequency.
 $A_t$ and $B_t$ are exponentially weighted estimates of the first and
 second moments of returns:
 
-$$A_t = A_{t-1} + \eta\Delta A_t = \eta R_t + (1-\eta)\,A_{t-1}, \qquad B_t = B_{t-1} + \eta\Delta B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}$$ {#eq-dsr-moments}
+$$
+\begin{aligned}
+A_t &= A_{t-1} + \eta\Delta A_t = \eta R_t + (1-\eta)\,A_{t-1}, \\
+B_t &= B_{t-1} + \eta\Delta B_t = \eta R_t^2 + (1-\eta)\,B_{t-1}
+\end{aligned}
+$$ {#eq-dsr-moments}
 
 where:
 
