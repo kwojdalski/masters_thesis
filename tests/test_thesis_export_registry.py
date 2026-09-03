@@ -85,3 +85,26 @@ def test_duplicate_registration_is_rejected() -> None:
         assert existing.name in str(exc)
     else:  # pragma: no cover
         raise AssertionError("expected duplicate registration to raise")
+
+
+def test_peek_runs_before_the_stages_that_recompute_its_files() -> None:
+    """peek copies correlations.csv / feature_stats.csv; two stages recompute them.
+
+    export_peek_to_thesis.py copies four files out of the gitignored
+    reports/peek/ scratch, two of which -- correlations.csv and
+    feature_stats.csv -- are also written, from the memmaps, by the
+    feature-correlations and feature-stats stages. Whichever runs last wins.
+    The computed pair is authoritative (the checked-in correlations.csv is
+    2,370 bytes against the scratch copy's 740), so peek has to run first.
+
+    At equal order the tie breaks alphabetically and "peek" sorts after both
+    "feature-correlations" and "feature-stats", which would silently publish
+    stale scratch. Hence the explicit lower order, guarded here.
+    """
+    by_name = {s.name: s for s in ThesisExportRegistry.stages()}
+    peek = by_name["peek"]
+    for recomputes in ("feature-correlations", "feature-stats"):
+        assert peek.order < by_name[recomputes].order, (
+            f"peek must run before {recomputes}, or its copy of that file "
+            "overwrites the freshly computed one"
+        )

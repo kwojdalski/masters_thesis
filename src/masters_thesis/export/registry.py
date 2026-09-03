@@ -46,6 +46,11 @@ class Requirement(Enum):
 
     MLFLOW = "mlflow"
     PREPARED_DATA = "prepared-data"
+    # reports/peek/, written by `cli.py peek dataset --export`. Distinct from
+    # PREPARED_DATA: the peek stage copies that scratch output rather than
+    # recomputing from the prepared parquet, so having the data is not enough
+    # -- the peek command must actually have been run.
+    PEEK_SCRATCH = "peek-scratch"
     SNAPSHOT = "snapshot"
 
     def satisfied(self, repo_root: Path = _REPO_ROOT) -> bool:
@@ -55,6 +60,8 @@ class Requirement(Enum):
             ).exists()
         if self is Requirement.PREPARED_DATA:
             return (repo_root / "data" / "prepared").is_dir()
+        if self is Requirement.PEEK_SCRATCH:
+            return (repo_root / "reports" / "peek").is_dir()
         return (repo_root / "thesis" / "qmd" / "results").is_dir()
 
 
