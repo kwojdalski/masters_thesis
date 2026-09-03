@@ -57,6 +57,7 @@ expand the section beyond its practical purpose.
 | Term | Definition |
 |------|------------|
 | **Actor-critic** | A class of reinforcement learning architectures combining a policy network (actor) that selects actions with a value network (critic) that evaluates them. Reduces gradient variance relative to pure policy gradient methods. |
+| **Arm** | One branch of a single-factor comparison: a training configuration identical to the others except for the quantity under study, in the sense used for the arms of a controlled trial. Distinct from a *run*, which is a single execution of one arm; each arm reported here comprises exactly one run. Not used in the multi-armed-bandit sense, where an arm denotes an action available to the agent. |
 | **Bellman equation** | The recursive identity expressing the value of a state as immediate reward plus the discounted value of the successor state: $V(s) = r + \gamma V(s')$. The theoretical foundation of temporal difference learning and Q-learning. |
 | **Bootstrapping** | Updating a value estimate using another estimate as the target, rather than waiting for a complete episode return. Introduces bias but reduces variance; the mechanism underlying all temporal difference algorithms. |
 | **DDPG** | Deep Deterministic Policy Gradient [@Lillicrap2015]. An off-policy actor-critic algorithm for continuous action spaces using deterministic policies and experience replay. Predecessor to TD3. |
