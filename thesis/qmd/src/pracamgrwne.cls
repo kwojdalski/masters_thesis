@@ -381,8 +381,20 @@
 % font and the case change. \MakeUppercase wraps the title text alone, so the
 % number keeps its digits and the table of contents is uppercased separately
 % below (uppercasing here would not reach the .toc file).
+%
+% Requirement 9 allows either alignment for chapter titles -- "Chapter titles
+% start from the left margin, with longer text (exceeding one line) wrapped, or
+% are centered" -- and centred is the form chosen here. The same sentence binds
+% subchapters to the left margin, so only \section is centred; \subsection and
+% \subsubsection keep their original alignment.
+%
+% \filcenter is titlesec's own centring filler and needs the [block] shape. It
+% centres the number with the title as one unit, so a chapter reads as a
+% centred "3. REINFORCEMENT LEARNING" rather than a centred title with the
+% number hanging at the margin. Multi-line titles wrap and centre line by line,
+% which is what the requirement's "longer text ... wrapped" allows for.
 \RequirePackage{titlesec}
-\titleformat{\section}{\normalsize\bfseries}{\thesection.}{0.5em}{\MakeUppercase}
+\titleformat{\section}[block]{\normalsize\bfseries\filcenter}{\thesection.}{0.5em}{\MakeUppercase}
 \titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
 % Chapter entries in the table of contents carry the same capitals, so the body
