@@ -140,3 +140,64 @@ training:
     assert hp["policy_delay"] == 3
     assert hp["policy_noise"] == 0.1
     assert hp["noise_clip"] is None
+
+
+def test_trained_steps_reads_highest_checkpoint(tmp_path: Path) -> None:
+    # #797: the H2/H3/H4 sweeps ran at 500k via a launch-time override while
+    # their configs still say 3,000,000. Checkpoint filenames are the only
+    # on-disk record of how far a run actually got.
+    for step in (100_000, 500_000, 300_000):
+        (tmp_path / f"run_checkpoint_step_{step}.pt").touch()
+
+    assert export_eval_to_thesis._trained_steps_from_checkpoints(tmp_path) == 500_000
+
+
+def test_trained_steps_is_none_without_step_stamped_checkpoints(
+    tmp_path: Path,
+) -> None:
+    # A bare "_checkpoint.pt" carries no step, so there is nothing to report and
+    # the caller must keep the configured value rather than guess.
+    (tmp_path / "run_checkpoint.pt").touch()
+
+    assert export_eval_to_thesis._trained_steps_from_checkpoints(tmp_path) is None
+
+
+def test_export_records_trained_steps_over_configured_max_steps(
+    tmp_path: Path, monkeypatch
+) -> None:
+    # With --scenario set, the eval dir is derived from the scenario's last
+    # component, so it must be named to match.
+    eval_dir = tmp_path / "logs" / "td3_swept"
+    eval_dir.mkdir(parents=True)
+    results_file = eval_dir / "results.json"
+    results_file.write_text(json.dumps({"test": {"metrics": {"total_return": 0.1}}}))
+    _touch(results_file, 2_000_000_000)
+    _touch(eval_dir / "run_checkpoint_step_500000.pt", 1_000_000_000)
+    _write_scenario_yaml(
+        tmp_path,
+        "pooled/td3_swept",
+        """
+training:
+  algorithm: TD3
+  max_steps: 3000000
+""",
+    )
+    results_root = tmp_path / "thesis-results"
+
+    args = _args(eval_dir, results_root, allow_stale=False)
+    args.scenario = "pooled/td3_swept"
+    args.output_dir = None
+    monkeypatch.setattr(export_eval_to_thesis, "_parse_args", lambda: args)
+    monkeypatch.setattr(export_eval_to_thesis, "_repo_root", lambda: tmp_path)
+
+    assert export_eval_to_thesis.main() == 0
+
+    hp = json.loads(
+        (
+            results_root / "test_experiment" / "latest_finished" / "hyperparams.json"
+        ).read_text()
+    )
+    # max_steps reports what ran; the YAML figure survives alongside it.
+    assert hp["max_steps"] == 500_000
+    assert hp["trained_steps"] == 500_000
+    assert hp["max_steps_configured"] == 3_000_000

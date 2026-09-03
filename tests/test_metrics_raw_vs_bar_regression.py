@@ -96,6 +96,35 @@ def test_profit_factor_and_gross_loss_stay_finite_and_real():
     assert rep["expectancy_per_period"] == pytest.approx(float(np.mean(r)), abs=1e-9)
 
 
+def test_omega_ratio_equals_profit_factor_at_zero_risk_free_rate():
+    """#811: omega's own comment claims this identity; it only holds if both
+    are measured on the same series. Omega was left on the compounded bars
+    when the trade statistics moved to raw steps, so it read 15.09 against a
+    profit_factor of 1.11 on this input."""
+    r = _mildly_trending_returns()
+    rep = build_metric_report(r, None, None, periods_per_year=_HFT_PPY)
+
+    assert np.isfinite(rep["omega_ratio"])
+    assert rep["omega_ratio"] == pytest.approx(rep["profit_factor"], rel=1e-9)
+
+
+def test_omega_ratio_does_not_degenerate_on_the_bar_series():
+    """Guards the value, not just the identity against profit_factor.
+
+    Every bar here is positive, so omega's denominator on the bar series is
+    exactly zero and the ratio is undefined -- the same degeneracy that makes
+    gross_loss vanish and profit_factor go NaN. On the raw steps it is a
+    finite, plausible number."""
+    r = _mildly_trending_returns()
+    bars, _ = aggregate_to_reporting_frequency(r, _HFT_PPY)
+    rep = build_metric_report(r, None, None, periods_per_year=_HFT_PPY)
+
+    bar_denominator = float(np.mean(np.maximum(-bars, 0.0)))
+    assert bar_denominator == 0.0, "input no longer reproduces the degenerate regime"
+    assert np.isfinite(rep["omega_ratio"])
+    assert 1.0 < rep["omega_ratio"] < 5.0
+
+
 def test_metadata_shows_aggregation_happened_for_annualised_metrics():
     r = _mildly_trending_returns()
     rep = build_metric_report(r, None, None, periods_per_year=_HFT_PPY)
@@ -180,3 +209,40 @@ def test_tiny_jitter_around_a_flip_does_not_inflate_trade_count():
     rep = build_metric_report(returns, None, actions, periods_per_year=252)
 
     assert rep["n_trades"] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# The same raw-vs-bar rule applies to the benchmark comparison table, which
+# summarises returns through its own code path (#812).
+# ---------------------------------------------------------------------------
+
+
+def test_benchmark_summary_drawdown_matches_the_metric_report():
+    """#812: _performance_summary measured drawdown on the compounded bars
+    while build_metric_report used raw steps, so one evaluation reported two
+    different max drawdowns for the same series (32% shallower on this input)."""
+    from trading_rl.evaluation.statistical_benchmarks import _performance_summary
+
+    r = _mildly_trending_returns()
+    rep = build_metric_report(r, None, None, periods_per_year=_HFT_PPY)
+    summary = _performance_summary(r, _HFT_PPY)
+
+    assert summary["max_drawdown"] == pytest.approx(rep["max_drawdown"], rel=1e-9)
+    assert summary["max_drawdown"] < 0.0, "a trending series still has drawdowns"
+
+
+def test_benchmark_summary_keeps_ratio_metrics_on_the_aggregated_bars():
+    """The drawdown fix must not drag the risk ratios back onto raw steps:
+    those are correctly computed on bars, and a per-step Sharpe would differ."""
+    from trading_rl.evaluation.statistical_benchmarks import _performance_summary
+
+    r = _mildly_trending_returns()
+    summary = _performance_summary(r, _HFT_PPY)
+    bars, _ = aggregate_to_reporting_frequency(r, _HFT_PPY)
+
+    expected_bar_sharpe = float(np.mean(bars)) / float(np.std(bars, ddof=1))
+    assert summary["sharpe_ratio"] == pytest.approx(expected_bar_sharpe, rel=1e-9)
+    # total_return is unaffected by bar size (compounding is associative).
+    assert summary["total_return"] == pytest.approx(
+        float(np.prod(1.0 + r) - 1.0), rel=1e-6
+    )
