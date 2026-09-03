@@ -117,7 +117,7 @@ stops trading altogether. The minimum price increment for these instruments is
 one cent, so the smallest possible move in the
 mid-price, when only one side of the book updates, is half a cent. At the mean
 price of each instrument over the evaluation window this gives a reference fee
--- the proportional cost equal to a one-sided minimum-tick move -- ranging from
+(the proportional cost equal to a one-sided minimum-tick move) ranging from
 roughly 0.08 basis points for the highest-priced
 instrument to roughly 0.24 basis points for the lowest-priced one
 (@tbl-tick-breakeven-fee). The observed break sits below every one of these
@@ -351,8 +351,8 @@ and learning rate that is left to future work
 
 Overall, the robustness evidence is strongest for transaction-cost sensitivity.
 Feature specification and reward design are both inconclusive on the present
-evidence, for the same reason: in each comparison an arm failed to train -- two
-of three under Hypothesis 3, the log-return arm under Hypothesis 4 -- so
+evidence, for the same reason: in each comparison an arm failed to train (two
+of three under Hypothesis 3, the log-return arm under Hypothesis 4), so
 neither isolates the effect of the factor it varies. The results are
 not yet strong evidence of robustness across market regimes, longer samples,
 alternative chronological splits, or repeated random seeds.

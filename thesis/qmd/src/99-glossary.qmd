@@ -4,13 +4,13 @@ This glossary defines abbreviations and domain-specific terms used throughout
 the thesis. Entries are restricted to terms whose meaning in this context
 differs from everyday usage or whose precise definition is necessary to
 interpret the empirical results; widely understood concepts are omitted.
-Terms are grouped by domain — market microstructure and trading, reinforcement
-learning and machine learning, and other — and listed alphabetically within
+Terms are grouped by domain (market microstructure and trading, reinforcement
+learning and machine learning, and other) and listed alphabetically within
 each group. For mathematical notation and feature formulas, see Appendix A.
 The glossary is intentionally selective. Not every technical term that appears
 in the text receives an entry; terms with widely accepted, unambiguous
-definitions — standard statistical measures, common financial concepts, and
-general machine-learning terminology — are omitted where their inclusion would
+definitions (standard statistical measures, common financial concepts, and
+general machine-learning terminology) are omitted where their inclusion would
 expand the section beyond its practical purpose.
 
 ## Market Microstructure and Trading {.unnumbered}

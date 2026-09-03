@@ -128,8 +128,8 @@ formal hypothesis tests and is not reported in Chapter 6. Each records turnover
 of order $10^{-5}$ with zero position changes and sits at $100\%$ long or
 $100\%$ short for the entire evaluation. Three saturate at the upper bound and
 one at the lower. The bound an arm settles at does not track the factor it
-varies -- the 3-feature and 33-feature arms of Hypothesis 3 differ only in
-feature count yet pin at opposite bounds -- which is characteristic of an
+varies: the 3-feature and 33-feature arms of Hypothesis 3 differ only in
+feature count yet pin at opposite bounds. That is characteristic of an
 optimization that lands arbitrarily rather than of a systematic response to the
 factor under test.
 

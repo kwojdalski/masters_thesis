@@ -482,7 +482,7 @@ zero and standard deviations near one confirm that causal running normalisation
 is operating as intended. Q1, Q2, and Q3 show the interquartile spread; Skew and
 Kurt (excess kurtosis) characterise the shape of each marginal distribution.
 
-Several features — most notably `ofi` and `ofi_rolling_50` — exhibit extreme
+Several features, most notably `ofi` and `ofi_rolling_50`, exhibit extreme
 minimum and maximum values despite their near-unit standard deviations. This is
 a structural property of order-flow imbalance, not a data-quality issue. Most
 tick events represent small queue adjustments that produce z-scores close to
@@ -578,14 +578,14 @@ are then transformed using the statistics estimated from it.
 **Source:** Author's own elaboration.
 :::
 
-The figure shows the leakage-prevention path only. The full pipeline --
-including the prepared-data and feature caches and their compatibility keys,
-the per-day and chronological branches, per-symbol memory-mapped output, HFT
-post-processing, and the timestamp de-duplication applied after concatenation
-across symbols -- is maintained as a Mermaid source file at
+The figure shows the leakage-prevention path only. The full pipeline is
+maintained as a Mermaid source file at
 `docs/diagrams/data_pipeline.mmd` in the project repository
-[@Wojdalski2026]. It is too information-dense to reproduce at print
-resolution.
+[@Wojdalski2026]; it adds the prepared-data and feature caches and their
+compatibility keys, the per-day and chronological branches, per-symbol
+memory-mapped output, HFT post-processing, and the timestamp de-duplication
+applied after concatenation across symbols. It is too information-dense to
+reproduce at print resolution.
 
 ---
 
@@ -641,7 +641,7 @@ For each feature, the implementation retains the horizon with the largest
 absolute ICIR. Features whose representative $|\operatorname{ICIR}|$ is below
 $0.02$ are dropped.
 
-**Redundancy filter.** Features are selected greedily in ICIR order. Each candidate is included only if its ICIR on residuals — after regressing out already-selected features — remains above the threshold. This conditional IC criterion is more principled than pairwise correlation thresholding: two correlated features can both be retained if each explains a distinct component of the forward return.
+**Redundancy filter.** Features are selected greedily in ICIR order. Each candidate is included only if its ICIR on residuals, after regressing out already-selected features, remains above the threshold. This conditional IC criterion is more principled than pairwise correlation thresholding: two correlated features can both be retained if each explains a distinct component of the forward return.
 
 **Output.** The selected feature specification is stored and read by the training pipeline at runtime; no selection logic runs during training.
 
@@ -677,9 +677,9 @@ intended as a navigation aid.
 **Source:** Author's own elaboration.
 :::
 
-The full machine-readable diagram — including CLI entry points, per-step data
-flows, all configuration guardrail checks, environment variants, MLflow
-logging, and asset provenance metadata — is maintained as a D2 source file
-at `docs/workflow.d2` in the project repository [@Wojdalski2026]. It is too
+The full machine-readable diagram is maintained as a D2 source file
+at `docs/workflow.d2` in the project repository [@Wojdalski2026]. It covers
+CLI entry points, per-step data flows, all configuration guardrail checks,
+environment variants, MLflow logging, and asset provenance metadata. It is too
 information-dense to reproduce at print resolution; the SVG rendering is
 available at `docs/workflow.svg`.
