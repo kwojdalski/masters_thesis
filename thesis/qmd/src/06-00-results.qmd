@@ -7,7 +7,7 @@ AVGO) using the state-space design defined in Chapters 4 and 5. The evidence
 covers repeated-run variability, robustness to nearby design changes, and final
 held-out performance.
 
-## Algorithm Comparison Results
+## Hypothesis 1: Algorithm Comparison {#sec-h1-algorithm-comparison}
 <!-- [PLACEHOLDER] -->
 
 Beyond benchmark performance, the key empirical question is how the algorithmic

@@ -146,7 +146,7 @@ outcome. Fixed-path repricing in @sec-execution-realism provides complementary
 evidence about the economic cost of the Hypothesis 1 action path. It does not
 identify a break-even fee for successfully retrained policies.
 
-## Hypothesis 3: Feature Specification Sensitivity
+## Hypothesis 3: Feature Specification Sensitivity {#sec-h3-feature-specification}
 <!-- [PLACEHOLDER] -->
 
 This section compares three feature-specification levels under otherwise
