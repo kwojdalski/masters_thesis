@@ -165,6 +165,7 @@ format:
 # what two of the three English attestations say, including the regulation.
 # fig-title sets the caption label, fig-prefix the in-text reference.
 crossref:
+  chapters: true
   fig-title: "Fig."
   fig-prefix: "Fig."
 

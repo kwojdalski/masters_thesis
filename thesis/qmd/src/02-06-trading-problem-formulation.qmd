@@ -1,7 +1,7 @@
 ## Trading Problem Formulation
 
 The finance literature reviewed here relies on RL concepts with specific
-consequences for trading. Chapter III provides their formal definitions, equations,
+consequences for trading. @sec-ch-reinforcement-learning provides their formal definitions, equations,
 and algorithm taxonomies; the standard reference for the framework itself is
 @Sutton2018.
 
@@ -75,7 +75,7 @@ assumptions. Market regime shifts, structural breaks, and partial observability
 all contribute to this approximation.
 
 For this review, the most useful RL concepts are not the formal machinery of
-Chapter III, but the dimensions along which applied trading papers differ. These dimensions determine whether
+@sec-ch-reinforcement-learning, but the dimensions along which applied trading papers differ. These dimensions determine whether
 results from one study are comparable to another and whether they are relevant
 to the problem addressed in this thesis.
 
@@ -126,5 +126,5 @@ performance is difficult to interpret without understanding the objective under
 which the policy was trained.
 
 These distinctions provide the lens for reading the applied RL studies reviewed
-in the next section. Chapter III develops the formal reinforcement learning
+in the next section. @sec-ch-reinforcement-learning develops the formal reinforcement learning
 framework and the algorithmic lineage leading to TD3.

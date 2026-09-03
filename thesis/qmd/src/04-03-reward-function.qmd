@@ -181,7 +181,7 @@ recursively computable from $A_{t-1}$ and $B_{t-1}$ alone. This means no fixed w
 no look-ahead, and no discontinuity as old observations expire.
 
 A shaped reward such as DSR is used to stabilize learning. However, it is not
-equivalent to the financial performance metrics reported in Chapter VI.
+equivalent to the financial performance metrics reported in @sec-ch-results.
 
 The
 Sharpe ratio, annualized return, and drawdown statistics reported in the
@@ -229,4 +229,4 @@ Second, while variance is an imperfect proxy for risk, it provides a
 tractable baseline that discourages the most pathological high-turnover
 behaviors. Whether an alternative reward
 formulation performs better is a question for future work, addressed in
-Chapter VII.
+@sec-ch-conclusions.

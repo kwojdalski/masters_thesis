@@ -26,7 +26,7 @@ updated. This failure mode is documented in DDPG and addressed here following
 the TD3 formulation [@Fujimoto2018]. This formulation extends the standard Q-learning target
 in @eq-qlearning-update by (1) using twin critics to reduce overestimation and
 (2) employing a deterministic target policy rather than taking a maximum
-over actions. The TD3 target was first introduced in Chapter III in
+over actions. The TD3 target was first introduced in @sec-ch-reinforcement-learning in
 @eq-td3-target.
 
 Both critics are trained by minimizing the TD error against the shared target

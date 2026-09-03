@@ -1,6 +1,6 @@
-# Implementation of the Trading Agent
+# Implementation of the Trading Agent {#sec-ch-implementation}
 
-The experimental pipeline implements the Chapter IV design through its simulation
+The experimental pipeline implements the @sec-ch-design design through its simulation
 architecture, data preparation, code organization, and TD3 training workflow.
 
 ## Simulation Architecture
@@ -87,7 +87,7 @@ reward accounting, but it makes the reported backtest returns optimistic for
 the evaluated action path. Real execution may cross the spread and incur
 maker/taker fees, queue uncertainty, partial fills, and slippage.
 @sec-execution-model-signal-friction explains this assumption, while
-Chapter VI measures how the small per-step edge responds to modeled transaction costs.
+@sec-ch-results measures how the small per-step edge responds to modeled transaction costs.
 
 **Zero latency.** Observations are assumed to be acted on immediately, with no
 transport, decision, or matching-engine delay between state observation and

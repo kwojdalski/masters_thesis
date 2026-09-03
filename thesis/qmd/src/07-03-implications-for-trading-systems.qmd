@@ -12,7 +12,7 @@ thirty-three-feature superset saturated at a fixed position and never trained
 (Section 6.3). Because two of the three runs did not optimise, this does not
 establish that a richer state improves returns. It does show that a poorly
 chosen state can block learning outright, which no amount of algorithm tuning
-recovers. The microstructure literature reviewed in Chapter II motivates which
+recovers. The microstructure literature reviewed in @sec-ch-literature-review motivates which
 quantities belong in the state: order-flow imbalance, spread regime, book
 shape, and temporal encoding.
 
@@ -46,7 +46,7 @@ it (@sec-feature-normalization-and-causality-preservation).
 shaped reward such as the Differential Sharpe Ratio is a training objective,
 not a performance report (Section 4.3). Treating a high training DSR as
 evidence of held-out Sharpe performance conflates the two, and the separation
-is maintained throughout the evaluation reported in Chapter VI.
+is maintained throughout the evaluation reported in @sec-ch-results.
 
 **Transaction-cost sensitivity bounds what the result can support.** The
 execution model used here is a mid-price proxy and is optimistic relative to

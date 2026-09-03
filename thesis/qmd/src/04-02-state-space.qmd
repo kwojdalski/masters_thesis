@@ -53,7 +53,7 @@ adding cross-asset signals would answer a different question and prevent
 clean attribution of any observed performance to LOB structure. Augmenting
 the observation with synchronized cross-asset regime indicators once baseline
 LOB-only performance is established is a natural extension left for future
-work (Chapter VII).
+work (@sec-ch-conclusions).
 
 ### Feature Groups and Selection Rationale
 

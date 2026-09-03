@@ -343,7 +343,7 @@ quoting decisions conditioned on the same information the agent observes. Price
 formation would then be partly endogenous to the state representation rather
 than independent of it.
 
-This reading cannot be separated from the two mechanisms set out in Chapter II.
+This reading cannot be separated from the two mechanisms set out in @sec-ch-literature-review.
 The movement may be mechanical, the thinner side of the book being consumed
 first, or informational, imbalance revealing the direction of better-informed
 order flow [@Cont2014; @GlostenMilgrom1985]. The three are not mutually

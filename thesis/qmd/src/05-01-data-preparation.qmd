@@ -63,7 +63,7 @@ For a technical reference on market data quality and L3 order book processing,
 see Nasdaq TotalView-ITCH specification:
 https://www.nasdaqtrader.com/content/technicalsupport/specifications/dataproducts/NQTVITCHSpecification.pdf]
 This granularity is necessary
-for constructing the microstructure features described in Chapter IV and listed
+for constructing the microstructure features described in @sec-ch-design and listed
 in Appendix A.
 
 ### Input Format {#sec-input-format}
@@ -182,7 +182,7 @@ in $O(1)$ per step, and remains numerically stable even for the near-empty
 denominators of early-session observations.
 
 The resulting normalized value is the single-feature case of @eq-z-score
-(Chapter IV), with the feature index $i$ suppressed and the running mean and
+(@sec-ch-design), with the feature index $i$ suppressed and the running mean and
 variance written as $\bar{x}_{t-1}, \sigma_{t-1}^2$ rather than $\mu_{i,t-1},
 \sigma_{i,t-1}^2$:
 
@@ -266,7 +266,7 @@ next mid-price move, and best-level book pressure, queue-weighted-midpoint
 divergence, and instantaneous OFI each sit near $0.17$. These values are stable
 across all six instruments (per-symbol Spearman between $0.14$ and $0.33$ for
 order-count imbalance) and carry the sign expected when queue imbalance predicts
-which side of the book depletes first, the mechanism set out in Chapter II
+which side of the book depletes first, the mechanism set out in @sec-ch-literature-review
 [@Cont2014; @Stoikov2018]. The matching Pearson correlations are smaller
 (all below $0.17$), so the relationship is monotone rather than linear. Below these
 four, fourteen features fall between $0.02$ and $0.15$ on at least one measure:
