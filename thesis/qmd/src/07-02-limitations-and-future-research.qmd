@@ -145,11 +145,18 @@ comparisons, two of the four hypotheses are unresolved on present evidence, and
 the constraint is a property of training rather than of the design choices
 those hypotheses examine.
 
-Two properties of the setup make this diagnosable rather than mysterious. The
-runs that failed share the log-return objective or a small observation space,
-while the Differential Sharpe runs at the same budget trained normally, and
-alternative reward scalings tried during development did not recover the
-log-return run. A systematic sweep over reward scaling, actor learning rate,
+What makes this diagnosable rather than mysterious is that the failures do not
+line up with the factor under test in either comparison. They span both reward
+objectives and both extremes of feature count. The two Hypothesis 3 runs that
+saturated share the Differential Sharpe reward with the run that trained,
+differing from it only in feature count and in opposite directions, while the
+Hypothesis 4 failure differs from its own control only in reward. The two
+configurations that did train are those pairing the curated ten-feature state
+with the Differential Sharpe reward. Because no single design factor separates
+the runs that trained from those that did not, the remaining candidates are the
+training hyperparameters every comparison holds fixed. Alternative reward
+scalings tried during development did not recover the log-return run. A
+systematic sweep over reward scaling, actor learning rate,
 and exploration noise, with the saturation rate logged as a first-class
 training diagnostic, would establish whether these configurations are
 unsuitable in this setting or merely mis-parameterized. Validation-based

@@ -90,7 +90,7 @@ _audit = audit_plots_enabled()
 #| label: tbl-h1-algo-comparison
 #| echo: false
 #| warning: false
-#| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO, and Random, under frictionless (mid-price, zero-fee) execution."
+#| tbl-cap: "Hypothesis 1 algorithm comparison: test-split metrics across TD3, DDPG, PPO and Random, with the TWAP and VWAP execution benchmarks, under frictionless (mid-price, zero-fee) execution."
 
 import pandas as pd
 from thesis_mlflow_results import load_scenario_metrics
