@@ -120,8 +120,11 @@ price of each instrument over the evaluation window this gives a reference fee
 (the proportional cost equal to a one-sided minimum-tick move) ranging from
 roughly 0.08 basis points for the highest-priced
 instrument to roughly 0.24 basis points for the lowest-priced one
-(@tbl-tick-breakeven-fee). The observed break sits below every one of these
-reference points. This reinforces that the learned margin is small relative to
+(@tbl-tick-breakeven-fee). The ladder brackets the break between 0.01 and 0.1
+basis points, which places it below five of the six reference fees. For META,
+whose reference is 0.077 basis points, the bracket straddles the reference and
+four tested fee levels cannot resolve which side of it the break falls on.
+This reinforces that the learned margin is small relative to
 quote-scale movements, but it does not identify a theoretical maximum edge or
 the mechanism causing the policy to stop trading. The per-instrument breakdown
 also does not support a simple tick-size explanation. If the
