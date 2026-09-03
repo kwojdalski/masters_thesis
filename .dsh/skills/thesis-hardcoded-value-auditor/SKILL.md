@@ -135,7 +135,9 @@ agent at all:
      well as a wiring gap, and is worth a heads-up even though full
      adjudication of "is this a real inconsistency" is `thesis-coherence-auditor`'s
      job — don't duplicate that agent's full analysis, just flag the mismatch
-     and point to it.
+     and point to it. **A STALE claim costs the author a full review cycle
+     when it is wrong, so every STALE finding must clear the two checks in
+     "Before reporting STALE" below before it goes in the report.**
    - **No artifact found anywhere → UNSOURCED**: likely a one-off/ad hoc
      computation (a manual spot-check, a hand-derived ratio) with no tracked
      artifact behind it at all. This cannot be wired until the computation is
@@ -150,6 +152,51 @@ agent at all:
    format spec, and the literal replacement text, the same way
    `thesis-data-auditor` names the exact command that would close a gap it
    finds.
+
+## Before reporting STALE — two mandatory checks
+
+The first run of this agent produced five STALE findings; **four were false
+positives**, both failure modes below. A false STALE is worse than a missed
+one: it sends the author to rewrite prose that was already correct. Do not
+report STALE unless both checks pass, and say in the finding that they did.
+
+**Check 1 — quote the prose verbatim from the file, then re-read it.**
+Three of the four false positives were misquotes: the agent reported text
+the file does not contain, or dropped the qualifying clause that made the
+sentence true. Real examples from that run:
+- Reported `"Every other feature ... has |r| < 0.02 on both measures"` as
+  contradicted. The file actually reads *"The remaining fifteen (fair-value
+  level, spread regime, trade intensity, order-flow autocorrelation, and time
+  encodings) are below 0.02 on both"* — an explicit fifteen-item list that
+  **excludes** every feature the agent cited as a counterexample. The
+  preceding sentence already places those in the 0.02–0.15 band.
+- Reported the H4 paragraph as claiming the minimal-feature run "also uses
+  the log-return reward" and sits "fully short". The file says *"The
+  minimal-feature and full-feature runs of Hypothesis 3 both saturate under
+  the Differential Sharpe objective, and at opposite bounds to each other"* —
+  which is exactly what the artifacts show.
+So: `sed -n '<line>p'` the exact line plus surrounding sentences, paste that
+verbatim into the finding, and confirm the contradiction survives the full
+sentence — not a paraphrase of it, and not a neighbouring sentence.
+
+**Check 2 — for "how much was run", read the run record, not the config.**
+`max_steps` in `hyperparams.json` and `training.max_steps` in a scenario
+`train.yaml` are the *configured cap*, not what the run reached. A run
+stopped early (wall-clock budget, manual interrupt) keeps the original cap in
+its config. The authoritative record of steps actually trained is the
+checkpoint ladder on disk:
+`ls logs/<scenario>/ | grep -oE "step_[0-9]+" | sort -t_ -k2 -n -u | tail -1`.
+The false positive here was the "five hundred thousand environment steps"
+claim framing all of Section 6.2 — reported STALE because every config says
+`3000000`, but the H2/H3/H4 ladders top out at `step_500000` while H1's
+reaches `step_3000000`. **The prose was right and the config was the wrong
+artifact.** The same distinction applies to any "trained for N", "ran for
+N", or "budget of N" claim.
+
+Generalise both: a config value states intent, an artifact states outcome,
+and prose usually describes outcome. When the two disagree, the config is
+the weaker evidence — go find the outcome record before calling anything
+stale. If you cannot find an outcome record, report UNSOURCED, not STALE.
 
 ## Formatting fidelity — the wiring must not change the rendered text
 
@@ -268,6 +315,15 @@ surrounding argument still holds once corrected.
   already carries the value.
 - Never precision-inflate a hedge ("roughly", "on the order of", "about") by
   wiring it to an exact value — classify it LEAVE-HEDGED instead.
+- Never report STALE without passing both checks in "Before reporting STALE":
+  quote the prose verbatim from the file (not a paraphrase), and read the
+  outcome artifact rather than the config for any "how much was run" claim.
+  Four of five STALE findings in this agent's first run were false positives
+  from exactly these two mistakes.
+- Check which branch the working tree is on (`git branch --show-current`)
+  before reporting a finding as unfixed — a fix merged to master is not
+  present in a feature-branch worktree, and reporting it as still-open wastes
+  the author's time re-verifying work already done.
 - A STALE finding is not licence to fix the number yourself — report it and
   let the coherence check or the user decide the right value; your job ends
   at "this no longer matches its source."
