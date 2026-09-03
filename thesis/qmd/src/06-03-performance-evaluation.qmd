@@ -154,8 +154,16 @@ _RERUN_CMD = (
 #| warning: false
 
 if _plot_data.get("equity") is not None:
+    # TWAP and VWAP are dropped from this figure only. Both track Buy-and-Hold
+    # to within 0.35% and 0.41% of initial capital across the whole window, on
+    # axes the agent's line carries to +305%, so all three passive series draw
+    # as one flat line and the legend implies three distinguishable curves that
+    # are not distinguishable. Their metrics stay in @tbl-h1-algo-comparison,
+    # where the difference is legible as digits.
+    _equity = _plot_data["equity"]
+    _equity = _equity[~_equity["Run"].isin(["TWAP", "VWAP"])]
     _p = plot_equity_curve(
-        df_returns=_plot_data["equity"],
+        df_returns=_equity,
         initial_portfolio_value=_plot_data["initial_portfolio_value"],
         policy_mode=_plot_data["policy_mode"],
         training_steps=_plot_data.get("training_steps"),
@@ -183,7 +191,20 @@ else:
 #| output: asis
 #| echo: false
 from thesis_tables import table_note
-table_note(source="Author's own calculations.", note=_prov_note() or None)
+
+# States the omission on the figure itself: a reader comparing this plot
+# against @tbl-h1-algo-comparison would otherwise find two benchmarks in the
+# table that the figure never draws.
+_equity_note = (
+    "TWAP and VWAP are omitted from this figure. Both track Buy-and-Hold to "
+    "within half a per cent of initial capital over the whole window, so on "
+    "these axes the three passive series are indistinguishable; their metrics "
+    "are reported in @tbl-h1-algo-comparison."
+)
+table_note(
+    source="Author's own calculations.",
+    note=" ".join(x for x in (_equity_note, _prov_note()) if x),
+)
 ```
 
 ```{python}

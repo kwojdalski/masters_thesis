@@ -581,7 +581,7 @@ from the validation or test splits leaks into the fitted normalization
 parameters. Only the training split reaches the fitting step; all three splits
 are then transformed using the statistics estimated from it.
 
-![Data preparation pipeline.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="4.7in" fig-pos="H"}
+![Data preparation pipeline.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="3.76in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
@@ -681,7 +681,7 @@ The figure below shows the six major stages of the experimental pipeline at a
 glance. Each stage is described in the corresponding chapter; this overview is
 intended as a navigation aid.
 
-![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="2.9in" fig-pos="H"}
+![The six major stages of the experimental pipeline, from data acquisition through post-training evaluation.](diagrams/fig-experimental-pipeline.svg){#fig-experimental-pipeline fig-align="center" width="4.35in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
