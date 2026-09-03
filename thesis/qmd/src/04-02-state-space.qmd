@@ -209,7 +209,7 @@ after each feature is selected, its linear signal is regressed out of remaining
 candidates, and ICIR is recomputed on the residuals.
 A candidate is included only if it retains incremental predictive content beyond
 what the already-selected features collectively capture. The full procedure is
-described in Appendix F.
+described in Appendix J.
 
 The result is a state space whose composition is jointly justified: every feature
 is grounded in theory (Stage 1) and empirically non-redundant within the
