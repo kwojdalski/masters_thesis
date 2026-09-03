@@ -319,6 +319,15 @@ def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | 
     network = raw.get("network", {})
     data = raw.get("data", {})
 
+    # TD3-specific knobs live in a nested `training.td3` block in the scenario
+    # schema; older/other configs put them flat under `training`. Prefer the
+    # nested value and fall back to the flat one so neither layout returns None.
+    algo_block = training.get(str(training.get("algorithm", "")).lower()) or {}
+
+    def _algo_param(key: str) -> object:
+        nested = algo_block.get(key)
+        return nested if nested is not None else training.get(key)
+
     return {
         "algorithm": training.get("algorithm"),
         "actor_hidden_dims": network.get("actor_hidden_dims"),
@@ -330,10 +339,10 @@ def _load_scenario_hyperparams(scenario: str | None, repo_root: Path) -> dict | 
         "loss_function": training.get("loss_function"),
         "gamma": training.get("gamma"),
         "tau": training.get("tau"),
-        "policy_delay": training.get("policy_delay"),
-        "policy_noise": training.get("policy_noise"),
-        "noise_clip": training.get("noise_clip"),
-        "exploration_noise_std": training.get("exploration_noise_std"),
+        "policy_delay": _algo_param("policy_delay"),
+        "policy_noise": _algo_param("policy_noise"),
+        "noise_clip": _algo_param("noise_clip"),
+        "exploration_noise_std": _algo_param("exploration_noise_std"),
         "max_steps": training.get("max_steps"),
         "init_rand_steps": training.get("init_rand_steps"),
         "frames_per_batch": training.get("frames_per_batch"),

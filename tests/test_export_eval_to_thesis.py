@@ -86,3 +86,57 @@ def test_main_allows_explicit_stale_results_override(
     # end_time is results.json's mtime, not the export time.
     assert run_json["end_time"] != run_json["source"]["exported_at_utc"]
     assert run_json["source"]["results_file_mtime_utc"] == run_json["end_time"]
+
+
+def _write_scenario_yaml(repo_root: Path, scenario: str, body: str) -> None:
+    path = repo_root / "src" / "configs" / "scenarios" / scenario / "train.yaml"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(body, encoding="utf-8")
+
+
+def test_load_hyperparams_reads_nested_algo_block(tmp_path: Path) -> None:
+    # #774: TD3 knobs live under training.td3.* in the scenario schema; a flat
+    # training.get("policy_delay") returns None and the appendix then silently
+    # substitutes code defaults.
+    _write_scenario_yaml(
+        tmp_path,
+        "pooled/td3_example",
+        """
+training:
+  algorithm: TD3
+  gamma: 0.9
+  td3:
+    policy_delay: 2
+    policy_noise: 0.2
+    noise_clip: 0.3
+    exploration_noise_std: 0.3
+""",
+    )
+
+    hp = export_eval_to_thesis._load_scenario_hyperparams(
+        "pooled/td3_example", tmp_path
+    )
+
+    assert hp["policy_delay"] == 2
+    assert hp["policy_noise"] == 0.2
+    assert hp["noise_clip"] == 0.3
+    assert hp["exploration_noise_std"] == 0.3
+
+
+def test_load_hyperparams_falls_back_to_flat_layout(tmp_path: Path) -> None:
+    _write_scenario_yaml(
+        tmp_path,
+        "pooled/td3_flat",
+        """
+training:
+  algorithm: TD3
+  policy_delay: 3
+  policy_noise: 0.1
+""",
+    )
+
+    hp = export_eval_to_thesis._load_scenario_hyperparams("pooled/td3_flat", tmp_path)
+
+    assert hp["policy_delay"] == 3
+    assert hp["policy_noise"] == 0.1
+    assert hp["noise_clip"] is None
