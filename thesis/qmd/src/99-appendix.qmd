@@ -580,7 +580,7 @@ from the validation or test splits leaks into the fitted normalization
 parameters. Only the training split reaches the fitting step; all three splits
 are then transformed using the statistics estimated from it.
 
-![Data preparation pipeline: fitting normalization on the training split only, then transforming train/val/test to prevent leakage.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="4.7in" fig-pos="H"}
+![Data preparation pipeline.](diagrams/fig-data-pipeline.svg){#fig-data-pipeline fig-align="center" width="4.7in" fig-pos="H"}
 
 ::: {.table-note}
 **Source:** Author's own elaboration.
@@ -655,10 +655,11 @@ $0.02$ are dropped.
 
 The diagram below summarizes the pipeline.
 
-![Offline feature selection pipeline: score candidates by ICIR, apply a conditional-IC redundancy filter, store the selected specification for training.](diagrams/fig-feature-selection-pipeline.svg){#fig-feature-selection-pipeline fig-align="center" width="1.9in" fig-pos="H"}
+![Offline feature selection pipeline.](diagrams/fig-feature-selection-pipeline.svg){#fig-feature-selection-pipeline fig-align="center" width="1.9in" fig-pos="H"}
 
 ::: {.table-note}
-**Source:** Author's own elaboration.
+**Source:** Author's own elaboration.\
+**Note:** Candidates are scored by ICIR, passed through a conditional-IC redundancy filter, and the surviving specification is stored for training. The same selected specification is used by every algorithm reported in this thesis, so the feature set is held fixed across the TD3, DDPG and PPO comparisons and varies only where a hypothesis varies it.
 :::
 
 The offline nature of this pipeline is deliberate: the proxy target and scoring
