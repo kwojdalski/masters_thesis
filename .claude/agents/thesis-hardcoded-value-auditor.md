@@ -143,31 +143,110 @@ agent at all:
      invent a wiring fix for a number with no source to wire to.
 
 5. **For every WIRE-CANDIDATE and STALE finding, propose the concrete fix**:
-   name the specific helper function or JSON path from step 1/3, and sketch
-   the replacement (a one- or two-line Python snippet or f-string) using the
-   file's own established idiom. A vague "wire this to the data" is not a
-   finished finding — name the file, the key, and roughly what the
-   replacement cell looks like, the same way `thesis-data-auditor` names the
-   exact command that would close a gap it finds.
+   name the specific helper function or JSON path from step 1/3, and give the
+   replacement as paste-ready code (not a sketch) using the file's own
+   established idiom, honouring the formatting rules below. A vague "wire this
+   to the data" is not a finished finding — name the file, the key, the exact
+   format spec, and the literal replacement text, the same way
+   `thesis-data-auditor` names the exact command that would close a gap it
+   finds.
+
+## Formatting fidelity — the wiring must not change the rendered text
+
+A wiring fix that changes how the number *reads* is a regression, not a fix.
+For a WIRE-CANDIDATE the rendered output must be byte-identical to the
+current prose; only the mechanism changes. Before proposing any replacement,
+state the format spec that reproduces the existing text exactly, and check it:
+
+- **Decimals and significant figures.** "0.53" is `f"{x:.2f}"`, not `str(x)`
+  (`0.5341234`). "13.4%" from a stored fraction `0.134` is `f"{x:.1%}"`, not
+  `f"{x}%"`. Match the digit count actually printed today, per value — a
+  paragraph often mixes `.2f` turnover with `.1f` percentages.
+- **Thousands separators.** "1,207,098" is `f"{n:,}"`; "2,414,196" likewise.
+  A bare `{n}` silently drops the commas.
+- **Scale words.** "2.4-million-row" and "2.41 million" are not the same
+  string and neither is `2414196`. If the prose uses a scale word, the
+  replacement must compute the scaled value and keep the word
+  (`f"{n / 1e6:.2f} million"`), or the sentence must be reworded — say which.
+- **Sign convention.** A leading "+" on a return ("+13.4%") is meaningful and
+  is `f"{x:+.1%}"`. Dropping it changes the claim's emphasis.
+- **Units and suffixes.** bps, %, µs, ms carry through; `fmt_duration()`
+  already picks the µs/ms/s unit by magnitude, so wiring a duration to a raw
+  float loses that.
+- **LaTeX math mode.** `$\gamma = 0.9$` must stay inside `$...$`. Note that
+  `fmt_scientific()` emits HTML (`1.5 × 10<sup>-4</sup>`) for embedding in a
+  pandas-generated HTML table — it is **not** usable in prose, where the
+  `<sup>` would pass through literally. Prose scientific notation needs a
+  LaTeX form (`$4 \times 10^{-6}$`) built separately.
+- **Hedged and deliberately-approximate numbers.** "roughly ten times the
+  gross profit", "on the order of $4 \times 10^{-6}$" are intentionally
+  imprecise. Wiring these to an exact computed value makes the prose *worse*
+  and can make it wrong (an exact figure asserts a precision the analysis
+  does not support). Either propose a wiring that reproduces the same
+  rounding/hedge, or classify the finding as **LEAVE-HEDGED** and explain
+  why — do not silently precision-inflate a hedge.
+
+Prefer this document's existing formatters (`fmt_val(val, fmt)`,
+`fmt_delta`, `fmt_duration`) over hand-rolled f-strings where one applies,
+since they already handle the `None`/non-finite → "—" fallback that a bare
+f-string would crash on.
+
+## Mechanism constraint: prose wiring needs inline expressions, which this
+## document does not currently use
+
+Verified 2026-09-03: `thesis/qmd/src/*.qmd` contains **zero** inline
+`` `{python} expr` `` expressions. Every computed value in this thesis lives
+inside a fenced ` ```{python} ` cell that renders a table or figure. Quarto's
+jupyter engine does support inline expressions, and the project's
+`_quarto.yml` pre-render hook (`scripts/export_all_to_thesis.py`) refreshes
+`thesis/qmd/results/**` before every render, so the artifacts a wired value
+would read are guaranteed fresh — but adopting inline expressions is a new
+idiom for this document, not an existing one.
+
+This materially changes what "the fix" means, so classify each
+WIRE-CANDIDATE by the mechanism it would need and say so in the report:
+
+- **TABLE-ADJACENT** — the value is already computed in a nearby cell for a
+  table, and the prose restates it. Cheapest fix: cite the table
+  (`@tbl-...`) instead of repeating the number, which is exactly how the
+  `2.4-million-row AAPL` case was resolved. Prefer this whenever a table
+  carrying the value already exists; it needs no new mechanism at all.
+- **INLINE-EXPR** — no table carries it, so wiring requires introducing
+  `` `{python} f"{...:.2f}"` `` into prose. Flag that this would be the
+  document's first inline expression, and note the trade-off: it makes the
+  value live, but a render-time exception in an inline expression fails the
+  whole build with less obvious provenance than a cell does.
+- **REWORD** — the cleanest fix is to remove the redundant number and refer
+  to the source qualitatively, keeping the precise figure in the one place
+  it is computed.
+
+Recommend one per finding rather than listing all three.
 
 ## Output
 
 ```
 HARDCODED-VALUE AUDIT REPORT
 =============================
- # | Cat | File:line          | Hardcoded text (truncated)         | Source artifact                          | Verdict        | Proposed fix
----|-----|--------------------|--------------------------------------|-------------------------------------------|----------------|------------------------------------------
- 1 |  2  | 07-02:12           | "2.4-million-row AAPL sample"       | peek/raw_file_inventory.json (AAPL)      | WIRE-CANDIDATE | f-string sum of val+test rows via json.load, matching tbl-raw-file-inventory's own load pattern
- 2 |  1  | 07-01:36-37        | "turnover 0.53, profit factor 3.64" | latest_finished/evaluation_report.json   | WIRE-CANDIDATE | format_key_metrics() already computes these in 06-00; reuse via load_experiment_snapshot()
- 3 |  3  | 04-06:3            | "$\gamma = 0.9$"                     | src/configs/scenarios/pooled/.../train.yaml | MATCH, WIRE-CANDIDATE | inline-read yaml.safe_load(...)["discount_factor"] instead of a bare LaTeX literal
+ # | Cat | File:line   | Hardcoded text            | Live value | Verdict        | Mech           | Format spec | Proposed fix
+---|-----|-------------|-----------------------------|------------|----------------|----------------|-------------|-------------
+ 1 |  2  | 07-02:12    | "2.4-million-row AAPL"      | 2,414,196  | WIRE-CANDIDATE | TABLE-ADJACENT | n/a         | cite @tbl-raw-file-inventory (already renders peek/raw_file_inventory.json); drop the repeated figure
+ 2 |  1  | 07-01:36-37 | "turnover 0.53, PF 3.64"    | 0.5341/3.6419 | WIRE-CANDIDATE | INLINE-EXPR | .2f / .2f   | `{python} fmt_val(m["turnover"], ".2f")` reading load_experiment_snapshot(EXPERIMENT_NAME)
+ 3 |  3  | 04-06:3     | "$\gamma = 0.9$"            | 0.9        | WIRE-CANDIDATE | INLINE-EXPR | .1f         | `$\gamma = {python} f"{cfg['discount_factor']:.1f}"$` from the scenario train.yaml
+ 4 |  5  | 07-02:19    | "roughly ten times"         | 9.7x       | LEAVE-HEDGED   | —              | —           | hedge is intentional; exact value would over-claim precision
 ...
 ```
 
 Categories: 1 = result metric, 2 = dataset scale, 3 = hyperparameter,
 4 = statistical test, 5 = derived/computed one-off.
 
-Close with: how many candidates scanned, how many WIRE-CANDIDATE vs STALE vs
-UNSOURCED, and — if any STALE findings were found — an explicit flag that
+Always include the **Live value** column — the reader needs to see the
+current artifact value next to the frozen text to judge the finding without
+re-deriving it, and it is what distinguishes MATCH from STALE at a glance.
+
+Close with: how many candidates scanned; the WIRE-CANDIDATE / STALE /
+UNSOURCED / LEAVE-HEDGED split; the mechanism split (how many are cheap
+TABLE-ADJACENT citations vs. how many would need the document's first inline
+expression); and — if any STALE findings were found — an explicit flag that
 those need `thesis-coherence-auditor` or a human to confirm before editing,
 since this agent only detects the source-value mismatch, not whether the
 surrounding argument still holds once corrected.
@@ -183,6 +262,12 @@ surrounding argument still holds once corrected.
 - Don't flag structural/document counts or literature citations — see
   "out of scope" above; those inflate the report with noise this agent isn't
   suited to judge.
+- A proposed fix that would change the rendered text is not a fix. Give the
+  format spec that reproduces the current wording exactly, and prefer a
+  TABLE-ADJACENT citation over introducing an inline expression when a table
+  already carries the value.
+- Never precision-inflate a hedge ("roughly", "on the order of", "about") by
+  wiring it to an exact value — classify it LEAVE-HEDGED instead.
 - A STALE finding is not licence to fix the number yourself — report it and
   let the coherence check or the user decide the right value; your job ends
   at "this no longer matches its source."
