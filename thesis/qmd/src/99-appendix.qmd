@@ -68,28 +68,27 @@ the selected TD3 specification.
 ## LOB Microstructure Features
 
 **Notation.**
-$P^{bid}_i$, $P^{ask}_i$: bid/ask price at book level $i$;
-$V^{bid}_i$, $V^{ask}_i$: resting volume at level $i$;
-$C^{bid}_i$, $C^{ask}_i$: order count at level $i$;
-$M_t = \tfrac{1}{2}(P^{bid}_0+P^{ask}_0)$: mid-price;
-$S_t = P^{ask}_0-P^{bid}_0$: spread;
-$\mathrm{QWM}_t = \tfrac{V^{ask}_0P^{bid}_0+V^{bid}_0P^{ask}_0}{V^{bid}_0+V^{ask}_0}$: queue-weighted midpoint (legacy feature name `microprice`);
-$\bar{P}^{vw}_N = \tfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$: volume-weighted mid-price over the top $N$ levels;
-$\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change;
-$e^{bid}_t = V^{bid}_{0,t}\mathbf{1}[P^{bid}_{0,t}>P^{bid}_{0,t-1}] + \Delta V^{bid}_t\,\mathbf{1}[P^{bid}_{0,t}=P^{bid}_{0,t-1}] - V^{bid}_{0,t-1}\mathbf{1}[P^{bid}_{0,t}<P^{bid}_{0,t-1}]$,
-$e^{ask}_t = V^{ask}_{0,t}\mathbf{1}[P^{ask}_{0,t}<P^{ask}_{0,t-1}] + \Delta V^{ask}_t\,\mathbf{1}[P^{ask}_{0,t}=P^{ask}_{0,t-1}] - V^{ask}_{0,t-1}\mathbf{1}[P^{ask}_{0,t}>P^{ask}_{0,t-1}]$:
-best-level order-flow events, which contribute the full standing queue when the quote moves and only the increment when it holds [@Cont2014];
-$\mathrm{OFI}_t = e^{bid}_t - e^{ask}_t$: best-level order flow imbalance;
-$W$: rolling-window length in events;
-$\mathcal{W}_t=\{t-W+1,\ldots,t\}$: event indices in the rolling window ending at $t$;
-$\bar{x}_W$: rolling mean over $W$ events;
-$V^B_W$, $V^S_W$: rolling buy/sell volume over $W$ events;
-$L$: odd-lot size threshold (100 shares);
-$Q$: notional or size threshold;
-$h_t$: hour of day (0–23);
-$\Delta t_{\text{ns}}$: inter-event time in nanoseconds;
-$\mathbf{1}[\cdot]$: indicator function;
-$\hat{\rho}(\cdot,\text{lag}=1)$: sample autocorrelation at lag 1.
+
+- $P^{bid}_i$, $P^{ask}_i$: bid/ask price at book level $i$
+- $V^{bid}_i$, $V^{ask}_i$: resting volume at level $i$
+- $C^{bid}_i$, $C^{ask}_i$: order count at level $i$
+- $M_t = \tfrac{1}{2}(P^{bid}_0+P^{ask}_0)$: mid-price
+- $S_t = P^{ask}_0-P^{bid}_0$: spread
+- $\mathrm{QWM}_t = \tfrac{V^{ask}_0P^{bid}_0+V^{bid}_0P^{ask}_0}{V^{bid}_0+V^{ask}_0}$: queue-weighted midpoint (legacy feature name `microprice`)
+- $\bar{P}^{vw}_N = \tfrac{\sum_{i<N}(P^{bid}_i V^{bid}_i + P^{ask}_i V^{ask}_i)}{\sum_{i<N}(V^{bid}_i+V^{ask}_i)}$: volume-weighted mid-price over the top $N$ levels
+- $\Delta V^{bid}_t = V^{bid}_{0,t}-V^{bid}_{0,t-1}$, $\Delta V^{ask}_t = V^{ask}_{0,t}-V^{ask}_{0,t-1}$: tick-to-tick volume change
+- $e^{bid}_t = V^{bid}_{0,t}\mathbf{1}[P^{bid}_{0,t}>P^{bid}_{0,t-1}] + \Delta V^{bid}_t\,\mathbf{1}[P^{bid}_{0,t}=P^{bid}_{0,t-1}] - V^{bid}_{0,t-1}\mathbf{1}[P^{bid}_{0,t}<P^{bid}_{0,t-1}]$, $e^{ask}_t = V^{ask}_{0,t}\mathbf{1}[P^{ask}_{0,t}<P^{ask}_{0,t-1}] + \Delta V^{ask}_t\,\mathbf{1}[P^{ask}_{0,t}=P^{ask}_{0,t-1}] - V^{ask}_{0,t-1}\mathbf{1}[P^{ask}_{0,t}>P^{ask}_{0,t-1}]$: best-level order-flow events, which contribute the full standing queue when the quote moves and only the increment when it holds [@Cont2014]
+- $\mathrm{OFI}_t = e^{bid}_t - e^{ask}_t$: best-level order flow imbalance
+- $W$: rolling-window length in events
+- $\mathcal{W}_t=\{t-W+1,\ldots,t\}$: event indices in the rolling window ending at $t$
+- $\bar{x}_W$: rolling mean over $W$ events
+- $V^B_W$, $V^S_W$: rolling buy/sell volume over $W$ events
+- $L$: odd-lot size threshold (100 shares)
+- $Q$: notional or size threshold
+- $h_t$: hour of day (0–23)
+- $\Delta t_{\text{ns}}$: inter-event time in nanoseconds
+- $\mathbf{1}[\cdot]$: indicator function
+- $\hat{\rho}(\cdot,\text{lag}=1)$: sample autocorrelation at lag 1
 
 ```{=latex}
 \begin{landscape}
