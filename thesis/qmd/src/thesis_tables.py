@@ -693,6 +693,13 @@ def experiment_spec_table(rows: list[tuple[str, str]]) -> None:
             # up the document indent, so the source line sits a quad to the
             # right of the table it belongs to.
             r"{\footnotesize\parindent0pt\textit{Source:} Author's own compilation.\par}",
+            # Close the \footnotesize opened above. It is set bare rather than
+            # inside a group because a longtable cannot be wrapped in one, and
+            # there is no landscape environment here to scope it, so without
+            # this the 10 pt size persists for the rest of the document --
+            # every appendix after this table rendered at 10 pt instead of the
+            # required 12 pt.
+            r"\normalsize",
         ]
     )
 
