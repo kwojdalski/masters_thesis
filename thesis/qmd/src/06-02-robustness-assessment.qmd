@@ -1,8 +1,8 @@
-Every arm in this section is trained for five hundred thousand environment
+Every scenario in this section is trained for five hundred thousand environment
 steps, rather than the three million used for the algorithm comparison in
 Section 6.1. The three sensitivity sweeps require nine separately trained
 policies, and the reduced budget was necessary to run them within the available
-compute. The arms are therefore matched to one another, which is what a
+compute. The scenarios are therefore matched to one another, which is what a
 single-factor comparison requires, but they are not matched to the Section 6.1
 agent and their absolute performance should not be compared with it.
 
@@ -53,7 +53,7 @@ from thesis_tables import RESULTS_TABLE_COLS, fmt_val, display_df, table_note
 # the four hypothesis tables read row-for-row.
 _SENS_COLS = RESULTS_TABLE_COLS
 
-# The 0 bp arm is a clone of the H1 configuration (same features, reward,
+# The 0 bp scenario is a clone of the H1 configuration (same features, reward,
 # train_size), differing only by env.trading_fees, so the ladder is a
 # single-factor sweep at a matched training budget. It is a separate training
 # run from Chapter 6.1's own TD3 agent, not the same checkpoint re-priced.
@@ -140,7 +140,7 @@ The evidence therefore partially supports Hypothesis 2. Performance and
 learned behaviour are materially sensitive to the transaction-cost assumption.
 However, the predicted sign threshold is not established. The 0.1-basis-point
 aggregate return is slightly positive, while the 0.1- and 1-basis-point
-policies are static and saturated. Because each arm was trained separately,
+policies are static and saturated. Because each scenario was trained separately,
 the comparison cannot separate direct fee erosion from a degenerate-policy
 outcome. Fixed-path repricing in @sec-execution-realism provides complementary
 evidence about the economic cost of the Hypothesis 1 action path. It does not
@@ -179,8 +179,8 @@ from thesis_tables import (
     comparison_table_html,
 )
 
-# All three arms share the H1 train.yaml and differ only in observation.yaml,
-# so the feature set is the single varying factor. The "selected" arm is the
+# All three scenarios share the H1 train.yaml and differ only in observation.yaml,
+# so the feature set is the single varying factor. The "selected" row is the
 # dedicated td3_h3_features_selected scenario defined in _H3_SCENARIOS, not the
 # superseded shared baseline that an earlier revision of this cell referenced.
 _FEATURE_SCENARIOS = [
@@ -191,7 +191,7 @@ _FEATURE_SCENARIOS = [
 
 # Same column spec as the H1 comparison (06-00) and the H2/H4 tables, so the
 # four hypothesis tables read row-for-row. % Long / % Short in particular make
-# the saturated-arm diagnosis below visible in the table itself.
+# the saturated-run diagnosis below visible in the table itself.
 _FEATURE_COLS = RESULTS_TABLE_COLS
 _HIGHER_BETTER = RESULTS_TABLE_HIGHER_BETTER
 
@@ -217,14 +217,14 @@ else:
 ```
 :::
 
-Only one of the three arms produced a functioning policy, so the comparison
+Only one of the three runs produced a functioning policy, so the comparison
 does not isolate the effect of the feature set. The selected 10-feature
 representation trades: turnover of $0.53$, $21{,}776$ position changes, a
 profit factor of $3.64$, and a cumulative return of $+13.4\%$, with exposure
 split $44.8\%$ long against $55.2\%$ short. Neither the minimal nor the full
-representation does. The minimal three-feature arm records turnover of
+representation does. The minimal three-feature run records turnover of
 $5.3 \times 10^{-6}$ with zero position changes and sits fully long for the
-entire evaluation; the full 33-feature arm records turnover of
+entire evaluation; the full 33-feature run records turnover of
 $4.7 \times 10^{-5}$, also with zero position changes, and sits fully short.
 Both are saturated at an action bound, and their near-zero returns
 ($-0.02\%$ and $+0.02\%$) are the drift of a held position rather than the
@@ -232,8 +232,8 @@ outcome of any learned decision.
 
 The failures are therefore not evidence that three features carry too little
 signal or that thirty-three carry too much noise. They are the same
-optimization failure documented for the log-return arm in Hypothesis 4 below,
-and the two arms saturate at *opposite* bounds, which is what unstable
+optimization failure documented for the log-return run in Hypothesis 4 below,
+and the two runs saturate at *opposite* bounds, which is what unstable
 optimization landing arbitrarily looks like rather than a systematic response
 to feature count. A genuine feature-quality effect would be visible as a
 difference between trained policies, not as the difference between one trained
@@ -243,7 +243,7 @@ Hypothesis 3 is therefore unresolved on this evidence. What the run supports is
 narrower: under an identical configuration and a matched 500,000-step budget,
 the selected 10-feature specification converged to a trading policy while the
 3-feature and 33-feature specifications did not. Whether a broader feature set
-improves performance once all arms train, and whether higher-dimensional
+improves performance once all scenarios train, and whether higher-dimensional
 observations simply require a longer budget to converge, are open questions
 that a training-stability study would need to separate
 (@sec-limitations-and-future-research).
@@ -273,7 +273,7 @@ zero transaction cost), holding the algorithm and data fixed.
 #| warning: false
 #| tbl-cap: "Hypothesis 4 reward-design sensitivity: test-split metrics for log-return vs. Differential Sharpe Ratio."
 
-# Both arms are clones of the H1 configuration differing only in reward_type
+# Both scenarios are clones of the H1 configuration differing only in reward_type
 # and its scaling, trained at a matched 500k-step budget, so the reward
 # objective is the single varying factor. _SENS_COLS is the shared
 # RESULTS_TABLE_COLS spec defined in the Hypothesis 2 cell above.
@@ -311,16 +311,16 @@ else:
 :::
 
 The comparison cannot be read as a like-for-like performance result, because
-the log-return arm did not produce a functioning policy. Across all six
+the log-return run did not produce a functioning policy. Across all six
 instruments its turnover is between $7.8 \times 10^{-6}$ and
-$2.1 \times 10^{-5}$, against $0.48$ to $0.58$ for the DSR arm, and it holds a
+$2.1 \times 10^{-5}$, against $0.48$ to $0.58$ for the DSR run, and it holds a
 fully long position ($\text{pct\_long} = 1.0$) for the entire evaluation on
 every instrument. The policy is saturated at the upper bound of the action
 interval and does not respond to the state; its returns, between $-0.22\%$ and
 $+0.26\%$, are the passive drift of a held long position rather than the result
-of any learned decision.^[The two arms differ only in `reward_type` and its
-scaling: the log-return arm applies `reward_scale: 10000.0` to per-step log
-returns of order $10^{-6}$, while the Differential Sharpe arm uses
+of any learned decision.^[The two scenarios differ only in `reward_type` and its
+scaling: the log-return scenario applies `reward_scale: 10000.0` to per-step log
+returns of order $10^{-6}$, while the Differential Sharpe scenario uses
 `reward_scale: 1.0` with $\eta = 0.01$, the reward being self-normalizing by
 construction. Alternative reward scalings were tried for the log-return
 objective during development and did not resolve the saturation. A systematic
@@ -332,7 +332,7 @@ learned preference for passive exposure. First, a saturated policy would be
 expected to sit at a neutral position if it had learned that trading is
 unprofitable, not at a bound. Second, the same degenerate behaviour appears in
 an independent scenario that also uses the log-return reward, the
-minimal-feature arm of Hypothesis 3, which saturates at the *opposite* bound
+minimal-feature run of Hypothesis 3, which saturates at the *opposite* bound
 (fully short) rather than converging to any intermediate exposure. A single
 frozen run could be attributed to seed or budget; the same collapse in two
 separate scenarios sharing one reward specification points at the reward
@@ -351,8 +351,8 @@ and learning rate that is left to future work
 
 Overall, the robustness evidence is strongest for transaction-cost sensitivity.
 Feature specification and reward design are both inconclusive on the present
-evidence, for the same reason: in each comparison an arm failed to train (two
-of three under Hypothesis 3, the log-return arm under Hypothesis 4), so
+evidence, for the same reason: in each comparison a run failed to train (two
+of three under Hypothesis 3, the log-return run under Hypothesis 4), so
 neither isolates the effect of the factor it varies. The results are
 not yet strong evidence of robustness across market regimes, longer samples,
 alternative chronological splits, or repeated random seeds.
