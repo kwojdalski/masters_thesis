@@ -5,8 +5,8 @@ produced it to the sentence that prints it.
 
 The intended contract is: **the thesis reads only from `thesis/qmd/results/**`,
 which is written by the export scripts.** Nothing in a `.qmd` should reach past
-that boundary into MLflow, `output/experiments/`, or a scenario YAML. Two paths
-still break that contract; they are marked in red below and listed in
+that boundary into MLflow, `output/experiments/`, or a scenario YAML. One path
+still breaks that contract; it is marked in red below and described in
 [Bypass paths](#bypass-paths).
 
 ## The pipeline
@@ -67,7 +67,7 @@ flowchart LR
     PEEK --> HELP
     PLOTS --> HELP
 
-    MLF -. "BYPASS 1+2: live DB and<br/>artifact store preferred" .-> HELP
+    MLF -. "BYPASS 1: live DB preferred<br/>for provenance metadata" .-> HELP
 
     classDef leak stroke:#c0392b,stroke-width:3px,color:#c0392b
     class MLF leak
@@ -88,7 +88,7 @@ flowchart LR
 | `@tbl-feature-stats` (99-appendix) | `peek/feature_stats.csv` | `pd.read_csv` | **yes** |
 | `@tbl-feature-correlations` (99-appendix) | `peek/correlations.csv` | `pd.read_csv` | **yes** |
 | `@tbl-transformed-features` (99-appendix) | `observation_samples/**` | `find_observation_sample()` | **yes** |
-| Figures 3–5 (06-03) | MLflow artifact dir, else `evaluation_plots/**` | `find_evaluation_plot_data()` | **no — bypass 2** |
+| Figures 3–5 (06-03) | `evaluation_plots_comparison/**`, else `evaluation_plots/**` | `find_exported_plot_data()` | **yes** |
 | Provenance notes under tables | live `mlflow.db`, else `run.json` | `show_table_meta(finished)` | **no — bypass 1** |
 
 ## Bypass paths
@@ -119,12 +119,20 @@ branch than a local render.
 `runs_overview_table()` has the same preference. In 06-02 its result (`runs_df`)
 is **assigned and never used** — dead code that can simply be deleted.
 
-### 2. Figures resolve through the MLflow artifact store first
+### 2. Figures resolved through the MLflow artifact store first — REMOVED
 
-06-03 calls `find_evaluation_plot_data(finished.get("artifact_uri"))`, then
-`find_plot_run_in_experiment()`, and only then falls back to
-`find_exported_plot_data()`. A machine without `mlruns/` renders the exported
-plots; a machine with it may render a different run's.
+06-03 used to call `find_evaluation_plot_data(finished.get("artifact_uri"))`,
+then `find_plot_run_in_experiment()`, before falling back to
+`find_exported_plot_data()`. Both were already dead in practice: the first
+returns nothing for this experiment, and the comparison export overrode
+whatever the second found. They are gone; the chapter now reads figures from
+the snapshot only, so a laptop and CI draw the same plots.
+
+Note that the two plot exporters — `export_algo_comparison_plots.py` and
+`export_rollout_plots_to_thesis.py` — *do* read MLflow. That is why they are a
+local authoring step that commits downsampled copies, rather than part of the
+pre-render chain: they cannot run where `mlruns/` is absent, which is exactly
+the CI case. The `peek/*` exporters are manual for the same practical reason.
 
 ### 3. `load_scenario_metrics()` raw-results fallback — REMOVED
 

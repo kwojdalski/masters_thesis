@@ -53,48 +53,35 @@ execution model rather than a property to be expected of a deployed strategy.
 #| warning: false
 
 from trading_rl.evaluation.plots import plot_equity_curve, plot_rewards, plot_actions
-from thesis_mlflow_results import audit_plots_enabled, find_evaluation_plot_data, show_plot
+from thesis_mlflow_results import audit_plots_enabled, find_exported_plot_data, show_plot
 
 _audit = audit_plots_enabled()
-_plot_data = {}
-_plot_prov = None
-if finished is not None:
-    _plot_data = find_evaluation_plot_data(finished.get("artifact_uri"))
 
-# The evaluate command only writes the rollout parquets when --only plots is in
-# effect, so the newest finished run of this experiment carries metrics,
-# benchmarks and statistical tests but no plot data. Fall back to another
-# finished run of the same experiment, restricted to the same 3,000,000-step
-# checkpoint the results tables were scored from -- this experiment also holds
-# plots from a 200k-step checkpoint over a 31-minute window, and showing those
-# beside the tables would misrepresent them.
-if not _plot_data:
-    from thesis_mlflow_results import find_plot_run_in_experiment
-
-    _plot_data, _plot_prov = find_plot_run_in_experiment(
-        EXPERIMENT_NAME, require_checkpoint_step=3_000_000
-    )
-
-# Last resort, and the only one that works on CI: the committed downsampled
-# copy under thesis/qmd/results. mlflow.db and mlruns/ are gitignored, so the
-# two lookups above find nothing there and the figures would fall back to a
-# "not available" notice in the published PDF while rendering fine locally.
-# Refresh it with scripts/export_rollout_plots_to_thesis.py.
-# The committed multi-algorithm comparison is preferred over any single-policy
-# rollout: the figures then answer the same question as the algorithm-comparison
-# table in Section 6.1, rather than illustrating one policy against the passive
-# benchmarks and supporting no comparison between the learners at all. Built by
-# scripts/export_algo_comparison_plots.py, which refuses to emit anything unless
-# every algorithm contributes a rollout over the same split, symbol, window
-# length and checkpoint step.
-from thesis_mlflow_results import find_exported_plot_data
-
-_cmp_data, _cmp_prov = find_exported_plot_data(
+# Figures come from the committed snapshot only, never from a live MLflow
+# lookup. mlflow.db and mlruns/ are gitignored, so a live lookup succeeds on
+# the author's machine and finds nothing on CI -- identical sources would then
+# publish different figures. Two lookups used to run ahead of this
+# (find_evaluation_plot_data on the run's artifact_uri, then
+# find_plot_run_in_experiment) and were already dead in practice: the first
+# returns nothing for this experiment, and the comparison export below
+# overrode whatever the second found.
+#
+# The snapshot is refreshed by scripts/export_algo_comparison_plots.py and
+# scripts/export_rollout_plots_to_thesis.py. Those do read MLflow, which is
+# why they are a local authoring step rather than part of the pre-render
+# chain -- they cannot run where mlruns/ is absent.
+#
+# The multi-algorithm comparison is preferred over any single-policy rollout:
+# the figures then answer the same question as the algorithm-comparison table
+# in Section 6.1, rather than illustrating one policy against the passive
+# benchmarks and supporting no comparison between the learners at all.
+# export_algo_comparison_plots.py refuses to emit anything unless every
+# algorithm contributes a rollout over the same split, symbol, window length
+# and checkpoint step.
+_plot_data, _plot_prov = find_exported_plot_data(
     EXPERIMENT_NAME, "evaluation_plots_comparison"
 )
-if _cmp_data:
-    _plot_data, _plot_prov = _cmp_data, _cmp_prov
-elif not _plot_data:
+if not _plot_data:
     _plot_data, _plot_prov = find_exported_plot_data(EXPERIMENT_NAME)
 
 
