@@ -23,6 +23,18 @@ still needs a human or `thesis-crossref-auditor` -- but it turns "the number
 doesn't exist at all" and "a new hardcoded reference was added instead of a
 crossref" into a build-time failure instead of a silent drift.
 
+"Chapter N" (57 instances, Roman numerals: `pracamgrwne.cls` renders body
+chapters as "CHAPTER I".."CHAPTER VII") gets the weaker existence-only check,
+not the Section/Algorithm/Appendix treatment of "convert to `@sec-...` so the
+whole class of bug is impossible." That conversion was tried and reverted:
+`\thesection` bakes the literal word "CHAPTER" into the chapter number, and
+Quarto's crossref system independently, unconditionally prepends its own
+"Section" prefix to any `@sec-...` reference. The two collide -- a rendered
+test came back as "see Section CHAPTER I for background" -- and fixing it
+needs custom crossref-prefix engineering in the class file, not a text
+substitution. Existence-checking 57 references for free is still strictly
+better than checking none, which was the state before this function existed.
+
 `find_orphaned_equations` answers a related but different question: which
 `{#eq-...}`-labelled equations are never cited via `@eq-...` anywhere. This is
 deliberately NOT wired into `find_violations`/the CI gate, and it is not a
@@ -161,6 +173,38 @@ def count_appendix_letters() -> int:
 _SECTION_REF_RE = re.compile(r"\bSection\s+(\d+)\.(\d+)(?:\.(\d+))?\b")
 _ALGORITHM_REF_RE = re.compile(r"\bAlgorithm\s+(\d+)\b")
 _APPENDIX_REF_RE = re.compile(r"\bAppendix\s+([A-Z])\b")
+_CHAPTER_REF_RE = re.compile(r"\bChapters?\s+([IVXLCDM]+)(?:\s+and\s+([IVXLCDM]+))?\b")
+
+_ROMAN_VALUES = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+
+
+def _roman_to_int(s: str) -> int:
+    total = 0
+    prev = 0
+    for ch in reversed(s.upper()):
+        value = _ROMAN_VALUES.get(ch)
+        if value is None:
+            return -1  # not a valid Roman numeral at all
+        total += value if value >= prev else -value
+        prev = max(prev, value)
+    return total
+
+
+_ROMAN_NUMERALS = [
+    (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+    (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+    (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"),
+]  # fmt: skip
+
+
+def _int_to_roman(n: int) -> str:
+    out = []
+    for value, symbol in _ROMAN_NUMERALS:
+        count, n = divmod(n, value)
+        out.append(symbol * count)
+    return "".join(out)
+
+
 _EQ_LABEL_DEF_RE = re.compile(r"\{#(eq-[a-zA-Z0-9_-]+)\}")
 _EQ_LABEL_REF_RE = re.compile(r"@(eq-[a-zA-Z0-9_-]+)")
 
@@ -267,6 +311,29 @@ def find_violations() -> list[Violation]:
                             f"(A..{chr(ord('A') + n_appendix_letters - 1)})",
                         )
                     )
+            for m in _CHAPTER_REF_RE.finditer(line):
+                for numeral in (g for g in m.groups() if g is not None):
+                    n = _roman_to_int(numeral)
+                    if not (1 <= n <= hmap.max_chapter):
+                        violations.append(
+                            Violation(
+                                fname,
+                                lineno,
+                                "hardcoded-chapter",
+                                numeral,
+                                f"only {hmap.max_chapter} chapter(s) exist "
+                                f"(I..{_int_to_roman(hmap.max_chapter)}) -- "
+                                "'Chapter N' cannot be converted to @sec-... here: "
+                                "pracamgrwne.cls bakes the word CHAPTER into "
+                                "\\thesection, and Quarto's crossref system always "
+                                "prepends its own 'Section' prefix to @sec-..., so "
+                                "the two collide and render as 'Section CHAPTER "
+                                "I' (confirmed by rendering a test reference) -- "
+                                "this checks existence only, the same as the "
+                                "other hardcoded reference types, without "
+                                "attempting that conversion",
+                            )
+                        )
     return violations
 
 
