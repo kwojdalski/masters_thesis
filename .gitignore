@@ -131,6 +131,10 @@ thesis/qmd/src/*.pdf
 !thesis/qmd/src/masters-thesis.pdf
 # LaTeX aux files emitted by a local `quarto render ... --to pdf`
 thesis/qmd/src/*.lap
+# Result-value macros, rebuilt from the exported artifacts by the pre-render
+# hook on every render. Generated, so not tracked -- an absent or stale copy
+# cannot reach a build, since the hook rewrites it before Quarto runs.
+thesis/qmd/src/_generated_values.tex
 mlflow.db-journal
 render_logs/*
 *.pkl
