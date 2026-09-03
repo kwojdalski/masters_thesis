@@ -1532,9 +1532,14 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
         else f"Actor {actor_lr}; critic {value_lr}"
     )
 
-    _get("actor_weight_decay", 0.0)
+    actor_wd = _get("actor_weight_decay", 2e-6)
     value_wd = _get("value_weight_decay", 2e-6)
-    wd_str = f"Actor 0.0; critic {fmt_scientific(value_wd)}" if value_wd else "0.0"
+    if not actor_wd and not value_wd:
+        wd_str = "0.0"
+    elif actor_wd == value_wd:
+        wd_str = f"Actor and critic {fmt_scientific(actor_wd)}"
+    else:
+        wd_str = f"Actor {fmt_scientific(actor_wd)}; critic {fmt_scientific(value_wd)}"
 
     episode_len = _get("streaming_episode_length", 10_000)
     reward_type = _get("reward_type", "differential_sharpe")
@@ -1566,7 +1571,7 @@ def build_experiment_specification_rows(experiment_name: str) -> list[tuple[str,
         ),
         (
             "Validation/test data",
-            "March 2, 2026 symbol-day files, capped at 50,000 rows per split",
+            "March 2, 2026 symbol-day files, split 50/50 at the session midpoint; no row cap",
         ),
         (
             "Feature set",

@@ -12,7 +12,7 @@ identify a precise break-even fee. Fixed-path bid/ask repricing reverses the
 result (Section 7.2). The qualitative character of
 the learned policy is consistent with a deliberate strategy rather than noise:
 turnover well below that of a random policy, responsive rather than static
-positioning, and drawdown an order of magnitude shallower than passive
+positioning, and a maximum drawdown materially shallower than that of passive
 exposure.
 
 The contribution of the feature set itself is left open. Of the three feature
