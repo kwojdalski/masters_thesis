@@ -376,5 +376,6 @@ agent's own frictionless return (Section 6.2) and narrows its measured advantage
 over buy-and-hold. The benchmark comparison thus supports the existence half of
 Hypothesis 1 (a coherent, risk-controlled policy) but not a claim of
 benchmark-dominating or deployable performance. The economic magnitude is
-highly sensitive to transaction cost, as Sections 4.3
-(@sec-execution-model-signal-friction) and 6.2 show.
+highly sensitive to transaction cost, as
+@sec-execution-model-signal-friction and
+@sec-h2-transaction-cost-sensitivity show.

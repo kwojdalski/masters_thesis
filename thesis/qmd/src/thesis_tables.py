@@ -583,7 +583,11 @@ def feature_correlation_table(raw_df: pd.DataFrame) -> None:
             r"\end{tabular}",
             r"\vspace{4pt}",
             r"\begin{minipage}{0.95\linewidth}",
-            f"\\footnotesize\\textit{{{_esc(note)}}}",
+            # Italic label, roman body, no bold -- the Annex D convention
+            # tablenote.lua implements for every other table. This one builds
+            # its LaTeX directly, so it carried neither the "Note:" label the
+            # HTML branch emits nor the correct emphasis.
+            f"\\footnotesize\\parindent0pt\\textit{{Note:}} {_esc(note)}",
             r"\end{minipage}",
             r"\end{table}",
         ]

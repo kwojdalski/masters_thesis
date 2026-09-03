@@ -43,7 +43,7 @@ and algorithm taxonomies; the standard reference for the framework itself is
 
 \end{tikzpicture}
 
-{\raggedright\noindent\footnotesize\itshape\textbf{Source:} author's own elaboration, based on Sutton \& Barto (2018), 2nd ed.\par}
+{\raggedright\noindent\footnotesize\parindent0pt\relax\textit{Source:} Author's own elaboration, based on Sutton \& Barto (2018), 2nd ed.\par}
 \end{figure}
 ```
 

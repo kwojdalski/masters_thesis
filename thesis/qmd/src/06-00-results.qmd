@@ -307,7 +307,7 @@ bias. The remainder of this thesis therefore fixes TD3 as a representative
 continuous-control learner rather than as a demonstrated winner, and varies the
 experimental factors around it.
 
-Read through the reworded Hypothesis 1, the algorithm comparison establishes the
+Read against Hypothesis 1, the algorithm comparison establishes the
 existence half of the claim. Under frictionless mid-price execution every
 learned agent extracts a directionally coherent, risk-controlled edge that the
 random policy does not, so a learnable microstructure signal is present in this
@@ -319,8 +319,8 @@ instruments (approximately $0.016$ to $0.036$ basis points, itemised in
 same instruments ranged from $-0.68\%$ (MSFT) to $+1.07\%$ (AVGO), that is,
 sessions with no material directional move to capture. The headline cumulative figures are the
 compounding of a per-step edge far smaller than one tick of spread, not evidence
-of a large exploitable inefficiency. Section 4.3
-(@sec-execution-model-signal-friction) explains why this magnitude must be read
+of a large exploitable inefficiency.
+@sec-execution-model-signal-friction explains why this magnitude must be read
 against omitted execution costs. The algebraic half-spread bound on the
 queue-weighted-midpoint displacement does not bound the policy's return. The
 relevant evidence instead comes from the transaction-cost sensitivity analysis

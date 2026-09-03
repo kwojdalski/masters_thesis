@@ -67,8 +67,8 @@ spreads, deep displayed depth, and continuous two-sided quoting. This ensures
 that simulated agent trades represent a negligible fraction of resting book
 volume at any level.] That size argument covers price impact from order size;
 it does not cover whether the agent's own trading feeds back into the
-order-flow features it conditions on. Section 7.2
-(@sec-execution-realism) returns to this.
+order-flow features it conditions on.
+@sec-execution-realism returns to this.
 
 **Position-level execution.** The simulation is specified at the level of
 positions rather than orders. The agent names a target exposure in $[-1, 1]$
@@ -79,21 +79,21 @@ distinction between passive and aggressive execution consequently does not
 arise: the agent neither posts nor crosses the spread, holds no queue
 position, and cannot be adversely selected against by better-informed flow.
 This is the single abstraction from which the execution limitations discussed
-in Section 7.2 (@sec-execution-realism) follow.
+in @sec-execution-realism follow.
 
 **Mid-price execution.** Trades are valued at the mid-price rather than at
 executable bid/ask quotes. This avoids explicit spread-crossing and simplifies
 reward accounting, but it makes the reported backtest returns optimistic for
 the evaluated action path. Real execution may cross the spread and incur
-maker/taker fees, queue uncertainty, partial fills, and slippage. Section 4.3
-(@sec-execution-model-signal-friction) explains this assumption, while
+maker/taker fees, queue uncertainty, partial fills, and slippage.
+@sec-execution-model-signal-friction explains this assumption, while
 Chapter VI measures how the small per-step edge responds to modeled transaction costs.
 
 **Zero latency.** Observations are assumed to be acted on immediately, with no
 transport, decision, or matching-engine delay between state observation and
 execution. This is appropriate for a study focused on strategy learning rather
 than low-latency execution engineering. In production HFT systems, such delays
-can invalidate short-lived signals; Section 7.2 (@sec-execution-realism)
+can invalidate short-lived signals; @sec-execution-realism
 sets this against the dataset's event cadence.
 
 **Bounded continuous exposure.** Position constraints are enforced via the
