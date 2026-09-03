@@ -397,6 +397,28 @@
 \titleformat{\section}[block]{\normalsize\bfseries\filcenter}{\thesection.}{0.5em}{\MakeUppercase}
 \titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
 \titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+% Annex D numbers chapters in Roman and sections in Arabic. Its contents runs
+% "CHAPTER I. <Title of the chapter>" above "1.1. <Section heading>" and
+% "1.1.1. <Subsection heading>", so the section number restates the chapter in
+% digits rather than inheriting the Roman form. article.cls derives
+% \thesubsection from \thesection, which would give "I.1", so the sub-levels
+% are rebound to \arabic{section} directly.
+% The word rides in \thesection rather than in \titleformat, so the heading
+% and the contents entry (written as \numberline{\thesection}) agree without
+% stating it twice. \appendix overwrites \thesection with \Alph{section},
+% which is why appendices stay "A." and do not inherit the prefix.
+\renewcommand*\thesection{CHAPTER \Roman{section}}
+\renewcommand*\thesubsection{\arabic{section}.\arabic{subsection}}
+\renewcommand*\thesubsubsection{\arabic{section}.\arabic{subsection}.\arabic{subsubsection}}
+% \appendix resets \thesection to \Alph{section} but leaves the sub-levels
+% pointing at \arabic{section}, which would number a subsection of appendix B
+% as "2.1". Rebind them to the letter so appendix sub-levels read "B.1".
+\let\pmwne@appendix\appendix
+\renewcommand*\appendix{%
+  \pmwne@appendix
+  \renewcommand*\thesubsection{\Alph{section}.\arabic{subsection}}%
+  \renewcommand*\thesubsubsection{\Alph{section}.\arabic{subsection}.\arabic{subsubsection}}%
+}
 % Chapter entries in the table of contents carry the same capitals, so the body
 % and the contents agree -- which is what "according to the table of contents"
 % asks for.
@@ -415,6 +437,12 @@
     \addvspace{1.0em \@plus\p@}%
     \setlength\@tempdima{1.5em}%
     \begingroup
+      % \numberline sets the number in a fixed \@tempdima box, which fits "7."
+      % but not "CHAPTER VII.". Locally give it natural width so the label sizes
+      % itself; \@tempdima then governs only the hanging indent of a wrapped
+      % title. Scoped to this group, so the fixed-box form still applies to the
+      % sub-levels below.
+      \def\numberline##1{##1.\enspace}%
       \parindent \z@ \rightskip \@pnumwidth
       \parfillskip -\@pnumwidth
       \leavevmode
