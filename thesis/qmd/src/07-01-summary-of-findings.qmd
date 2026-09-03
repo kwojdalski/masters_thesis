@@ -13,8 +13,8 @@ and PPO also separate cleanly from a random policy while remaining
 indistinguishable from one another (Section 6.1). These results support a
 learnable relationship under the specified simulator. They do not establish
 deployable performance. In the transaction-cost sweep, the learned policies
-collapse at the higher fee levels (Section 6.2). Fixed-path
-bid/ask repricing reverses the result (Section 7.2). The strong frictionless
+collapse at the higher fee levels (Section 6.2). Re-pricing the Hypothesis 1 action path at
+the bid/ask, on one instrument, reverses its sign (@sec-execution-realism). The strong frictionless
 figures are therefore conditional on favorable execution assumptions.
 Retraining and re-evaluating under explicit bid/ask execution with calibrated
 fees remains the outstanding test.
