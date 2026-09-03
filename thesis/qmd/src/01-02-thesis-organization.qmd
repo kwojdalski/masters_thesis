@@ -27,7 +27,7 @@ code structure, and the TD3-based training workflow used to produce
 reproducible experiments.
 
 Chapter VI reports the empirical results. It combines experiment snapshots,
-performance evaluation, statistical validation, and robustness assessment to
+performance evaluation, and robustness assessment across the four hypotheses to
 separate promising outcomes from noise, overfitting, or fragile conclusions.
 
 Chapter VII synthesizes the findings, discusses the main limitations of the
