@@ -53,6 +53,6 @@ execution model used here is a mid-price proxy and is optimistic relative to
 executable bid and ask prices. Spread-crossing costs are of similar magnitude
 to the price moves the agent targets. The higher-fee retraining runs collapse
 to static positions (Section 6.2). The sweep establishes sensitivity, but not a
-precise break-even fee for a functioning policy. Fixed-path bid/ask repricing
-does reverse the baseline result. The frictionless finding should therefore be
+precise break-even fee for a functioning policy. Re-pricing that action path at
+the bid/ask, on one instrument, reverses its sign (@sec-execution-realism). The frictionless finding should therefore be
 read as evidence within the simulator, not as evidence of tradability.
