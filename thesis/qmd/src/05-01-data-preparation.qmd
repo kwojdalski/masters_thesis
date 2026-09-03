@@ -264,15 +264,15 @@ order-count imbalance) and carry the sign expected when queue imbalance predicts
 which side of the book depletes first, the mechanism set out in Chapter 2
 [@Cont2014; @Stoikov2018]. The matching Pearson correlations are smaller
 ($\le 0.16$), so the relationship is monotone rather than linear. Every other
-feature -- fair-value level, spread regime, book convexity, trade intensity,
-order-flow autocorrelation, and time encodings -- has $|r| < 0.02$ on both
+feature (fair-value level, spread regime, book convexity, trade intensity,
+order-flow autocorrelation, and time encodings) has $|r| < 0.02$ on both
 measures in isolation.
 
 Two things follow for the choice of function approximator. First, even the
 strongest single feature accounts for under seven per cent of the rank variance
 in the next return ($0.26^2$), so no feature is a standalone rule; a usable edge
-has to come from combining them. Second, a linear predictor -- logistic or ridge
-regression, or any weighted sum of features -- would capture only the linear
+has to come from combining them. Second, a linear predictor (logistic or ridge
+regression, or any weighted sum of features) would capture only the linear
 component of the imbalance features and would impose one additive, monotone
 response per feature across every market regime. The policy instead needs the
 non-linear shape of the imbalance response and its interaction with spread,

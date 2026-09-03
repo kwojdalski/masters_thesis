@@ -39,10 +39,10 @@ in them, released as an open repository [@Wojdalski2026]. It is an inherent part
 of the work rather than supporting material: the pipeline described in Chapter 5,
 the scenario configurations defining each hypothesis test in Chapter 6, and the
 evaluation and statistical-testing code behind every reported figure all reside
-there. Experiments are specified declaratively, so each arm compared in
+there. Experiments are specified declaratively, so each scenario compared in
 Chapters 6 and 7 can be re-run from its configuration file without modifying
 source code. This matters for more than convenience. Several claims the thesis
-makes about its own method — that feature normalization uses only past
-observations, that splits are chronological, that the arms of each hypothesis
-differ in one factor at a time — are properties of the implementation, and the
-repository is what makes them auditable rather than merely asserted.
+makes about its own method are properties of the implementation: that feature
+normalization uses only past observations, that splits are chronological, that
+the scenarios of each hypothesis differ in one factor at a time. The repository is
+what makes them auditable rather than merely asserted.
