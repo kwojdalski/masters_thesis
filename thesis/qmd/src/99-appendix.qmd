@@ -479,6 +479,84 @@ else:
 
 ---
 
+# Bid/Ask Repricing by Instrument {#sec-appendix-bid-ask-repricing}
+
+```{=latex}
+\addcontentsline{lap}{appendices}{\protect\numberline{\thesection}Bid/Ask Repricing by Instrument}
+```
+
+@sec-execution-realism re-prices the Hypothesis 1 TD3 test action path at the
+bid/ask, on AAPL, and reports that charging the spread turns the gross profit
+negative. @tbl-bid-ask-repricing extends that calculation to all six
+instruments, using each instrument's mean relative half-spread from
+@tbl-tick-breakeven-fee and the same TD3 checkpoint's per-instrument test
+rollout. The spread cost is the realised turnover of that instrument's action
+path (the sum of absolute position changes) times its mean relative
+half-spread; the breakeven fee is the per-step gross return divided by the
+per-step turnover, exactly as in @sec-execution-realism.
+
+```{python}
+#| label: tbl-bid-ask-repricing
+#| tbl-cap: "Bid/ask repricing of the Hypothesis 1 TD3 test action path, by instrument."
+#| echo: false
+#| warning: false
+
+import json
+import pandas as pd
+from thesis_mlflow_results import repo_root
+from thesis_tables import display_df, table_note, missing_data_notice
+
+_repricing_path = (
+    repo_root()
+    / "thesis/qmd/results/pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr/peek/bid_ask_repricing.json"
+)
+
+if _repricing_path.exists():
+    df = pd.DataFrame(json.loads(_repricing_path.read_text()))
+    df["Symbol"] = df["symbol"]
+    df["Gross PnL"] = df["gross_pnl"].apply(lambda x: f"{x:.3f}")
+    df["Spread Cost"] = df["spread_cost"].apply(lambda x: f"{x:.3f}")
+    df["Ratio"] = df["cost_to_profit_ratio"].apply(lambda x: f"{x:.1f}")
+    df["Net PnL"] = df["net_pnl"].apply(lambda x: f"{x:.3f}")
+    df["Breakeven Fee"] = df["breakeven_fee_bp"].apply(lambda x: f"{x:.4f}")
+    display_df(
+        df[
+            [
+                "Symbol",
+                "Gross PnL",
+                "Spread Cost",
+                "Ratio",
+                "Net PnL",
+                "Breakeven Fee",
+            ]
+        ]
+    )
+    table_note(
+        source="Author's own calculations based on the Hypothesis 1 TD3 checkpoint's "
+        "per-instrument test rollouts and the half-spread in @tbl-tick-breakeven-fee.",
+        note=(
+            "Gross PnL and Net PnL are in net-liquidation-value units on the same "
+            "scale as the test-window returns reported in Chapter VI (turnover x "
+            "return, not a percentage). Spread Cost is turnover (sum of absolute "
+            "position changes over the test window) times the instrument's mean "
+            "relative half-spread. Ratio is Spread Cost divided by Gross PnL. Net "
+            "PnL is Gross PnL minus Spread Cost, and is negative for every "
+            "instrument, so the fixed action path is unprofitable under bid/ask "
+            "execution on all six. Breakeven Fee, in basis points, is the "
+            "per-step gross return divided by the per-step turnover. These "
+            "figures re-price a fixed policy; they are not a retrained result "
+            "(@sec-execution-realism)."
+        ),
+    )
+else:
+    missing_data_notice(
+        "bid_ask_repricing.json not found — run: "
+        "`uv run python scripts/export_bid_ask_repricing_to_thesis.py`"
+    )
+```
+
+---
+
 # Feature Distribution Statistics {#sec-appendix-feature-statistics}
 
 ```{=latex}

@@ -39,6 +39,18 @@ maker/taker fees and a slippage or market-impact model. Because the training
 reward shares the mid-price assumption, re-scoring the existing checkpoints is
 not sufficient.
 
+The AAPL-only calculation above generalises. @tbl-bid-ask-repricing
+(@sec-appendix-bid-ask-repricing) extends it to the other five instruments,
+using the same Hypothesis 1 TD3 checkpoint's per-instrument test rollout and
+the half-spread already reported per instrument in @tbl-tick-breakeven-fee.
+The spread cost exceeds the gross profit on every instrument, from roughly 15
+times on AAPL to roughly 38 times on META, and the net result after charging
+the spread is negative on all six. The reversal is therefore not specific to
+AAPL: it is the same fixed-spread subsidy removed on every instrument the
+policy was evaluated on. As above, this re-prices a fixed action path rather
+than a retrained policy, and does not by itself establish what a
+spread-aware policy would learn.
+
 Two further assumptions in @sec-simulation-assumptions bear on the same
 question and have not been quantified here. The first is zero latency: the
 agent acts on an observation with no transport, decision, or matching-engine

@@ -1,0 +1,80 @@
+[
+  {
+    "symbol": "AAPL",
+    "n_steps": 969218,
+    "gross_pnl": 1.514639139175415,
+    "turnover_sum": 413727.25,
+    "turnover_per_step": 0.4268675148487091,
+    "half_spread_bp_mean": 0.5548661685879921,
+    "spread_cost": 22.956325404794633,
+    "cost_to_profit_ratio": 15.156300145057845,
+    "net_pnl": -21.441686265619218,
+    "sign_reverses": true,
+    "breakeven_fee_bp": 0.03660956674785147
+  },
+  {
+    "symbol": "TSLA",
+    "n_steps": 839106,
+    "gross_pnl": 1.8218138217926025,
+    "turnover_sum": 430700.125,
+    "turnover_per_step": 0.5132851600646973,
+    "half_spread_bp_mean": 0.6970974465373021,
+    "spread_cost": 30.02399573607968,
+    "cost_to_profit_ratio": 16.480276621535946,
+    "net_pnl": -28.202181914287078,
+    "sign_reverses": true,
+    "breakeven_fee_bp": 0.0422988394375488
+  },
+  {
+    "symbol": "AMZN",
+    "n_steps": 1128425,
+    "gross_pnl": 2.0480751991271973,
+    "turnover_sum": 498340.125,
+    "turnover_per_step": 0.44162487983703613,
+    "half_spread_bp_mean": 0.6793427333456629,
+    "spread_cost": 33.854374265331934,
+    "cost_to_profit_ratio": 16.529849235887056,
+    "net_pnl": -31.806299066204737,
+    "sign_reverses": true,
+    "breakeven_fee_bp": 0.0410979040594715
+  },
+  {
+    "symbol": "MSFT",
+    "n_steps": 380317,
+    "gross_pnl": 0.8235613107681274,
+    "turnover_sum": 172408.03125,
+    "turnover_per_step": 0.45332837104797363,
+    "half_spread_bp_mean": 0.9307197969972887,
+    "spread_cost": 16.04635678457022,
+    "cost_to_profit_ratio": 19.48410710260775,
+    "net_pnl": -15.222795473802094,
+    "sign_reverses": true,
+    "breakeven_fee_bp": 0.047768023892663894
+  },
+  {
+    "symbol": "AVGO",
+    "n_steps": 219691,
+    "gross_pnl": 0.7888953685760498,
+    "turnover_sum": 90820.171875,
+    "turnover_per_step": 0.4134014844894409,
+    "half_spread_bp_mean": 2.182952856326256,
+    "spread_cost": 19.825615360657274,
+    "cost_to_profit_ratio": 25.1308553077734,
+    "net_pnl": -19.036719992081224,
+    "sign_reverses": true,
+    "breakeven_fee_bp": 0.08686305420742678
+  },
+  {
+    "symbol": "META",
+    "n_steps": 136676,
+    "gross_pnl": 0.2882208824157715,
+    "turnover_sum": 58220.4921875,
+    "turnover_per_step": 0.4259776175022125,
+    "half_spread_bp_mean": 1.861175932328794,
+    "spread_cost": 10.835857882771158,
+    "cost_to_profit_ratio": 37.595672429938475,
+    "net_pnl": -10.547637000355387,
+    "sign_reverses": true,
+    "breakeven_fee_bp": 0.04950469501351444
+  }
+]
