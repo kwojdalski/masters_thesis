@@ -303,7 +303,7 @@ else:
 ```
 
 ::: {.table-note}
-**Reward functions:** *Log Return*: the per-step change in log portfolio value (the baseline objective), multiplied by a fixed scale factor. *DSR*: the Differential Sharpe Ratio, the online single-step contribution to the Sharpe ratio computed from exponentially decaying estimates of the first two return moments ($\eta = 0.01$); self-normalizing, so no scale factor is applied. The construction is given in Section 4.3.\
+**Reward functions:** *Log Return*: the per-step change in log portfolio value (the baseline objective), multiplied by a fixed scale factor. *DSR*: the Differential Sharpe Ratio, the online single-step contribution to the Sharpe ratio computed from exponentially decaying estimates of the first two return moments ($\eta = \valRewardEta$); self-normalizing, so no scale factor is applied. The construction is given in Section 4.3.\
 **Legend:** Return: cumulative simple return. Ann. Vol: annualized volatility. Max DD: maximum drawdown. Sharpe: mean excess return / standard deviation (not annualized). Win Rate / Lose Rate: fraction of steps with positive / negative return. PF: profit factor (gross wins / gross losses). Turnover: mean absolute position change per step. % Long / % Short: fraction of steps with positive / negative position.
 :::
 
@@ -324,7 +324,7 @@ $+0.26\%$, are the passive drift of a held long position rather than the result
 of any learned decision.^[The two scenarios differ only in `reward_type` and its
 scaling: the log-return scenario applies `reward_scale: 10000.0` to per-step log
 returns of order $10^{-6}$, while the Differential Sharpe scenario uses
-`reward_scale: 1.0` with $\eta = 0.01$, the reward being self-normalizing by
+`reward_scale: 1.0` with $\eta = \valRewardEta$, the reward being self-normalizing by
 construction. Alternative reward scalings were tried for the log-return
 objective during development and did not resolve the saturation. A systematic
 scale sweep was not part of the reported experimental package, so the scaling

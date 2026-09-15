@@ -1,7 +1,7 @@
 project:
-  pre-render:
-    - uv run python ../../../scripts/export_all_to_thesis.py
-    # Must follow the export above: it reads the artifacts that step refreshes
-    # and turns the result values quoted in prose into LaTeX macros, so a
-    # sentence and the table beside it cannot disagree after a re-run.
-    - uv run python ../../../scripts/generate_thesis_value_macros.py
+  # One entry point for every artifact the thesis reads. Stages whose inputs
+  # are absent are skipped rather than failed, so this same command works on a
+  # machine with the MLflow store and the prepared data, and on CI, which has
+  # neither and only needs the value macros rebuilt from the committed
+  # snapshot. See src/masters_thesis/export/registry.py.
+  pre-render: uv run thesis-export

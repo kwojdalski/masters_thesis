@@ -1,16 +1,16 @@
 ## Discount Factor
 
-The main TD3 HFT experiment uses a discount factor of $\gamma = 0.9$. @sec-ch-reinforcement-learning
+The main TD3 HFT experiment uses a discount factor of $\gamma = \valGamma$. @sec-ch-reinforcement-learning
 defines its role in the value function.
 
-With $\gamma = 0.9$ the effective planning horizon is approximately
+With $\gamma = \valGamma$ the effective planning horizon is approximately
 $1/(1-\gamma) = 10$ steps. On the event-time HFT data used here, this short
 horizon intentionally emphasizes local order-book dynamics rather than distant
 price movements. This is appropriate for a Differential Sharpe Ratio reward
 computed from noisy tick-level portfolio changes, where long bootstrap horizons
 can make critic targets unstable.
 
-$\gamma = 0.9$ is held constant for the main selected-feature TD3 specification
+$\gamma = \valGamma$ is held constant for the main selected-feature TD3 specification
 to isolate the effect of the state representation and reward design. Sensitivity
 to $\gamma$ remains a natural direction for future work, particularly whether
 higher values such as 0.95--0.995 improve performance when the objective is less

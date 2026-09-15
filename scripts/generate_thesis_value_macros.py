@@ -33,6 +33,7 @@ generated namespace clearly separate from the class file's own commands.
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -66,9 +67,51 @@ _METRICS = [
     ("max_drawdown", "MaxDrawdown", "pct2"),
 ]
 
+# Hyperparameters of the main TD3 run, quoted throughout the design chapter.
+# These are read from the run's own logged hyperparams rather than from the
+# scenario YAML, so the prose states what the reported agent was actually
+# trained with -- a config edit after the fact cannot silently desynchronise
+# the sentence from the result it describes.
+_HYPERPARAM_SOURCE = "pooled_td3_hft_lob_state_space_pooled_streaming_selected_dsr"
+
+# (hyperparams key, macro suffix, format spec). "g" prints the shortest form
+# that round-trips (0.9, 0.005, 0.0001) and matches the digits already in the
+# prose; "latexsci" renders 2e-06 as the LaTeX "2 \times 10^{-6}" the text
+# uses. Note fmt_scientific() in thesis_tables.py is NOT usable here -- it
+# emits HTML <sup> for pandas tables, which would pass through literally.
+_HYPERPARAMS = [
+    ("gamma", "Gamma", "g"),
+    ("tau", "Tau", "g"),
+    ("reward_eta", "RewardEta", "g"),
+    ("actor_lr", "ActorLr", "g"),
+    ("exploration_noise_std", "ExplorationNoise", "g"),
+    ("policy_noise", "PolicyNoise", "g"),
+    ("noise_clip", "NoiseClip", "g"),
+    ("policy_delay", "PolicyDelay", "d"),
+    ("actor_weight_decay", "WeightDecay", "latexsci"),
+]
+
+
+def _latex_sci(value: float) -> str:
+    """Render a float as LaTeX scientific notation, e.g. 2e-06 -> '2 \\times 10^{-6}'.
+
+    Kept separate from thesis_tables.fmt_scientific, which emits an HTML
+    <sup> tag for embedding in a pandas-generated table and would appear
+    literally if it reached prose.
+    """
+    import math
+
+    exponent = math.floor(math.log10(abs(value)))
+    mantissa = value / (10**exponent)
+    rounded = round(mantissa)
+    mantissa_str = str(rounded) if abs(mantissa - rounded) < 1e-9 else f"{mantissa:g}"
+    if mantissa_str == "1":
+        return rf"10^{{{exponent}}}"
+    return rf"{mantissa_str} \times 10^{{{exponent}}}"
+
 
 def _render(value: object, spec: str) -> str | None:
-    """Format one metric, returning None when it is absent or non-finite."""
+    """Format one value, returning None when it is absent or non-finite."""
     if not isinstance(value, int | float):
         return None
     if value != value or value in (float("inf"), float("-inf")):  # NaN / inf
@@ -77,6 +120,10 @@ def _render(value: object, spec: str) -> str | None:
         return f"{value:.1%}".replace("%", r"\%")
     if spec == "pct2":
         return f"{value:.2%}".replace("%", r"\%")
+    if spec == "latexsci":
+        return _latex_sci(float(value))
+    if spec == "d":
+        return f"{int(value):d}"
     return f"{value:{spec}}"
 
 
@@ -94,6 +141,25 @@ def build_definitions() -> tuple[list[str], list[str]]:
                 missing.append(f"{scenario}:{key}")
                 continue
             lines.append(rf"\newcommand{{\{name}}}{{{body}}}")
+
+    hyper_path = (
+        _SRC.parent
+        / "results"
+        / _HYPERPARAM_SOURCE
+        / "latest_finished"
+        / "hyperparams.json"
+    )
+    if hyper_path.exists():
+        hyper = json.loads(hyper_path.read_text())
+        for key, suffix, spec in _HYPERPARAMS:
+            name = f"val{suffix}"
+            body = _render(hyper.get(key), spec)
+            if body is None:
+                missing.append(f"{_HYPERPARAM_SOURCE}:{key}")
+                continue
+            lines.append(rf"\newcommand{{\{name}}}{{{body}}}")
+    else:
+        missing.append(f"{hyper_path} (not exported)")
 
     return lines, missing
 

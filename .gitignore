@@ -139,6 +139,10 @@ mlflow.db-journal
 render_logs/*
 *.pkl
 logs/*
+# Per-run experiment artifacts (checkpoints, results.json, benchmark tables,
+# plots) written by train/evaluate. Separate from logs/, which is text logs
+# only -- see docs/masters_thesis/data_pipeline.md.
+output/
 *.db
 src/mlruns
 mlruns

@@ -10,4 +10,4 @@ research:
   horizon: 1
   top_k: 12
   corr_threshold: 0.85
-  output_dir: "logs/aapl_hft_lob_state_space/feature_research"
+  output_dir: "output/experiments/aapl_hft_lob_state_space/feature_research"
