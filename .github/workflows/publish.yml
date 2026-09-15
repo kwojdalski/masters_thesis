@@ -57,8 +57,8 @@ jobs:
         run: uv sync --extra dev
 
       - name: Render defence presentation
-        # Pure-markdown revealjs deck living outside the thesis Quarto project:
-        # no Python, no LaTeX, no pre-render hook, so it renders in seconds.
+        # The revealjs deck lives outside the thesis Quarto project. Its Python
+        # cells draw directly from committed snapshots; no MLflow or raw data.
         # Deliberately placed before the thesis build -- a broken deck then
         # fails fast instead of after a multi-minute PDF render.
         run: uv run quarto render thesis/presentation/defence.qmd --to revealjs
@@ -85,6 +85,11 @@ jobs:
             echo "::error::Presentation references the sidecar defence_files/ directory, so it is not self-contained."
             exit 1
           fi
+
+      - name: Check slide structure and export presentation PDF
+        # GitHub's Ubuntu image includes Google Chrome. The temporary Python
+        # dependency keeps browser tooling out of the trading environment.
+        run: uv run --with playwright==1.63.0 python thesis/presentation/export_pdf.py
 
       - name: Render thesis to HTML
         run: |
@@ -118,7 +123,9 @@ jobs:
           cp thesis/qmd/src/masters_thesis.pdf _site/masters_thesis.pdf
 
       - name: Copy presentation to site
-        run: cp thesis/presentation/defence.html _site/defence.html
+        run: |
+          cp thesis/presentation/defence.html _site/defence.html
+          cp thesis/presentation/defence.pdf _site/defence.pdf
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

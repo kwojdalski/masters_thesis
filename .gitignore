@@ -183,4 +183,5 @@ reports/
 
 # Rendered defence presentation (regenerate with: quarto render thesis/presentation/defence.qmd)
 thesis/presentation/defence.html
+thesis/presentation/defence.pdf
 thesis/presentation/defence_files/
