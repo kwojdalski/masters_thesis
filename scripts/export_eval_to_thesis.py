@@ -387,6 +387,30 @@ def _newer_checkpoint(results_file: Path) -> Path | None:
     )
 
 
+_CHECKPOINT_STEP_RE = re.compile(r"_checkpoint_step_(\d+)\.pt$")
+
+
+def _trained_steps_from_checkpoints(eval_dir: Path) -> int | None:
+    """Highest ``_checkpoint_step_N.pt`` in ``eval_dir``, i.e. steps actually run.
+
+    ``training.max_steps`` in the scenario YAML is the *requested* budget. A run
+    launched with a `--config-override training.max_steps=...` — how the H2/H3/H4
+    sweeps were run at 500k against configs that still say 3,000,000 — leaves no
+    trace in the YAML, so exporting the YAML value alone publishes a budget the
+    run never used (#797). Checkpoint filenames are written by the training loop
+    itself and are the one on-disk record of how far it actually got.
+
+    Returns None when no step-stamped checkpoint exists, in which case callers
+    keep the configured value rather than guessing.
+    """
+    steps = [
+        int(m.group(1))
+        for path in eval_dir.rglob("*_checkpoint_step_*.pt")
+        if (m := _CHECKPOINT_STEP_RE.search(path.name))
+    ]
+    return max(steps) if steps else None
+
+
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
         description="Export evaluate CLI output into a thesis result snapshot.",
@@ -661,6 +685,22 @@ def main() -> int:
     hyperparams = _load_scenario_hyperparams(args.scenario, repo_root)
     hyperparams_file: str | None = None
     if hyperparams is not None:
+        # max_steps from the YAML is the requested budget; a launch-time
+        # override leaves no trace there. Record what the run actually reached
+        # so the snapshot cannot contradict the prose (#797).
+        trained_steps = _trained_steps_from_checkpoints(eval_dir)
+        hyperparams["max_steps_configured"] = hyperparams.get("max_steps")
+        hyperparams["trained_steps"] = trained_steps
+        if trained_steps is not None:
+            hyperparams["max_steps"] = trained_steps
+            if hyperparams["max_steps_configured"] not in (None, trained_steps):
+                logger.warning(
+                    "trained steps ({}) differ from the configured max_steps ({}): "
+                    "the run was launched with an override. Exporting the trained "
+                    "value; max_steps_configured keeps the YAML figure.",
+                    trained_steps,
+                    hyperparams["max_steps_configured"],
+                )
         _write_json(snapshot_dir / "hyperparams.json", hyperparams)
         hyperparams_file = "hyperparams.json"
         logger.info("exported hyperparams from train.yaml")

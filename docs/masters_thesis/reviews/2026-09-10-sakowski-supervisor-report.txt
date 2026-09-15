@@ -1,0 +1,339 @@
+       RECENZJA PRACY DYPLOMOWEJ / DIPLOMA THESIS REVIEW
+
+AUTOR / AUTHOR:                                   Krzysztof Wojdalski
+NUMER ALBUMU / STUDENT’S ID NO.:                  310284
+TYTUŁ PRACY/ THESIS TITLE:                        Microstructure-Aware Deep Reinforcement Learning for High-
+                                                  Frequency Trading
+TYP PRACY / THESIS TYPE:                          [ ] PRACA LICENCJACKA / UNDERGRADUATE THESIS
+                                                  [X] PRACA MAGISTERSKA / GRADUATE THESIS
+PROMOTOR / SUPERVISOR:                            dr Paweł Sakowski
+RECENZENT / REVIEWER:
+RECEZJA PRZYGOTOWANA PRZEZ /                      [X] PROMOTOR / SUPERVISOR
+REVIEW PREPARED BY:                               [ ] RECENZENT / REVIEWER
+
+
+WYMAGANIA ODNOŚNIE TRADYCYJNYCH PRAC DYPLOMOWYCH
+Prace licencjackie
+1. muszą mieć jasno określony cel badawczy oraz powinny zawierać pytanie badawcze lub hipotezę badawczą,
+2. muszą wykorzystywać aktualną literaturę naukową krajową lub zagraniczną,
+3. muszą wykazywać przygotowanie dyplomanta do prowadzenia badań naukowych,
+4. muszą wykorzystywać instrumentarium badawcze prezentowane podczas studiów lub wykraczające poza program,
+5. mogą mieć formę pogłębionego referatu (o charakterze opisowym), opracowanego na podstawie literatury lub
+   stanowić prezentację badania własnego, przy czym, jeśli praca oparta jest na literaturze przedmiotu, od autora
+   oczekuje się samodzielności konstrukcji i sposobu interpretacji przedstawionego materiału,
+6. w przypadku pracy tradycyjnej, powinny mieć objętość do ok. 50 stron standardowego maszynopisu (100 tys. znaków
+   ze spacjami).
+Prace magisterskie
+1. muszą mieć jasno określony cel badawczy oraz zawierać (adekwatnie do obranej metody) hipotezę badawczą lub
+   pytanie badawcze,
+2. muszą wykorzystywać aktualną literaturę naukową zagraniczną, w odniesieniu do teorii, metody, jak i wyników
+   empirycznych,
+3. muszą wykazywać umiejętność samodzielnego prowadzenia badań naukowych przez dyplomanta,
+4. muszą wykorzystywać instrumentarium badawcze prezentowane podczas studiów lub wykraczające poza program,
+5. muszą stanowić prezentację badania własnego,
+6. w przypadku pracy tradycyjnej, powinny mieć objętość do ok. 80 stron standardowego maszynopisu (160 tys. znaków
+   ze spacjami).
+
+REQUIREMENTS FOR TRADITIONAL THESES
+Undergraduate theses
+1. must have a clearly defined research objective and should include a research question or a research hypothesis,
+2. must make use of current national or international scientific literature,
+3. must demonstrate the graduate's preparation for research,
+4. must make use of research instrumentation presented during the studies or beyond the programme,
+5. may take the form of an in-depth paper (of a descriptive character), developed on the basis of literature, or constitute a
+presentation of own research; if the paper is based on a given literature, the author is expected to be independent in the
+construction and interpretation of the presented material,
+6. traditional theses should be up to approximately 50 pages of standard typescript (100,000 characters with spaces).
+Graduate theses
+1. must have a clearly defined research objective and include (as appropriate to the method chosen) a research
+hypothesis or a research question,
+2. must make use of current foreign scientific literature, with regard to theory, method as well as empirical results,
+3. must demonstrate the graduate’s ability to conduct research independently,
+4. must make use of research instrumentation presented during studies or beyond the programme,
+5. must constitute a presentation of own research,
+6. traditional theses should be up to approximately 80 pages of standard typescript (160,000 characters with spaces).
+    I. MERYTORYCZNA OCENA PRACY / ASSESSMENT OF THE THESIS CONTENT
+       (minimum kwalifikujące / qualifying minimum: 23pkt.)
+
+
+                                                                                                                       PUNKTY
+PYTANIE / QUESTION
+                                                                                                                       POINTS
+1. MOTYWACJA: Jaki cel (problem, zadanie) został postawiony przed pracą? Czy jego znaczenie                             0–5
+zostało uzasadnione?
+1. MOTIVATION: What goal (task or research problem) has been set in the thesis? Has its
+significance been justified?
+The thesis sets a clearly defined research problem: whether a continuous-control deep reinforcement learning              5
+agent, conditioned on limit-order-book microstructure features, can extract a risk-adjusted edge at tick
+frequency, and what economically bounds that edge. The significance is convincingly argued on two levels -
+theoretically, because at tick frequency execution conditions are part of the signal environment rather than an
+implementation detail, so the decision problem genuinely differs from bar-based trading; and methodologically,
+because the applied RL-trading literature is shown to be weak precisely on cost modelling and evaluation
+discipline. The author explicitly frames the study as a controlled simulation rather than a live HFT system and
+states from the outset what is not modelled (latency, queue priority, partial fills, market impact), which is the
+right way to establish scope.
+2. PYTANIE BADAWCZE LUB HIPOTEZA BADAWCZA: Czy w pracy zostały postawione pytania                                       0–5
+badawcze i/lub hipotezy badawcze? Jakie? [Wymogi w tym zakresie zostały podsumowane na
+stronie 1 formularza recenzji.]
+2. RESEARCH QUESTION OR HYPOTHESIS: Have research questions and/or research hypotheses
+been posed in the thesis? If so, which ones? [Please note that the requirements in this matter are
+summarized on the first page of the review form.]
+Four numbered hypotheses are stated in Section 1.1.2 and carried consistently through the entire work: (H1) a             5
+TD3 agent trained on LOB features learns a risk-adjusted edge that survives out of sample; (H2) that edge
+depends on the assumed transaction cost; (H3) a broader microstructure-aware state representation improves
+out-of-sample performance; (H4) the reward objective shapes the policy and not only its score. Each is designed
+as a single-factor comparison, in which scenarios differ only in the quantity under study, which is exactly what
+makes the hypotheses testable rather than merely illustrative. The author also frames significance against an
+economic threshold rather than against zero, correctly observing that with roughly a million steps per instrument
+any statistical test rejects at effect sizes far below a tradable margin.
+3. METODA: Jaką metodą badawczą posłużono się w pracy? Czy jest ona dostosowana do celu                                a) 0 – 5
+pracy? Czy została prawidłowo zastosowana?                                                                             b) 0 – 5
+    a) wybór metody i dostosowanie do celu pracy, b) zakres i poprawność użycia.
+3. METHOD: What research method was used in the thesis? Does it fit the goal of the thesis? Has it
+been applied properly?
+   a) choice of method and its fit to the goal of thesis, b) scope and adequacy of use.
+a) Choice of method and fit to the goal (5/5). TD3 is a well-motivated choice: the exposure decision is naturally        a) 5
+continuous, and Chapter III derives the progression from value-based methods through DDPG and PPO to
+TD3's twin-critic and target-smoothing corrections, so the selection is argued rather than assumed. Training           b) 3
+DDPG and PPO under an identical configuration is a deliberate and correct design move. It converts H1 from a
+claim about one optimiser into a claim about a learnable signal. The evaluation apparatus (buy-and-hold,
+TWAP, VWAP and a random-action control, chronological splits, strictly causal online normalisation, one
+varying factor per hypothesis) fits the goal well.
+
+b) Scope and adequacy of use (3/5). The implementation itself is careful and well documented, but the empirical
+scope is narrow and this materially limits what the apparatus can deliver. The dataset covers only four trading
+days (25-27 February 2026 for training, 2 March 2026 split into validation and test), so the agent is never
+exposed to a different volatility or spread regime, each configuration is trained on a single seed, and three of the
+reported runs failed to train at all, collapsing to a constant saturated position, which leaves H3 and H4
+unresolved. In addition, all headline results are produced under frictionless mid-price execution, and the bid/ask
+repricing that tests their robustness is applied post hoc to a single instrument without retraining. The author
+identifies every one of these limitations explicitly and diagnoses the saturation failure carefully, which is to his
+considerable credit, but they nevertheless constrain the adequacy of the empirical application. Against this, the
+complete code base is published as an open repository and is treated as an integral part of the work rather than
+as supporting material: experiments are specified declaratively, so each hypothesis scenario can be re-run from
+its configuration file, which makes the causal normalisation, the chronological splits and the one-varying-factor
+design auditable rather than merely asserted.
+4. WIEDZA: Czy i jaką wiedzę nabytą w toku studiów danego stopnia na studiowanym kierunku                               0–5
+wykorzystano w pracy? Jak można ocenić stopień przyswojenia wiedzy (podstawowy, zadowalający,
+
+                                                                2
+pogłębiony, rozszerzony)? Czy student potrafi łączyć wiedzę z różnych obszarów, korzystać z
+dorobku różnych dziedzin (jakich?) itd.
+4. KNOWLEDGE: If and what kind of knowledge gained during the given degree studied in the field of
+studies has been used in the thesis? How to rate the level of acquired knowledge (basic, satisfactory,
+advanced, deepened)? Has student been able to link alternative sources of knowledge, benefit from
+other disciplines (which ones) etc.?
+The thesis makes substantial and correct use of knowledge from the Quantitative Finance programme and                    5
+beyond it. Market microstructure theory is used at a deepened level - Glosten and Milgrom, Kyle, Roll, Harris
+and the spread decomposition are not merely cited but mapped one-to-one onto named state variables, so that
+each theoretical mechanism yields an observable proxy together with a statement of its limitation.
+Reinforcement learning is developed from first principles through to the specific instabilities of deterministic
+actor-critic methods, and the work also draws on software engineering (a declaratively configured, reproducible
+experiment pipeline) and on the reproducibility literature in deep RL (Henderson et al., 2018). The level of
+acquired knowledge is deepened, and the linkage across disciplines is genuine.
+5. LITERATURA I DANE: Czy dobór literatury i/lub materiału empirycznego jest trafny i aktualny?                       a) 0 – 5
+   a) dobór literatury i/lub materiału empirycznego, b) wykorzystanie ich w pracy.                                    b) 0 – 5
+5. LITERATURE AND DATA: Is the selection of literature and/or empirical material accurate and
+relevant?
+   a) selection of literature and/or empirical material, b) usage in the thesis.
+a) Selection of literature and empirical material (5/5). The bibliography comprises roughly 90 items and is             a) 5
+dominated by current international sources spanning theoretical microstructure, deep reinforcement learning,
+and applied RL trading, with attention to reproducibility and evaluation-rigour work. The empirical material is       b) 5
+exactly right for the question: Nasdaq MBP-10 (ten-level market-by-price) data obtained through DataBento for
+six liquid US equities, which is the granularity actually required to construct the queue, imbalance and book-
+curvature features the design relies on. The only reservation concerns the length of the sample rather than its
+quality, and is scored under question 3b.
+
+b) Usage in the thesis (5/5). Chapter II is not a survey appended for form's sake. It is structured to deliver the
+design decisions of Chapter IV, separating descriptive microstructure variables from tradable signals by an
+explicit criterion (available before the action, survives costs, improves out-of-sample performance). Prior
+applied RL work is used to structure the treatment of action-space design, transaction-cost modelling and
+validation rigour. The data are also used properly: the per-instrument decomposition in Table 5 shows that
+cumulative return across instruments largely reflects event frequency rather than skill, and the author correctly
+switches to a per-step measure.
+6. WYNIKI: Czy został zrealizowany cel pracy? Czy zweryfikowano hipotezy badawcze? Czy                                 0–5
+uzyskano odpowiedź na pytania badawcze? Czy praca zawiera błędy, które rzutują na poprawność
+wyciągniętych wniosków?
+6. RESULTS: Has the aim of the thesis been achieved? Have the research hypotheses been
+verified? Have research questions been answered? Does the thesis have any mistakes which cast on
+the correctness of driven conclusions?
+The aim is partly achieved and the verdicts are stated with unusual precision. H1 is supported in a qualified            4
+form - all three learners separate cleanly from the random control while remaining indistinguishable from one
+another, so a learnable signal is present, but the per-step edge is smaller than a half-spread and reverses sign
+when the action path is repriced at the bid/ask. H2 is partially supported: the policies are cost-sensitive but no
+break-even fee is identified. H3 and H4 are explicitly reported as unresolved, because in each comparison one
+or two runs failed to train. What prevents this from being simply a shortfall is the author's own synthesis: three
+separately configured zero-fee runs collapsed to a saturated position under identical architecture and budget,
+which locates the binding constraint in training stability rather than in feature or reward design, and this is
+presented as the study's most substantial finding. No error was found that casts doubt on the conclusions drawn;
+an earlier evaluation-window mismatch in the H1 comparison was detected, re-measured over the full test split
+and disclosed in Section 7.2.4.
+7. LOGIKA WYWODU: Czy sposób prowadzenia i opisu wywodu jest prawidłowy? Czy zachowana                                 0–5
+została logika wywodu? Czy dobrze poprowadzona została narracja?
+7. LOGIC OF THESIS: Is the way of conducting and describing arguments correct? Has the logic of
+arguments been preserved? Was the narrative well conducted?
+The argument is conducted rigorously and the logic is preserved throughout: motivation, microstructure                   5
+evidence, RL foundations, agent design, implementation, hypothesis-by-hypothesis results, then a synthesis that
+separates what is established from what is not. In my opinion, the narrative discipline is the strongest feature of
+the thesis. The author distinguishes carefully between a failure that is an economically rational response to fees
+and a failure that is an optimisation artefact. Chapter VII does not retreat into generalities but converts the
+limitations into a prioritised research plan.
+                                                                               Suma punktów / Total points:            42 / 45
+
+
+                                                                3
+     II. FORMALNA OCENA PRACY / FORMAL ASSESSMENT OF THE THESIS
+         (minimum kwalifikujące / qualifying minimum: 7pkt.)
+
+
+1. TYTUŁY: Czy poprawnie i adekwatnie do treści sformułowano tytuł pracy i jej rozdziałów /                                0-2
+podrozdziałów?
+1. TITLES: Are the title of the thesis and its subchapters formulated correctly and adequately to its
+content?
+The title accurately and economically describes the content: microstructure-aware state design, deep                   2
+reinforcement learning, and high-frequency trading are all genuinely central to the work. Chapter and section
+titles are informative and adequate. The empirical chapter is organised by hypothesis, so the reader can navigate
+directly from a claim in the introduction to the evidence that bears on it.
+2. KONSTRUKCJA: Czy konstrukcja pracy jest właściwa?                                                                       0–2
+2. CONSTRUCTION: Is the project structured correctly?
+The logical construction is sound. The deduction concerns proportion and length: the thesis runs to 157 pages,         1
+with a main body of roughly 110 pages against the guideline of approximately 80 pages of standard typescript
+for a master's thesis. Chapters III and IV are long relative to the empirical payload, and part of the expository
+RL material and of the implementation detail could have been moved to the appendices without any loss.
+3: WSTĘP I ZAKOŃCZENIE: Czy wstęp i zakończenie dobrze informują o zamierzeniach Autora(ki),                               0-2
+zawartości pracy, użytej metodzie i osiągniętych rezultatach?
+3. INTRODUCTION AND CONCLUSIONS: Does the introduction and the concluding chapter clearly
+state the Author’s intentions, thesis contents, the method used and the results achieved?
+The Introduction states the research problem, the claimed novelty, the four hypotheses, the objectives, the            2
+chapter plan, and the role of the accompanying repository. Chapter VII summarises the evidence hypothesis by
+hypothesis, states plainly which claims are established and which are not, sets out the limitations under four
+organised headings, and derives the implications for trading-system design. Both fulfil their function fully and
+honestly.
+4. ODWOŁANIA: Czy technika prezentacji cudzego dorobku jest poprawna (odsyłacze, cytaty,                                   0-2
+omówienia, bibliografia itp.)?
+4. REFERENCES: Are the referencing and quotation techniques applied correctly (references,
+quotes, discussions, bibliography etc.)?
+Referencing follows a consistent APA-style convention with DOIs and stable links, and the bibliography is                   2
+complete. Attribution is precise: prior results are discussed rather than merely listed, and the boundary between
+what the literature establishes and what this thesis contributes is stated explicitly at the end of Chapter II. Data
+sources and the vendor schema are cited properly, including the MBP-10 schema documentation.
+5. EDYCJA: Czy właściwie skonstruowano tabele, wykresy, aneksy statystyczne itp.? Czy edycja nie                           0-2
+budzi zastrzeżeń?
+5. EDITION: Are charts, graphs, and statistical appendices built appropriately? Is their graphic form
+acceptable?
+Tables are well constructed, each with an explicit note stating the execution assumption under which the figures            2
+hold, a legend defining every metric and a source line. Figures, the pipeline diagram and the appendix material
+are appropriate and legible. The editorial standard is high throughout.
+6. JĘZYK: Czy praca została napisana zwięźle, poprawnie z punktu widzenia literackiego, itp.?                              0-2
+6. LANGUAGE: Was the thesis written concisely, correctly from a literary point of view, etc.?
+The thesis is written in correct, concise and often elegant English. No significant grammatical or stylistic                2
+problems were identified.
+7. TERMINOLOGIA: Czy praca została napisana poprawnie pod względem terminologicznym? Czy                                   0-2
+ewentualne błędy terminologiczne w pracy rzutują na poprawność wyciągniętych wniosków?
+7. TERMINOLOGY: Was the thesis written correctly in terms of terminology? Do any terminological
+errors in the thesis affect the correctness of the conclusions?
+Terminology is used correctly and consistently, both in the microstructure and in the reinforcement-learning                2
+parts, and terms that carry specific meanings are defined before use and applied consistently. The glossary and
+the notation appendix support this. No terminological error was found that would affect the correctness of the
+conclusions.
+                                                                                Suma punktów / Total points:           13 / 14
+
+
+
+     III. INNE UWAGI / ADDITIONAL COMMENTS
+
+                                                                4
+1. Zakres ewentualnych poprawek pracy (jeśli praca ich wymaga).
+1. Scope of thesis corrections (if required).
+NA
+2. Czy praca została napisana w formie artykułu naukowego? TAK/NIE
+2. Information if the thesis was written in the form of scientific paper. YES/NO
+[ ] TAK / YES
+[X] NIE / NO - the thesis has the traditional chapter-based form.
+3. Czy współautorstwo pracy jest uzasadnione (jeśli praca jest pisana przez dwóch studentów). TAK/NIE
+3. Information if co-authorship is justified (if the thesis was written by two students). YES/NO
+[ ] TAK / YES
+[X] NIE / NO - not applicable, the thesis has a single author.
+4. Konkursy
+Czy praca powinna zostać zgłoszona do konkursu na najlepszą pracę licencjacką im. W. Baki (jeśli dotyczy)?
+TAK/NIE
+Czy praca powinna zostać zgłoszona do konkursu na najlepszą pracę magisterską im. A. Semkowa (jeśli
+dotyczy)? TAK/NIE
+4. Contests
+Should the thesis be submitted to the W. Baka competition for the best undergraduate thesis (if applicable)?
+YES/NO
+Should the thesis be submitted to the A. Semkow competition for the best graduate thesis (if applicable)? YES/NO
+[X] TAK / YES - I recommend submitting the thesis to the competition for the best master's thesis. The single-factor
+experimental design, the treatment of the code repository as an auditable part of the work, and the willingness to report and
+diagnose failed runs rather than suppress them make it a strong candidate.
+[ ] NIE / NO
+
+
+
+
+                                                                 5
+IV. OCENA PRACY / GRADING SCALE
+
+- ocena merytoryczna / substantive assessment 0 – 45 pkt. (min. kwalifikujące / min. passing score: ~50%, 23
+pkt.);
+- ocena formalna / formal assessment 0 – 14 pkt. (min. kwalifikujące / min. passing score: ~50%, 7 pkt.);
+- ocena łączna / total score 0 – 59 pkt.
+
+
+                                                                   Próg procentowy /          Liczba punktów /
+  Ocena pracy / Thesis grade
+                                                                 Percentage thresholds             Points
+  Ocena celująca / Excellent (5!)                                   do / up to ~ 100%              57-59
+  Ocena bardzo dobra / Very good (5)                                 do / up to ~ 95%              48-56
+  Ocena dobra i dobra+ / Good and good plus (4, 4+)                  do / up to ~ 80%              40-47
+  Ocena dostateczna i dostateczna+ /
+                                                                     do / up to ~ 65%                30-39
+  Satisfactory, satisfactory plus (3, 3+)
+  Ocena niedostateczna / Unsatisfactory (2)                          do / up to ~ 50%                 0-29
+
+Praca wybitna (ocena 5!) – praca znacząco wykraczająca poza program studiów, zawierająca istotny
+wkład w naukę, nadająca się do publikacji w uznanych czasopismach międzynarodowych.
+Outstanding work (grade 5!) - a thesis which significantly exceeds the program of the studies,
+contains essential input to the science and can be published in recognised scientific journals.
+Praca bardzo dobra (ocena 5) – praca w znaczący sposób wykorzystująca treści określone w
+programie kształcenia, w pełni spełniająca wymagania stawiane pracom dyplomowym.
+Very good work (grade 5) - a thesis which significantly uses content specified in the curriculum, which
+fully meets the general requirements for the thesis.
+Praca dobra (ocena 4) – praca w umiarkowany sposób wykorzystująca treści określone w programie
+kształcenia, w przeważającej części spełniająca wymagania stawiane pracom dyplomowym.
+Good work (grade 4) - a thesis which uses content specified in the curriculum in a moderate way and
+meets the general requirements for thesis in major part.
+Praca słaba (ocena 3) – praca w dostateczny sposób wykorzystująca treści określone w programie
+kształcenia, połowicznie spełniająca wymagania stawiane pracom dyplomowym.
+Satisfactory work (grade 3) - thesis sufficiently uses content specified in the curriculum, partly meets
+the general requirements for the thesis.
+Praca zła (ocena 2) – praca w niedostateczny sposób wykorzystująca treści określone w programie
+kształcenia, w niewielkim stopniu spełniająca wymagania stawiane pracom dyplomowym, zawierająca
+istotne błędy merytoryczne wpływające na wyciągnięcie niepoprawnych wniosków.
+Unsatisfactory work (grade 2) - thesis insufficiently uses content specified in the curriculum, meets the
+general requirements for thesis in a small extent, contains significant substantive errors which effect in
+incorrect conclusions.
+
+
+
+           I. MERYTORYCZNA OCENA PRACY / ASSESSMENT OF THE THESIS CONTENT                                    42
+            Suma punktów / total points: (minimum kwalifikujące / qualifying minimum: 23pkt.)
+                 II. FORMALNA OCENA PRACY / FORMAL ASSESSMENT OF THE THESIS                                  13
+             Suma punktów / total points: (minimum kwalifikujące / qualifying minimum: 7pkt.)
+                                                                  Suma punktów / Total points:               55
+
+
+
+
+OCENA / GRADE: 5 (bardzo dobra / very good)
+
+
+
+
+Warszawa, ……………….………………                                   ………..……………………………………………………..
+                  (Warsaw, data / date)                     (Imię i nazwisko / Name and surname, PODPIS / SIGNATURE)
+
+
+
+
+                                                     6

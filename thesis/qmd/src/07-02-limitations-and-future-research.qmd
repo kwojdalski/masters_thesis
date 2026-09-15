@@ -17,7 +17,7 @@ profit. The execution limitation must therefore be assessed through the
 empirical sensitivity tests, not through a theoretical signal-ceiling claim.
 
 For the evaluated Hypothesis 1 action path, priced over the AAPL test window,
-the estimated spread-crossing cost is roughly ten times the gross profit, and
+the estimated spread-crossing cost is roughly fifteen times the gross profit, and
 the breakeven proportional fee is on the order of $4 \times 10^{-6}$. Both
 follow from the realised turnover of that path and the mean relative
 half-spread on the same window; the second is simply the per-step gross return
@@ -26,7 +26,7 @@ The Hypothesis 2 sweep is not a direct estimate of this break-even point. Each
 fee scenario uses a separately trained policy, and the two higher-fee runs collapse
 to static positions. Charging the spread on the identical action path, rather
 than pricing it at the mid, therefore turns the gross profit negative: the
-cost exceeds the profit by about an order of magnitude, so the same signal
+cost exceeds the profit by more than an order of magnitude, so the same signal
 reverses sign. These figures are indicative rather than final. They come from
 re-pricing a fixed policy on one instrument, not from retraining, and a policy
 trained against spread-crossing costs would not follow this action path. A control in which random
@@ -38,6 +38,18 @@ re-evaluate the agents under an explicit bid/ask fill rule with calibrated
 maker/taker fees and a slippage or market-impact model. Because the training
 reward shares the mid-price assumption, re-scoring the existing checkpoints is
 not sufficient.
+
+The AAPL-only calculation above generalises. @tbl-bid-ask-repricing
+(@sec-appendix-bid-ask-repricing) extends it to the other five instruments,
+using the same Hypothesis 1 TD3 checkpoint's per-instrument test rollout and
+the half-spread already reported per instrument in @tbl-tick-breakeven-fee.
+The spread cost exceeds the gross profit on every instrument, from roughly 15
+times on AAPL to roughly 38 times on META, and the net result after charging
+the spread is negative on all six. The reversal is therefore not specific to
+AAPL: it is the same fixed-spread subsidy removed on every instrument the
+policy was evaluated on. As above, this re-prices a fixed action path rather
+than a retrained policy, and does not by itself establish what a
+spread-aware policy would learn.
 
 Two further assumptions in @sec-simulation-assumptions bear on the same
 question and have not been quantified here. The first is zero latency: the

@@ -181,6 +181,12 @@ def _performance_summary(
         simple_returns = simple_returns.to_simple().values
     r = np.asarray(simple_returns, dtype=float)
     r = r[np.isfinite(r)]
+    # Drawdown is a path property: compounding into reporting bars hides every
+    # intra-bar peak-to-trough excursion, so it is measured on the raw steps,
+    # matching build_metric_report. Only the risk ratios below use the
+    # aggregated bars. total_return is unaffected either way -- compounding is
+    # associative -- which is what made the divergence easy to miss (#812).
+    r_steps = r
     r, periods_per_year = aggregate_to_reporting_frequency(r, periods_per_year)
     _can_annualize = periods_per_year > 0
     if r.size == 0:
@@ -229,7 +235,7 @@ def _performance_summary(
         "annualized_volatility": float(annualized_vol),
         "sharpe_ratio": float(sharpe) if np.isfinite(sharpe) else np.nan,
         "sortino_ratio": float(sortino) if np.isfinite(sortino) else np.nan,
-        "max_drawdown": _max_drawdown(r),
+        "max_drawdown": _max_drawdown(r_steps),
     }
 
 

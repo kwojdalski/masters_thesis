@@ -521,10 +521,18 @@ def build_metric_report(
     )
 
     # Omega ratio at the risk-free threshold: E[max(r - rf, 0)] / E[max(rf - r, 0)]
-    # Generalises profit_factor (equal to it when rf_per_period == 0).
-    _gains = np.mean(np.maximum(r - rf_per_period, 0.0))
-    _losses_omega = np.mean(np.maximum(rf_per_period - r, 0.0))
-    omega_ratio = _safe_div(float(_gains), float(_losses_omega))
+    # On the raw per-step series, like the trade statistics above: at bar
+    # resolution the denominator averages over a handful of losing bars
+    # (downside_bars is ~2 of ~237 on the H1 policies) and the ratio degenerates,
+    # the same failure the _r_finite switch was made to avoid. Generalises
+    # profit_factor, and equals it exactly when rf_per_period == 0 -- which only
+    # holds if both are measured on the same series (#811).
+    if _r_finite.size:
+        _gains = float(np.mean(np.maximum(_r_finite - rf_per_period, 0.0)))
+        _losses_omega = float(np.mean(np.maximum(rf_per_period - _r_finite, 0.0)))
+        omega_ratio = _safe_div(_gains, _losses_omega)
+    else:
+        omega_ratio = np.nan
 
     if actions is not None and len(actions) > 0:
         actions_arr = np.asarray(actions, dtype=float)

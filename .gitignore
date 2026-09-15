@@ -180,3 +180,7 @@ reports/
 
 # Scratch export directory (not project source)
 .tmp_export/
+
+# Rendered defence presentation (regenerate with: quarto render thesis/presentation/defence.qmd)
+thesis/presentation/defence.html
+thesis/presentation/defence_files/
