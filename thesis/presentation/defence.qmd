@@ -8,6 +8,7 @@ date-format: "D MMMM YYYY"
 format:
   revealjs:
     theme: [default, defence.scss]
+    embed-resources: true
     slide-number: c/t
     transition: none
     incremental: false
