@@ -1,0 +1,296 @@
+---
+title: "Microstructure-Aware Deep Reinforcement Learning for High-Frequency Trading"
+subtitle: "Master's thesis defence"
+author: "Krzysztof Wojdalski"
+institute: "Faculty of Economic Sciences, University of Warsaw"
+date: today
+date-format: "D MMMM YYYY"
+format:
+  revealjs:
+    theme: [default, defence.scss]
+    slide-number: c/t
+    transition: none
+    incremental: false
+    width: 1280
+    height: 760
+    center-title-slide: true
+    fig-align: center
+    code-fold: false
+    echo: false
+    warning: false
+---
+
+## The problem {.smaller}
+
+Most trading research runs on **bars** — minute, hourly, daily. That throws away
+the mechanism by which price is actually formed.
+
+At tick frequency the order book exposes the mechanism directly: queue
+imbalance, depth, the sign of trade flow, the spread you must cross.
+
+**Research question.** Can a reinforcement learning agent extract a tradable
+signal from limit-order-book microstructure — and what bounds that signal
+economically?
+
+::: {.fragment}
+Two design commitments follow:
+
+- **Continuous exposure**, not discrete buy/hold/sell — position is a real number in $[-1, 1]$
+- **Risk-adjusted reward** (Differential Sharpe Ratio), not raw P&L
+:::
+
+## Data {.smaller}
+
+Real market-by-price data, not simulation.
+
+| | |
+|---|---|
+| Source | DataBento MBP-10, Nasdaq |
+| Instruments | AAPL, AMZN, AVGO, META, MSFT, TSLA |
+| Training | 18,707,348 events, 25–27 Feb 2026 |
+| Validation | 3,673,436 events, 2 Mar 2026 (first half) |
+| Test | 3,673,439 events, 2 Mar 2026 (second half) |
+
+: {tbl-colwidths="[25,75]"}
+
+::: {.fragment}
+Ten curated microstructure features: book imbalance, depth, flow, spread,
+realised volatility, signed trade flow.
+
+**Split is strictly temporal.** Scalers are fit on train only.
+:::
+
+## Method {.smaller}
+
+**TD3** — Twin Delayed DDPG — chosen for continuous action control:
+
+- Twin critics, taking the minimum, to damp overestimation bias
+- Delayed policy updates (actor updated every second critic step)
+- Target policy smoothing
+
+Benchmarked against **DDPG**, **PPO**, a **random-action control**, and
+**TWAP / VWAP / buy-and-hold**.
+
+::: {.fragment}
+**Reward: Differential Sharpe Ratio.** An online, recursive approximation to
+the Sharpe ratio, so risk enters the objective at every step rather than being
+scored after the fact.
+:::
+
+## H1 — Does the agent learn anything? {.smaller}
+
+Frictionless mid-price execution, full held-out test window:
+
+| Algorithm | Return | Sharpe | Max DD | Profit factor | Turnover |
+|---|---:|---:|---:|---:|---:|
+| **TD3** | 304.94% | 5.04 | −0.65% | 3.41 | 0.446 |
+| DDPG | 312.78% | 4.96 | −0.45% | 3.64 | 0.401 |
+| PPO | 205.55% | 5.44 | −0.47% | 4.59 | 0.363 |
+| Random control | 0.25% | 0.03 | −0.59% | 1.01 | 0.667 |
+
+::: {.fragment}
+The **random control is the important row**. Same environment, same frictionless
+assumption, 0.25% and Sharpe 0.03. The learned result is not an artifact of the
+simulator.
+:::
+
+::: {.fragment}
+The three learners are **close to each other**. TD3 does not dominate — DDPG
+earns more, PPO has the better Sharpe. I do not claim TD3 is the right choice;
+I claim all three learn.
+:::
+
+## The result that matters most {.smaller}
+
+Those returns assume you trade at the **mid-price for free**. You cannot.
+
+Re-pricing the identical action path at the bid/ask, charging the realised
+turnover times each instrument's mean half-spread:
+
+| Symbol | Gross PnL | Spread cost | Ratio | Net PnL |
+|---|---:|---:|---:|---:|
+| AAPL | 1.515 | 22.956 | 15.2× | **−21.44** |
+| TSLA | 1.822 | 30.024 | 16.5× | **−28.20** |
+| AMZN | 2.048 | 33.854 | 16.5× | **−31.81** |
+| MSFT | 0.824 | 16.046 | 19.5× | **−15.22** |
+| AVGO | 0.789 | 19.826 | 25.1× | **−19.04** |
+| META | 0.288 | 10.836 | 37.6× | **−10.55** |
+
+::: {.fragment}
+**The edge does not survive the spread on any of the six.** The signal is real;
+it is roughly an order of magnitude too small to pay for the trading it requires.
+:::
+
+## Why it dies: turnover, not signal quality {.smaller}
+
+The mechanism is specific and measurable (AAPL):
+
+- Position saturated at $\pm 1$ on **85%** of steps
+- Turnover of **0.427** of position per step
+- Gross earnings: **~1.6 × 10⁻⁶** per step
+- Half-spread cost: **~2.4 × 10⁻⁵** per step
+
+::: {.fragment}
+The agent pays the spread roughly every other step to capture a fraction of a
+tick. Break-even proportional fee is **0.037 bp** — far below any real venue.
+:::
+
+::: {.fragment}
+This is not a failure of the agent. It is the agent optimising exactly what it
+was given: a reward with **no cost term**. The mid-price assumption is in the
+training objective, so re-scoring the checkpoint is not enough — a cost-aware
+policy must be **retrained**, not rescored.
+:::
+
+## H2, H3, H4 {.smaller}
+
+**H2 — cost sensitivity. Supported.** Independently trained policies stay active
+at 0 and 0.01 bp, then collapse to static positions at higher fees. Cost
+sensitivity is confirmed; a clean break-even point is not.
+
+::: {.fragment}
+**H3 — feature set. Unresolved.** Of three feature configurations, only the
+curated ten-feature microstructure state converged. The other two did not train.
+:::
+
+::: {.fragment}
+**H4 — reward objective. Unresolved.** Only the Differential Sharpe objective
+produced a trading policy. The log-return objective did not train, so the
+comparison turns on whether optimisation succeeded, not on what the objective
+rewards.
+:::
+
+::: {.fragment}
+I report H3 and H4 as **unresolved rather than negative**. A run that did not
+train is not evidence about the quantity under study.
+:::
+
+## Contribution and limitations {.smaller}
+
+**What this thesis contributes**
+
+- A reproducible pipeline: raw MBP-10 → microstructure features → DSR reward → out-of-sample evaluation
+- An economic bound on the tick-frequency edge, measured on all six instruments rather than asserted
+- A negative result stated plainly, with the mechanism identified
+
+::: {.fragment}
+**What it does not establish**
+
+- Four trading days, test confined to half a session — no regime or walk-forward evidence
+- One seed per configuration; no distribution over random initialisations
+- No non-RL baseline trained on the same features
+- Zero latency assumed throughout
+:::
+
+## Conclusion {.smaller}
+
+A TD3 agent trained on order-book microstructure learns a **genuine,
+out-of-sample, risk-adjusted edge** at tick frequency — clearly separated from a
+random control.
+
+::: {.fragment}
+That edge is **eliminated by the cost of crossing the spread** on every
+instrument tested.
+:::
+
+::: {.fragment}
+The honest reading: microstructure RL at this frequency is a
+**transaction-cost problem before it is a learning problem**. The next
+experiment is not a better agent — it is the same agent retrained against an
+explicit bid/ask fill rule.
+:::
+
+. . .
+
+::: {.centered-thanks}
+**Thank you.**
+:::
+
+# Backup slides {.centered background-color="#1a1a2e"}
+
+## Reviewer Q1 — Win + Lose sums across policies {.smaller}
+
+> *At zero fee, why do the Win+Lose sums differ across policies?*
+
+The printed figures reproduce exactly from the metrics
+(win rate + lose rate): TWAP/VWAP 20.27%, TD3 31.87%, DDPG 41.08%, PPO 48.01%.
+
+Win+Lose is the fraction of steps with a **non-zero position-weighted return**,
+which requires both that the price moved **and** that the position was non-zero
+at that step. Roughly 80–90% of consecutive LOB returns are zero, so the ceiling
+is policy-independent — but the realised share is not, because position
+magnitude varies across policies and the pooled figure averages six instruments
+with different event frequencies.
+
+::: {.fragment}
+**Candid answer:** the arithmetic reconciliation from raw per-step returns to
+these pooled shares is still open. I can state the mechanism but I would not
+yet defend the exact decomposition.
+:::
+
+## Reviewer Q2 — 21,776 position changes vs 0.53 turnover {.smaller}
+
+> *0.53 × 3,673,439 steps implies ~970,000 non-zero position changes, not 21,776.*
+
+The reviewer is right that the two cannot both describe the same quantity.
+
+- **Turnover** is the mean absolute position change per step, over *all* steps — a continuous quantity
+- **21,776** counts something discrete and much rarer — evidently a thresholded or direction-reversing subset, not every non-zero change
+
+::: {.fragment}
+Both numbers appear in one sentence without their definitions, which makes them
+read as contradictory. The correct fix is to print both definitions explicitly,
+or drop the count. **This is a reporting defect in the thesis, and the reviewer
+found it correctly.**
+:::
+
+## Reviewer Q3 — Extend repricing to all six {.smaller}
+
+> *Can the bid/ask repricing be extended from one instrument to all six?*
+
+**Yes — done, and it is on slide 5.**
+
+The half-spread was already tabulated per instrument. The per-step edge came
+from per-instrument test rollouts of the same TD3 checkpoint.
+
+::: {.fragment}
+The conclusion **strengthens** rather than weakens: the sign reversal is not an
+AAPL artifact. Spread cost exceeds gross profit on all six, from 15.2× to 37.6×.
+
+One caveat I want to state before being asked: this re-prices a **fixed action
+path**. A policy trained against spread costs would not follow this path, so
+this bounds *this* policy, not what a cost-aware agent could achieve.
+:::
+
+## Why TD3 rather than DQN {.smaller}
+
+Exposure is naturally continuous. Discretising it into buy/hold/sell throws away
+the sizing decision, which at tick frequency is most of the decision.
+
+- **DQN** requires a discrete action space
+- **DDPG** handles continuous actions but overestimates Q-values
+- **TD3** adds twin critics, delayed actor updates and target smoothing to control exactly that bias
+
+::: {.fragment}
+Empirically DDPG and TD3 land close together here — consistent with the thesis's
+own finding that **algorithm choice mattered less than state and reward
+specification**.
+:::
+
+## Differential Sharpe Ratio {.smaller}
+
+Sharpe is a property of a *distribution* of returns — it cannot be assigned to a
+single step. The DSR resolves this with exponentially weighted moments:
+
+$$A_t = A_{t-1} + \eta(R_t - A_{t-1}), \qquad B_t = B_{t-1} + \eta(R_t^2 - B_{t-1})$$
+
+$$D_t = \frac{B_{t-1}\,\Delta A_t - \tfrac{1}{2}A_{t-1}\,\Delta B_t}{\left(B_{t-1} - A_{t-1}^2\right)^{3/2}}$$
+
+$D_t$ is the first-order contribution of the current step to the running Sharpe
+ratio, so risk enters the reward at every step rather than being scored
+afterwards.
+
+::: {.fragment}
+It is also what produced the **only** trading policy among the reward objectives
+tested (H4).
+:::

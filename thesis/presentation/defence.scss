@@ -1,0 +1,86 @@
+/*-- scss:defaults --*/
+
+$font-family-sans-serif: "Source Sans Pro", "Helvetica Neue", Helvetica, sans-serif !default;
+$presentation-heading-font: "Source Sans Pro", "Helvetica Neue", Helvetica, sans-serif !default;
+
+$body-bg: #fdfdfd !default;
+$body-color: #1f2430 !default;
+$link-color: #1d4ed8 !default;
+$presentation-heading-color: #12263f !default;
+
+$presentation-font-size-root: 30px !default;
+
+/*-- scss:rules --*/
+
+.reveal h1,
+.reveal h2 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.reveal h2 {
+  border-bottom: 2px solid #e3e8ef;
+  padding-bottom: 0.25em;
+  margin-bottom: 0.6em;
+}
+
+.reveal table {
+  font-size: 0.85em;
+  margin: 0.6em auto;
+  border-collapse: collapse;
+}
+
+.reveal table th {
+  border-bottom: 2px solid #12263f;
+  font-weight: 600;
+  padding: 0.35em 0.7em;
+}
+
+.reveal table td {
+  border-bottom: 1px solid #e3e8ef;
+  padding: 0.3em 0.7em;
+}
+
+.reveal table tbody tr:last-child td {
+  border-bottom: 2px solid #12263f;
+}
+
+/* Highlight the random-control and net-PnL rows without hard-coding colour per slide. */
+.reveal table strong {
+  color: #b91c1c;
+}
+
+.reveal blockquote {
+  border-left: 4px solid #94a3b8;
+  background: #f6f8fb;
+  padding: 0.5em 1em;
+  font-style: italic;
+  width: 100%;
+}
+
+.reveal .slide-number {
+  background-color: transparent;
+  color: #94a3b8;
+}
+
+.centered-thanks {
+  text-align: center;
+  font-size: 1.4em;
+  margin-top: 1em;
+}
+
+.reveal section.centered h1 {
+  text-align: center;
+  color: #ffffff;
+}
+
+/* Title slide */
+#title-slide .subtitle {
+  color: #475569;
+  font-size: 1.05em;
+}
+
+#title-slide .institute {
+  color: #64748b;
+  font-size: 0.8em;
+}
