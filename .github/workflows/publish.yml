@@ -56,6 +56,36 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --extra dev
 
+      - name: Render defence presentation
+        # Pure-markdown revealjs deck living outside the thesis Quarto project:
+        # no Python, no LaTeX, no pre-render hook, so it renders in seconds.
+        # Deliberately placed before the thesis build -- a broken deck then
+        # fails fast instead of after a multi-minute PDF render.
+        run: uv run quarto render thesis/presentation/defence.qmd --to revealjs
+
+      - name: Check the presentation is self-contained
+        # embed-resources inlines reveal.js. Without it Quarto emits ~36 KB of
+        # unstyled text that loads its library from a sidecar defence_files/
+        # directory, so the deck opens as a plain document rather than slides.
+        # That failure is invisible to `quarto render`, which exits 0 either
+        # way, so assert it here: size floor plus an explicit sidecar check.
+        run: |
+          deck="thesis/presentation/defence.html"
+          if [ ! -f "$deck" ]; then
+            echo "::error::No presentation produced at $deck"
+            exit 1
+          fi
+          bytes=$(wc -c < "$deck")
+          echo "Presentation size: ${bytes} bytes"
+          if [ "$bytes" -lt 500000 ]; then
+            echo "::error::Presentation is only ${bytes} bytes; expected >= 500000. embed-resources did not apply, so reveal.js is not inlined."
+            exit 1
+          fi
+          if grep -q 'defence_files/' "$deck"; then
+            echo "::error::Presentation references the sidecar defence_files/ directory, so it is not self-contained."
+            exit 1
+          fi
+
       - name: Render thesis to HTML
         run: |
           uv run quarto render thesis/qmd/src/masters-thesis.qmd --to html
@@ -86,6 +116,9 @@ jobs:
         run: |
           echo "PDF file size: $(wc -c < thesis/qmd/src/masters_thesis.pdf) bytes"
           cp thesis/qmd/src/masters_thesis.pdf _site/masters_thesis.pdf
+
+      - name: Copy presentation to site
+        run: cp thesis/presentation/defence.html _site/defence.html
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
